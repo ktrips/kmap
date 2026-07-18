@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// 各ユーザーは自分の `users/{uid}/places/**` 配下のみ読み書きできる。
+// iOSアプリ・Webアプリ（map.ktrips.net）は、どちらもこの同じルールの下で
+// Firebase Authenticationでサインインしたuidを使ってアクセスする。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/places/{placeId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 上記以外はすべて拒否（デフォルト拒否）
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
