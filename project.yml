@@ -46,6 +46,9 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - "$(GOOGLE_REVERSED_CLIENT_ID)"
+    configFiles:
+      Debug: Config/Secrets.xcconfig
+      Release: Config/Secrets.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.komap.Komap
@@ -57,11 +60,6 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"
         ENABLE_PREVIEWS: "YES"
-      configs:
-        Debug:
-          xcconfig: Config/Secrets.xcconfig
-        Release:
-          xcconfig: Config/Secrets.xcconfig
     dependencies:
       - package: GoogleMaps
         product: GoogleMaps

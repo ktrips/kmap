@@ -18,6 +18,9 @@ Komap/Resources/GoogleService-Info.plist
 web/.env
 web/.env.local
 
+# APIキーなどの秘密情報(各自ローカルで設定し、コミットしない)
+Config/Secrets.xcconfig
+
 # macOS
 .DS_Store
 
