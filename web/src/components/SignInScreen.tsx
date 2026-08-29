@@ -2,7 +2,6 @@ interface Props {
   isSigningIn: boolean;
   error: string | null;
   isFirebaseConfigured: boolean;
-  onSignInWithApple: () => void;
   onSignInWithGoogle: () => void;
 }
 
@@ -10,7 +9,6 @@ export function SignInScreen({
   isSigningIn,
   error,
   isFirebaseConfigured,
-  onSignInWithApple,
   onSignInWithGoogle,
 }: Props) {
   return (
@@ -20,15 +18,12 @@ export function SignInScreen({
         <h1>わたしの時間旅行</h1>
         <p className="sign-in-description">
           iOSアプリの「Komap 古地図巡り」で保存した地点と、AIが語ってくれた昔の物語を、
-          こちらのWebページからも見られます。iOSアプリで使ったのと同じアカウントで、
+          こちらのWebページからも見られます。iOSアプリで使ったのと同じGoogleアカウントで、
           同じようにサインインしてください。
         </p>
 
         {isFirebaseConfigured ? (
           <div className="sign-in-buttons">
-            <button className="apple-button" onClick={onSignInWithApple} disabled={isSigningIn}>
-              {isSigningIn ? "サインイン中..." : "Appleでサインイン"}
-            </button>
             <button className="google-button" onClick={onSignInWithGoogle} disabled={isSigningIn}>
               {isSigningIn ? "サインイン中..." : "Googleでサインイン"}
             </button>

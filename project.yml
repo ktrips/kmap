@@ -46,11 +46,6 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - "$(GOOGLE_REVERSED_CLIENT_ID)"
-    entitlements:
-      path: Komap/Komap.entitlements
-      properties:
-        com.apple.developer.applesignin:
-          - Default
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.komap.Komap

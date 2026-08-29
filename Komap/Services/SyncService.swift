@@ -6,7 +6,7 @@ import Foundation
 /// `users/{uid}/places/{id}` コレクションへアップロード／取得する。
 ///
 /// この同じコレクションをWebアプリ（map.ktrips.net）側からも読み込むことで、
-/// 同じApple IDでサインインしたユーザーが、iOSで保存した「自分のマップ」を
+/// 同じGoogleアカウントでサインインしたユーザーが、iOSで保存した「自分のマップ」を
 /// Web上でも見られるようにしている。
 struct SyncService {
     enum SyncError: LocalizedError {
@@ -16,7 +16,7 @@ struct SyncService {
         var errorDescription: String? {
             switch self {
             case .notSignedIn:
-                return "Webでも見られるようにするには、設定タブでAppleサインインしてください。"
+                return "Webでも見られるようにするには、設定タブでGoogleサインインしてください。"
             case .firebaseNotConfigured:
                 return "Firebaseが設定されていないため、クラウド同期は利用できません。"
             }

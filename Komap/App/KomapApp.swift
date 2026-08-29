@@ -14,7 +14,7 @@ struct KomapApp: App {
         // GoogleService-Info.plist が未配置の場合は `FirebaseApp.configure()` が
         // クラッシュしてしまうため、存在チェックしてから初期化する。
         // これにより、Firebase未セットアップの状態でもアプリ自体は起動できる
-        // （その場合はクラウド同期・Appleサインインのみ利用不可）。
+        // （その場合はクラウド同期・Googleサインインのみ利用不可）。
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
             FirebaseApp.configure()
         }

@@ -82,27 +82,6 @@ code {
   gap: 12px;
 }
 
-.apple-button {
-  width: 100%;
-  background: #000;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 20px;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: opacity 0.2s ease;
-}
-
-.apple-button:hover {
-  opacity: 0.85;
-}
-
-.apple-button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
 .google-button {
   width: 100%;
   background: #fff;

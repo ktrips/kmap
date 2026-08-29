@@ -10,15 +10,7 @@ import { usePlaces } from "./lib/usePlaces";
 import type { SavedPlace } from "./types/place";
 
 export default function App() {
-  const {
-    user,
-    isInitializing,
-    isSigningIn,
-    error,
-    signInWithApple,
-    signInWithGoogle,
-    signOut,
-  } = useAuth();
+  const { user, isInitializing, isSigningIn, error, signInWithGoogle, signOut } = useAuth();
   const { places } = usePlaces(user?.uid ?? null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -42,7 +34,6 @@ export default function App() {
         isSigningIn={isSigningIn}
         error={error}
         isFirebaseConfigured={isFirebaseConfigured}
-        onSignInWithApple={signInWithApple}
         onSignInWithGoogle={signInWithGoogle}
       />
     );

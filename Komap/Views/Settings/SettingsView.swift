@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// OpenAIのAPIキー入力・Appleサインイン・古地図データなど、アプリの設定を行う画面。
+/// OpenAIのAPIキー入力・Googleサインイン・古地図データなど、アプリの設定を行う画面。
 struct SettingsView: View {
     @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
@@ -95,17 +95,6 @@ struct SettingsView: View {
                 }
             } else {
                 Button {
-                    Task { await authService.signInWithApple() }
-                } label: {
-                    if authService.isSigningIn {
-                        ProgressView()
-                    } else {
-                        Label("Appleでサインイン", systemImage: "apple.logo")
-                    }
-                }
-                .disabled(authService.isSigningIn)
-
-                Button {
                     Task { await authService.signInWithGoogle() }
                 } label: {
                     if authService.isSigningIn {
@@ -125,7 +114,7 @@ struct SettingsView: View {
         } header: {
             Text("アカウント / Web連携")
         } footer: {
-            Text("Apple／Googleのいずれかでサインインすると、保存した地点がクラウドに同期され、Webアプリ（map.ktrips.net）で同じアカウントでログインした際に「自分のマップ」として見られるようになります。")
+            Text("Googleでサインインすると、保存した地点がクラウドに同期され、Webアプリ（map.ktrips.net）で同じGoogleアカウントでログインした際に「自分のマップ」として見られるようになります。")
         }
     }
 

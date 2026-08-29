@@ -2,8 +2,7 @@
 
 現在のGoogle Map上に古地図を重ね合わせ、自分が歩いている場所の「昔の姿」をAIが解説してくれる、
 時間旅行気分の散策アプリです。iOSアプリで保存した「わたしの時間旅行」は、Webアプリ
-（`map.ktrips.net`）からも同じアカウント（Apple ID または Googleアカウント）でログインして
-見ることができます。
+（`map.ktrips.net`）からも同じGoogleアカウントでログインして見ることができます。
 
 ## 主な機能
 
@@ -12,7 +11,7 @@
 - スライダーで「現在の地図」⇔「古地図」の濃さ（不透明度）を自由に調整
 - 地図上の好きな地点をタップ（または現在地ボタン）すると、AIがその場所の昔の出来事や物語を生成
 - 気に入った物語は「わたしの時間旅行」として端末に保存し、後から一覧・詳細で見返せる
-- Apple または Googleでサインインすると、保存した地点がクラウド（Firestore）に同期され、
+- Googleでサインインすると、保存した地点がクラウド（Firestore）に同期され、
   Webアプリ（`map.ktrips.net` を予定）でも同じ記録を閲覧できる
 
 ## 技術構成
@@ -24,7 +23,7 @@
 | 位置情報 | CoreLocation |
 | ローカル保存 | SwiftData（保存した地点・物語） |
 | AI | OpenAI Chat Completions API（`gpt-4o-mini`） |
-| クラウド同期 | Firebase Authentication（Sign in with Apple / Googleサインイン） + Cloud Firestore |
+| クラウド同期 | Firebase Authentication（Googleサインイン） + Cloud Firestore |
 | Webアプリ | Vite + React + TypeScript、Firebase JS SDK、Google Maps JavaScript API |
 | iOSプロジェクト管理 | [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`project.yml` から `.xcodeproj` を生成） |
 
@@ -81,30 +80,36 @@ Web（`map.ktrips.net`）で「自分のマップ」を見られるようにす�
 不要であればスキップしても、iOSアプリ単体（ローカル保存のみ）は動作します。
 
 1. [Firebase Console](https://console.firebase.google.com/) で新しいプロジェクトを作成します。
-2. 「Authentication」→「Sign-in method」で **Apple** プロバイダを有効化します。
-   - Apple Developer側で Services ID・Team ID・Key ID・秘密鍵を発行し、Firebaseの設定画面に入力します
-     （手順: https://firebase.google.com/docs/auth/ios/apple ）。
-   - iOS用の「Sign in with Apple」を使うには、Apple Developer PortalでこのApp ID
-     （Bundle ID: `com.komap.Komap`。実際に使う場合は適宜変更してください）に対して
-     Sign in with Apple capability を有効化しておく必要があります。
-3. 同じ画面で **Google** プロバイダも有効化します。
+2. 「Authentication」→「Sign-in method」で **Google** プロバイダを有効化します。
    - GoogleサインインはFirebaseプロジェクト自身のOAuthクライアントを自動的に使うため、
-     Apple Sign-inのような追加のキー発行は不要です。「有効にする」→サポートメールを選択→保存、
-     のみでWeb側は使えるようになります。
+     追加のキー発行は不要です。「有効にする」→サポートメールを選択→保存、のみで使えるようになります。
    - iOS側で使うには、後述の「1-4-1. iOSでGoogleサインインを使うための追加設定」も行ってください。
-4. 「Authentication」→「Settings」→「User account linking」で
-   **「同じメールアドレスのアカウントを1つにリンクする」**（Link accounts that use the same email）
-   を選択しておくことを推奨します。これにより、同じメールアドレスであれば
-   Appleでサインインしても Googleでサインインしても同じ `uid` になり、
-   iOS/Webどちらでどちらのボタンを使っても同じ「自分のマップ」を見られます。
-5. 「Firestore Database」を作成します（本番モードでOK。ルールは後述のものをデプロイします）。
-6. 「プロジェクトの設定」→「マイアプリ」で **iOSアプリ** を追加します。
+3. 「Firestore Database」を作成します（本番モードでOK。ルールは後述のものをデプロイします）。
+4. 「プロジェクトの設定」→「マイアプリ」で **iOSアプリ** を追加します。
    - Bundle ID には `project.yml` の `PRODUCT_BUNDLE_IDENTIFIER`（既定値 `com.komap.Komap`）を入力。
    - ダウンロードした `GoogleService-Info.plist` を `Komap/Resources/GoogleService-Info.plist`
      に配置してください（このファイルは`.gitignore`済みで、公開リポジトリにはコミットされません）。
-7. 同じFirebaseプロジェクトに **Webアプリ** も追加し、表示された設定値を
+5. 同じFirebaseプロジェクトに **Webアプリ** も追加し、表示された設定値を
    `web/.env` に設定します（Part 2を参照）。
-8. Firebase CLIをインストールし、Firestoreのセキュリティルールをデプロイします。
+6. Firebase CLIをインストールし、Firestoreのセキュリティルールをデプロイします。
+
+> **注記: Apple Sign-inについて**
+> このアプリはSign in with Appleには対応していません。Sign in with Appleの
+> Capabilityは、無料のApple ID（Personal Team）では使用できず、有料のApple
+> Developer Program（年間$99）への登録が必須のためです。Google
+> サインインはこの制約がなく、無料のApple IDでも問題なく使えます。
+> 有料のDeveloper Programに登録済みで、Apple Sign-inも追加したい場合は、
+> `project.yml` の `Komap` ターゲットに以下の `entitlements` セクションを追加し、
+> `Komap/Services/AuthService.swift` にApple版のサインイン処理
+> （`ASAuthorizationController` を使ったフロー）を実装してください。
+>
+> ```yaml
+> entitlements:
+>   path: Komap/Komap.entitlements
+>   properties:
+>     com.apple.developer.applesignin:
+>       - Default
+> ```
 
 ```bash
 npm install -g firebase-tools
@@ -145,9 +150,8 @@ open Komap.xcodeproj
 ```
 
 Xcodeが開いたら、Signing & Capabilities でご自身のDevelopment Teamを選択し、
-シミュレータまたは実機を選んで実行してください（Sign in with Apple の動作確認には実機、
-または実機と同様にApple IDでサインイン済みのシミュレータが必要です。Googleサインインは
-シミュレータでもブラウザ経由でサインインできます）。
+シミュレータまたは実機を選んで実行してください（Googleサインインはシミュレータでも
+ブラウザ経由でサインインできます）。
 
 `project.yml` を変更した場合は、再度 `xcodegen generate` を実行してください。
 
@@ -191,7 +195,7 @@ npm run dev
 ```
 
 表示されたローカルアドレス（既定では `http://localhost:5173/`）をブラウザで開いてください。
-iOSアプリで使ったのと同じアカウント（Apple ID または Googleアカウント）でサインインすると、
+iOSアプリで使ったのと同じGoogleアカウントでサインインすると、
 iOS側で保存した地点がリアルタイムに表示されます。
 
 ### 2-3. 本番公開（map.ktrips.net）へのデプロイ
@@ -206,12 +210,6 @@ firebase deploy --only hosting
 デプロイ後、Firebase Console の「Hosting」→「カスタムドメインを追加」で
 `map.ktrips.net` を接続し、案内されるDNSレコード（TXT/A等）をドメインのDNS設定に
 追加してください。有効化されるまで数分〜数十分かかることがあります。
-
-また、Apple Sign-InをWeb上でも使うには、Apple Developer Portalで
-「Sign in with Apple」用の **Services ID** を作成し、
-「Return URL」に `https://<あなたのauthDomain>/__/auth/handler` を登録した上で、
-Firebase ConsoleのApple providerの設定にそのServices ID・Team ID・Key ID・秘密鍵を
-入力してください（iOSと同じApple Developer Teamで設定することが重要です）。
 
 GoogleサインインはWeb上では追加設定なしで動作します（Firebase Consoleで
 Googleプロバイダを有効化するだけです）。ただし本番ドメイン（`map.ktrips.net`）を
@@ -254,13 +252,13 @@ Komap/
     AIHistoryService.swift      # OpenAI APIで物語を生成
     KeychainStore.swift         # APIキーの安全な保存
     SecretsConfig.swift         # APIキーの読み込み口
-    AuthService.swift           # Sign in with Apple / Googleサインイン → Firebase Auth
+    AuthService.swift           # Googleサインイン → Firebase Auth
     SyncService.swift           # Firestoreへの地点の同期（アップロード/取得）
   Views/
     RootView.swift
     Map/                         # マップ画面・古地図オーバーレイ・物語シート
     SavedPlaces/                 # 保存済み地点の一覧・詳細
-    Settings/                    # APIキー設定・Apple/Googleサインイン
+    Settings/                    # APIキー設定・Googleサインイン
   Resources/
     Assets.xcassets              # 古地図画像などのアセット
     Info.plist                   # xcodegenが project.yml から自動生成（コミット対象外）
@@ -274,10 +272,8 @@ Komap/
   実運用では課金設定・APIキーの制限（Bundle ID制限など）も併せて設定してください。
 - AIの物語生成はOpenAI APIキーが必要で、通信環境とAPI利用料が発生します。
 - Firebase未設定のままでもiOSアプリは起動できますが、クラウド同期・Web連携・
-  Apple/Googleサインインは利用できません（設定タブにその旨のメッセージが表示されます）。
-- Apple・Googleそれぞれ別々のアカウントとしてサインインした場合、メールアドレスが異なると
-  別の `uid` になり、データが共有されません。同じ記録を見たい場合は、同じメールアドレスの
-  アカウントを使うか、Firebase Consoleでアカウントリンクを設定してください（上記1-4参照）。
+  Googleサインインは利用できません（設定タブにその旨のメッセージが表示されます）。
+- Sign in with Appleは未対応です（無料のApple IDでは使えないため。上記1-4の注記を参照）。
 - Webアプリはmap一覧の閲覧が中心で、古地図画像のオーバーレイ表示は現時点では未対応です
   （地点ごとの時代・古地図タイトルはラベルとして表示されます）。
 - 現在は古地図2種（江戸城周辺・浅草周辺）のサンプルのみですが、

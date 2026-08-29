@@ -132,7 +132,7 @@ struct StorySheetView: View {
         isSaved = true
 
         guard authService.isSignedIn else {
-            syncStatusMessage = "端末に保存しました（設定タブでAppleサインインするとWebでも見られます）"
+            syncStatusMessage = "端末に保存しました（設定タブでGoogleサインインするとWebでも見られます）"
             return
         }
 
