@@ -35,12 +35,7 @@ struct OverlayControlPanel: View {
                 .foregroundStyle(.primary)
             }
 
-            if let selectedOverlay {
-                Text(selectedOverlay.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
+            if selectedOverlay != nil {
                 HStack(spacing: 10) {
                     Text("現在")
                         .font(.caption.bold())

@@ -10,6 +10,10 @@ import Foundation
 final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var currentLocation: CLLocationCoordinate2D?
     @Published private(set) var authorizationStatus: CLAuthorizationStatus
+    /// 「スタート」ボタンでの記録中かどうか。
+    @Published private(set) var isRecordingWalk = false
+    /// 記録中に蓄積されている歩行ルート（表示・保存用）。
+    @Published private(set) var walkPath: [CLLocationCoordinate2D] = []
 
     private let manager: CLLocationManager
 
@@ -19,6 +23,8 @@ final class LocationManager: NSObject, ObservableObject {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
+        // 徒歩ルート記録で細かすぎる点を拾いすぎないよう、5m未満の移動は無視する。
+        manager.distanceFilter = 5
     }
 
     func requestPermissionIfNeeded() {
@@ -34,6 +40,22 @@ final class LocationManager: NSObject, ObservableObject {
 
     func startUpdating() {
         manager.startUpdatingLocation()
+    }
+
+    /// 徒歩ルートの記録を開始する。現在地が分かっていればその点から軌跡を始める。
+    func startRecordingWalk() {
+        walkPath = currentLocation.map { [$0] } ?? []
+        isRecordingWalk = true
+        manager.startUpdatingLocation()
+    }
+
+    /// 記録を終了し、それまでに蓄積した軌跡を返す。
+    @discardableResult
+    func stopRecordingWalk() -> [CLLocationCoordinate2D] {
+        isRecordingWalk = false
+        let path = walkPath
+        walkPath = []
+        return path
     }
 }
 
@@ -52,6 +74,9 @@ extension LocationManager: CLLocationManagerDelegate {
         guard let coordinate = locations.last?.coordinate else { return }
         Task { @MainActor in
             self.currentLocation = coordinate
+            if self.isRecordingWalk {
+                self.walkPath.append(coordinate)
+            }
         }
     }
 

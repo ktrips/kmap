@@ -28,6 +28,6 @@ struct KomapApp: App {
                     GIDSignIn.sharedInstance.handle(url)
                 }
         }
-        .modelContainer(for: SavedPlace.self)
+        .modelContainer(for: [SavedPlace.self, WalkRoute.self])
     }
 }
