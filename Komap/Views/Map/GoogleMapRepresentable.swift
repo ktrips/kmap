@@ -9,8 +9,9 @@ import SwiftUI
 struct GoogleMapRepresentable: UIViewRepresentable {
     var overlayMap: HistoricalOverlayMap?
     var overlayOpacity: Float
-    /// カメラを移動させたい座標。値がセットされる度に一度だけ移動する。
-    var moveCameraTo: CLLocationCoordinate2D?
+    /// カメラを移動させたい座標のリクエスト。同じ`id`には一度だけ反応する
+    /// （同じ座標への再移動要求も、`id`が新しければ改めて移動する）。
+    var moveCameraRequest: CameraMoveRequest?
     /// 画面下部に浮かせているパネルの高さ分、現在地ボタンなど純正コントロールを
     /// 押し上げるための余白（パネルに隠れてボタンが押せなくなるのを防ぐ）。
     var bottomInset: CGFloat = 0
@@ -18,6 +19,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     var savedWalkPaths: [[CLLocationCoordinate2D]] = []
     /// 「スタート」ボタンで記録中の、現在進行形の徒歩ルート。
     var liveWalkPath: [CLLocationCoordinate2D] = []
+    /// 地図上に強調表示する史跡チェックポイント一覧。
+    var checkpoints: [HistoricSite] = []
+    /// 既に御朱印を獲得済みのチェックポイントID（マーカーの色分けに使う）。
+    var collectedSiteIDs: Set<String> = []
     var onTap: (CLLocationCoordinate2D) -> Void
 
     func makeUIView(context: Context) -> GMSMapView {
@@ -39,11 +44,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         context.coordinator.onTap = onTap
         context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, to: mapView)
         context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, to: mapView)
+        context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
         mapView.padding = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
 
-        if let target = moveCameraTo, !context.coordinator.hasMoved(to: target) {
-            context.coordinator.lastMovedCoordinate = target
-            mapView.animate(to: GMSCameraPosition.camera(withTarget: target, zoom: mapView.camera.zoom))
+        if let request = moveCameraRequest, context.coordinator.lastHandledMoveRequestID != request.id {
+            context.coordinator.lastHandledMoveRequestID = request.id
+            mapView.animate(to: GMSCameraPosition.camera(withTarget: request.coordinate, zoom: mapView.camera.zoom))
         }
     }
 
@@ -53,21 +59,17 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
     final class Coordinator: NSObject, GMSMapViewDelegate {
         var onTap: (CLLocationCoordinate2D) -> Void
-        var lastMovedCoordinate: CLLocationCoordinate2D?
+        var lastHandledMoveRequestID: UUID?
 
         private var currentOverlay: GMSGroundOverlay?
         private var currentOverlayID: String?
 
         private var savedPolylines: [GMSPolyline] = []
         private var livePolyline: GMSPolyline?
+        private var checkpointMarkers: [String: GMSMarker] = [:]
 
         init(onTap: @escaping (CLLocationCoordinate2D) -> Void) {
             self.onTap = onTap
-        }
-
-        func hasMoved(to target: CLLocationCoordinate2D) -> Bool {
-            guard let last = lastMovedCoordinate else { return false }
-            return last.latitude == target.latitude && last.longitude == target.longitude
         }
 
         func applyOverlay(_ overlayMap: HistoricalOverlayMap?, opacity: Float, to mapView: GMSMapView) {
@@ -150,6 +152,29 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             polyline.strokeWidth = strokeWidth
             polyline.map = mapView
             return polyline
+        }
+
+        /// 史跡チェックポイントをマーカーとして描画し、獲得済みかどうかで色を塗り分ける。
+        func applyCheckpoints(
+            _ checkpoints: [HistoricSite],
+            collectedSiteIDs: Set<String>,
+            to mapView: GMSMapView
+        ) {
+            for site in checkpoints where checkpointMarkers[site.id] == nil {
+                let marker = GMSMarker(position: site.coordinate)
+                marker.title = site.name
+                marker.snippet = site.summary
+                marker.map = mapView
+                checkpointMarkers[site.id] = marker
+            }
+
+            for (siteID, marker) in checkpointMarkers {
+                let isCollected = collectedSiteIDs.contains(siteID)
+                marker.icon = GMSMarker.markerImage(
+                    with: isCollected ? .systemYellow : .systemBrown
+                )
+                marker.opacity = isCollected ? 1.0 : 0.85
+            }
         }
     }
 }

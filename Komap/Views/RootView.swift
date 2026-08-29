@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @StateObject private var authService = AuthService()
+    @StateObject private var mapSession = MapSessionState()
 
     var body: some View {
         Group {
@@ -12,6 +13,7 @@ struct RootView: View {
             }
         }
         .environmentObject(authService)
+        .environmentObject(mapSession)
     }
 }
 
@@ -48,22 +50,33 @@ private struct GoogleMapsSetupNoticeView: View {
 }
 
 private struct MainTabView: View {
+    @EnvironmentObject private var mapSession: MapSessionState
+
     var body: some View {
-        TabView {
+        TabView(selection: $mapSession.selectedTab) {
             MapScreen()
                 .tabItem {
                     Label("マップ", systemImage: "map")
                 }
+                .tag(AppTab.map)
 
             SavedPlacesListView()
                 .tabItem {
                     Label("わたしの時間旅行", systemImage: "book.closed")
                 }
+                .tag(AppTab.timeTravel)
+
+            StampBookView()
+                .tabItem {
+                    Label("御朱印帳", systemImage: "seal")
+                }
+                .tag(AppTab.stamps)
 
             SettingsView()
                 .tabItem {
                     Label("設定", systemImage: "gearshape")
                 }
+                .tag(AppTab.settings)
         }
     }
 }

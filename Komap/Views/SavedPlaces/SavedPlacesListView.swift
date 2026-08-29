@@ -1,24 +1,44 @@
 import SwiftData
 import SwiftUI
 
-/// ユーザーが保存してきた地点（=自分だけの時間旅行の記録）の一覧。
+/// ユーザーが保存してきた地点・ウォーキング履歴・御朱印をまとめた「わたしの時間旅行」タブ。
 struct SavedPlacesListView: View {
+    @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SavedPlace.createdAt, order: .reverse) private var places: [SavedPlace]
+    @Query(sort: \WalkRoute.startedAt, order: .reverse) private var walkRoutes: [WalkRoute]
+    @Query private var collectedStamps: [CollectedStamp]
 
     var body: some View {
         NavigationStack {
             Group {
-                if places.isEmpty {
+                if places.isEmpty && walkRoutes.isEmpty {
                     emptyState
                 } else {
                     List {
-                        ForEach(places) { place in
-                            NavigationLink(value: place) {
-                                SavedPlaceRow(place: place)
+                        if !walkRoutes.isEmpty {
+                            Section("ウォーキング履歴") {
+                                ForEach(walkRoutes) { route in
+                                    WalkRouteRow(
+                                        route: route,
+                                        stampCount: stampCount(for: route),
+                                        onResume: { resume(route) }
+                                    )
+                                }
+                                .onDelete(perform: deleteRoutes)
                             }
                         }
-                        .onDelete(perform: delete)
+
+                        if !places.isEmpty {
+                            Section("保存した物語") {
+                                ForEach(places) { place in
+                                    NavigationLink(value: place) {
+                                        SavedPlaceRow(place: place)
+                                    }
+                                }
+                                .onDelete(perform: deletePlaces)
+                            }
+                        }
                     }
                 }
             }
@@ -36,7 +56,7 @@ struct SavedPlacesListView: View {
                 .foregroundStyle(.secondary)
             Text("まだ記録がありません")
                 .font(.headline)
-            Text("マップで気になる場所をタップして、\n昔の物語を保存してみましょう。")
+            Text("マップで気になる場所をタップして昔の物語を保存したり、\n「スタート」でウォーキングを記録してみましょう。")
                 .multilineTextAlignment(.center)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -45,10 +65,72 @@ struct SavedPlacesListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func delete(at offsets: IndexSet) {
+    private func stampCount(for route: WalkRoute) -> Int {
+        collectedStamps.filter { $0.walkRouteID == route.id }.count
+    }
+
+    /// その時に使っていた古地図・不透明度・位置を復元してマップタブへ切り替える。
+    private func resume(_ route: WalkRoute) {
+        mapSession.resume(
+            overlayMapID: route.overlayMapID,
+            overlayOpacity: route.overlayOpacity,
+            cameraTarget: route.coordinates.first
+        )
+    }
+
+    private func deletePlaces(at offsets: IndexSet) {
         for index in offsets {
             modelContext.delete(places[index])
         }
+    }
+
+    private func deleteRoutes(at offsets: IndexSet) {
+        for index in offsets {
+            modelContext.delete(walkRoutes[index])
+        }
+    }
+}
+
+private struct WalkRouteRow: View {
+    let route: WalkRoute
+    let stampCount: Int
+    let onResume: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
+                    .font(.headline)
+                Spacer()
+                Button("再スタート", action: onResume)
+                    .font(.subheadline)
+                    .buttonStyle(.bordered)
+            }
+
+            Text(route.overlayMap?.title ?? "古地図なし")
+                .font(.caption)
+                .foregroundStyle(.brown)
+
+            HStack(spacing: 12) {
+                Label(distanceText, systemImage: "figure.walk")
+                Label("不透明度 \(Int(route.overlayOpacity * 100))%", systemImage: "map")
+                if stampCount > 0 {
+                    Label("御朱印 \(stampCount)件", systemImage: "seal.fill")
+                        .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var distanceText: String {
+        let meters = route.totalDistanceMeters
+        if meters >= 1000 {
+            return String(format: "%.1f km", meters / 1000)
+        }
+        return String(format: "%.0f m", meters)
     }
 }
 
@@ -73,5 +155,6 @@ private struct SavedPlaceRow: View {
 
 #Preview {
     SavedPlacesListView()
-        .modelContainer(for: SavedPlace.self, inMemory: true)
+        .environmentObject(MapSessionState())
+        .modelContainer(for: [SavedPlace.self, WalkRoute.self, CollectedStamp.self], inMemory: true)
 }

@@ -63,6 +63,58 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.723, longitude: 139.806)
     )
 
+    static let meijiWriters = HistoricalOverlayMap(
+        id: "meiji-writers",
+        title: "明治の文豪の家（本郷・千駄木・谷中）",
+        era: "明治時代（文豪たちが暮らした頃）",
+        summary: "夏目漱石・森鴎外・樋口一葉など、明治の文豪たちが暮らした本郷・千駄木・谷中周辺のエリアです。",
+        imageAssetName: "OldMap_MeijiWriters",
+        southWest: CLLocationCoordinate2D(latitude: 35.715, longitude: 139.760),
+        northEast: CLLocationCoordinate2D(latitude: 35.728, longitude: 139.775)
+    )
+
+    static let ueno = HistoricalOverlayMap(
+        id: "ueno-edo",
+        title: "上野（寛永寺・不忍池周辺）",
+        era: "江戸時代（寛永寺の門前として栄えた頃）",
+        summary: "徳川将軍家の菩提寺・寛永寺と不忍池を中心に広がっていたエリア。現在の上野公園周辺に相当します。",
+        imageAssetName: "OldMap_Ueno",
+        southWest: CLLocationCoordinate2D(latitude: 35.710, longitude: 139.767),
+        northEast: CLLocationCoordinate2D(latitude: 35.722, longitude: 139.780)
+    )
+
+    static let nihonbashi = HistoricalOverlayMap(
+        id: "nihonbashi-edo",
+        title: "日本橋（商人の町）",
+        era: "江戸時代（五街道の起点として栄えた頃）",
+        summary: "五街道の起点・日本橋を中心に、商人たちの店が軒を連ねた江戸の経済の中心地。",
+        imageAssetName: "OldMap_Nihonbashi",
+        southWest: CLLocationCoordinate2D(latitude: 35.678, longitude: 139.767),
+        northEast: CLLocationCoordinate2D(latitude: 35.688, longitude: 139.780)
+    )
+
+    static let shiba = HistoricalOverlayMap(
+        id: "shiba-edo",
+        title: "芝（増上寺周辺）",
+        era: "江戸時代（増上寺の門前町として栄えた頃）",
+        summary: "徳川将軍家の菩提寺のひとつ・増上寺を中心に広がっていたエリア。現在の芝公園周辺に相当します。",
+        imageAssetName: "OldMap_Shiba",
+        southWest: CLLocationCoordinate2D(latitude: 35.650, longitude: 139.743),
+        northEast: CLLocationCoordinate2D(latitude: 35.662, longitude: 139.756)
+    )
+
+    static let kanda = HistoricalOverlayMap(
+        id: "kanda-edo",
+        title: "神田（神田明神周辺）",
+        era: "江戸時代（江戸総鎮守として栄えた頃）",
+        summary: "江戸総鎮守・神田明神の門前町として栄えたエリア。現在の神田・御茶ノ水周辺に相当します。",
+        imageAssetName: "OldMap_Kanda",
+        southWest: CLLocationCoordinate2D(latitude: 35.696, longitude: 139.762),
+        northEast: CLLocationCoordinate2D(latitude: 35.706, longitude: 139.772)
+    )
+
     /// 選択可能な古地図の一覧
-    static let all: [HistoricalOverlayMap] = [edoCastle, asakusa]
+    static let all: [HistoricalOverlayMap] = [
+        edoCastle, asakusa, meijiWriters, ueno, nihonbashi, shiba, kanda,
+    ]
 }

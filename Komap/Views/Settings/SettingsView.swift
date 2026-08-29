@@ -157,6 +157,14 @@ struct SettingsView: View {
                 )
                 modelContext.insert(place)
             }
+
+            let localStamps = try modelContext.fetch(FetchDescriptor<CollectedStamp>())
+            let localStampIDs = Set(localStamps.map(\.id))
+            let remoteStamps = try await syncService.fetchAllStamps(userID: userID)
+            for remote in remoteStamps {
+                guard let remoteUUID = UUID(uuidString: remote.id), !localStampIDs.contains(remoteUUID) else { continue }
+                modelContext.insert(CollectedStamp(id: remoteUUID, siteID: remote.siteID, collectedAt: remote.collectedAt))
+            }
         } catch {
             syncMessage = "クラウドからの取得に失敗しました: \(error.localizedDescription)"
         }

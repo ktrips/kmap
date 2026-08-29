@@ -29,6 +29,10 @@ struct SyncService {
         Firestore.firestore().collection("users").document(userID).collection("places")
     }
 
+    private func stampsCollection(for userID: String) -> CollectionReference {
+        Firestore.firestore().collection("users").document(userID).collection("stamps")
+    }
+
     /// 1件をアップロード（新規作成 or 上書き更新）する。
     func upload(_ place: SavedPlace, userID: String?) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
@@ -68,6 +72,34 @@ struct SyncService {
         guard let userID else { throw SyncError.notSignedIn }
         try await placesCollection(for: userID).document(placeID.uuidString).delete()
     }
+
+    /// 獲得した御朱印（`CollectedStamp`）を `users/{uid}/stamps/{id}` へアップロードする。
+    func upload(_ stamp: CollectedStamp, userID: String?) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        guard let userID else { throw SyncError.notSignedIn }
+
+        let data: [String: Any] = [
+            "siteID": stamp.siteID,
+            "collectedAt": Timestamp(date: stamp.collectedAt),
+        ]
+
+        try await stampsCollection(for: userID)
+            .document(stamp.id.uuidString)
+            .setData(data, merge: true)
+    }
+
+    /// サインイン後などに、クラウド側の御朱印一覧を取得する（ローカルへの反映は呼び出し側で行う）。
+    func fetchAllStamps(userID: String) async throws -> [RemoteStamp] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+
+        let snapshot = try await stampsCollection(for: userID)
+            .order(by: "collectedAt", descending: true)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { document in
+            RemoteStamp(id: document.documentID, data: document.data())
+        }
+    }
 }
 
 /// Firestoreから読み取った1件分のデータ（`SavedPlace` への変換用の軽量DTO）。
@@ -97,5 +129,19 @@ struct RemotePlace {
         self.era = era
         self.storyText = storyText
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+    }
+}
+
+/// Firestoreから読み取った御朱印1件分のデータ（`CollectedStamp` への変換用の軽量DTO）。
+struct RemoteStamp {
+    let id: String
+    let siteID: String
+    let collectedAt: Date
+
+    init?(id: String, data: [String: Any]) {
+        guard let siteID = data["siteID"] as? String else { return nil }
+        self.id = id
+        self.siteID = siteID
+        self.collectedAt = (data["collectedAt"] as? Timestamp)?.dateValue() ?? Date()
     }
 }
