@@ -32,6 +32,11 @@ struct MapScreen: View {
         Set(collectedStamps.map(\.siteID))
     }
 
+    /// 現在選択中の古地図に紐づくチェックポイント（5箇所程度）。
+    private var activeCheckpoints: [HistoricSite] {
+        HistoricSiteCatalog.sites(forOverlayID: mapSession.selectedOverlay?.id)
+    }
+
     private var isCheckInSheetPresented: Binding<Bool> {
         Binding(
             get: { newlyCollectedSite != nil && newlyCollectedStamp != nil },
@@ -53,7 +58,7 @@ struct MapScreen: View {
                 bottomInset: bottomPanelHeight,
                 savedWalkPaths: savedRoutes.map(\.coordinates),
                 liveWalkPath: locationManager.walkPath,
-                checkpoints: HistoricSiteCatalog.all,
+                checkpoints: activeCheckpoints,
                 collectedSiteIDs: collectedSiteIDs,
                 onTap: { coordinate in
                     tappedPoint = TappedPoint(coordinate: coordinate)
@@ -156,7 +161,7 @@ struct MapScreen: View {
         let current = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         let alreadyCollected = collectedSiteIDs
 
-        for site in HistoricSiteCatalog.all where !alreadyCollected.contains(site.id) {
+        for site in activeCheckpoints where !alreadyCollected.contains(site.id) {
             let siteLocation = CLLocation(latitude: site.coordinate.latitude, longitude: site.coordinate.longitude)
             guard current.distance(from: siteLocation) <= stampCollectionRadiusMeters else { continue }
 

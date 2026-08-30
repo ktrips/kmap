@@ -155,11 +155,20 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
 
         /// 史跡チェックポイントをマーカーとして描画し、獲得済みかどうかで色を塗り分ける。
+        /// 古地図の切り替えでチェックポイントの顔ぶれが変わるため、対象外になった
+        /// マーカーはここで取り除く。
         func applyCheckpoints(
             _ checkpoints: [HistoricSite],
             collectedSiteIDs: Set<String>,
             to mapView: GMSMapView
         ) {
+            let currentIDs = Set(checkpoints.map(\.id))
+            let staleIDs = checkpointMarkers.keys.filter { !currentIDs.contains($0) }
+            for siteID in staleIDs {
+                checkpointMarkers[siteID]?.map = nil
+                checkpointMarkers.removeValue(forKey: siteID)
+            }
+
             for site in checkpoints where checkpointMarkers[site.id] == nil {
                 let marker = GMSMarker(position: site.coordinate)
                 marker.title = site.name
