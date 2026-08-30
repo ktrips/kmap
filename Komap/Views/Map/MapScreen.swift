@@ -65,7 +65,12 @@ struct MapScreen: View {
                 actionButtonsRow
                 OverlayControlPanel(
                     selectedOverlay: $mapSession.selectedOverlay,
-                    overlayOpacity: $mapSession.overlayOpacity
+                    overlayOpacity: $mapSession.overlayOpacity,
+                    onSelect: { overlay in
+                        if let overlay {
+                            mapSession.moveCamera(to: overlay.center)
+                        }
+                    }
                 )
             }
             .padding(.bottom, 12)

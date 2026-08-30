@@ -4,17 +4,21 @@ import SwiftUI
 struct OverlayControlPanel: View {
     @Binding var selectedOverlay: HistoricalOverlayMap?
     @Binding var overlayOpacity: Double
+    /// 古地図が選び直された時に呼ばれる（マップの中心をその古地図の中心へ移動する等に使う）。
+    var onSelect: (HistoricalOverlayMap?) -> Void = { _ in }
 
     var body: some View {
         VStack(spacing: 14) {
             Menu {
                 Button("古地図を表示しない") {
                     selectedOverlay = nil
+                    onSelect(nil)
                 }
                 Divider()
                 ForEach(OldMapCatalog.all) { overlay in
                     Button {
                         selectedOverlay = overlay
+                        onSelect(overlay)
                     } label: {
                         if overlay.id == selectedOverlay?.id {
                             Label(overlay.title, systemImage: "checkmark")
