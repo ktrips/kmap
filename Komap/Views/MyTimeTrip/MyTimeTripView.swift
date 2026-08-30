@@ -20,10 +20,6 @@ struct MyTimeTripView: View {
         Set(collectedStamps.map(\.siteID))
     }
 
-    private var stampsBySiteID: [String: CollectedStamp] {
-        Dictionary(collectedStamps.map { ($0.siteID, $0) }, uniquingKeysWith: { first, _ in first })
-    }
-
     /// 「アップした写真」カード用に、写真が添えられている御朱印だけを抽出したもの。
     private var stampsWithPhoto: [CollectedStamp] {
         collectedStamps.filter { $0.photoFileName != nil }
@@ -121,22 +117,16 @@ struct MyTimeTripView: View {
     // MARK: - 御朱印
 
     private var stampsSection: some View {
-        TimeTripSection(
-            title: "御朱印 \(collectedStamps.count) / \(HistoricSiteCatalog.all.count)",
-            systemImage: "seal.fill",
-            footer: "「スタート」でウォーキングを記録しながら史跡チェックポイントに近づくと、御朱印が自動で貯まります。"
-        ) {
-            LazyVGrid(columns: cardColumns, spacing: 12) {
-                ForEach(HistoricSiteCatalog.all) { site in
-                    let stamp = stampsBySiteID[site.id]
-                    StampCell(site: site, stamp: stamp)
-                        .onTapGesture {
-                            if let stamp {
-                                selectedStamp = StampSelection(site: site, stamp: stamp)
-                            }
-                        }
-                }
+        TimeTripSection(title: "御朱印", systemImage: "seal.fill") {
+            NavigationLink {
+                StampListView()
+            } label: {
+                StampSummaryCard(
+                    collectedCount: collectedStamps.count,
+                    totalCount: HistoricSiteCatalog.all.count
+                )
             }
+            .buttonStyle(.plain)
         }
     }
 
@@ -385,13 +375,61 @@ private struct IdentifiableImage: Identifiable {
 }
 
 /// タップされたセルを御朱印チェックインシートへ渡すための値。
-private struct StampSelection: Identifiable {
+struct StampSelection: Identifiable {
     let site: HistoricSite
     let stamp: CollectedStamp
     var id: String { site.id }
 }
 
-private struct StampCell: View {
+/// 「御朱印」カードのサマリー表示。集めた数と、タップで一覧へ進めることを示す。
+private struct StampSummaryCard: View {
+    let collectedCount: Int
+    let totalCount: Int
+
+    private var progress: Double {
+        totalCount == 0 ? 0 : Double(collectedCount) / Double(totalCount)
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .stroke(Color.secondary.opacity(0.2), lineWidth: 6)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        Color(red: 0.72, green: 0.53, blue: 0.15),
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                Image(systemName: "seal.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+            }
+            .frame(width: 48, height: 48)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(collectedCount) / \(totalCount) 集めました")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(collectedCount == 0 ? "まだ御朱印がありません" : "タップして一覧を見る")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.bold())
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+struct StampCell: View {
     let site: HistoricSite
     let stamp: CollectedStamp?
 
