@@ -12,6 +12,8 @@ struct MapScreen: View {
     @Query private var collectedStamps: [CollectedStamp]
 
     @State private var tappedPoint: TappedPoint?
+    /// チェックポイントのマーカー上の小さなアイコンボタンがタップされた時に表示する史跡。
+    @State private var tappedCheckpoint: HistoricSite?
     @State private var newlyCollectedSite: HistoricSite?
     @State private var newlyCollectedStamp: CollectedStamp?
     /// 記録中のウォーキングを識別するID。停止時に`WalkRoute`へそのまま使い、
@@ -65,6 +67,9 @@ struct MapScreen: View {
                 collectedSiteIDs: collectedSiteIDs,
                 onTap: { coordinate in
                     tappedPoint = TappedPoint(coordinate: coordinate)
+                },
+                onCheckpointTap: { site in
+                    tappedCheckpoint = site
                 }
             )
             .ignoresSafeArea(edges: .top)
@@ -80,6 +85,9 @@ struct MapScreen: View {
         }
         .sheet(item: $tappedPoint) { point in
             StorySheetView(point: point, overlayMap: mapSession.selectedOverlay)
+        }
+        .sheet(item: $tappedCheckpoint) { site in
+            CheckpointInfoSheet(site: site, overlayMap: mapSession.selectedOverlay)
         }
         .sheet(isPresented: isCheckInSheetPresented) {
             if let newlyCollectedSite, let newlyCollectedStamp {
@@ -115,10 +123,9 @@ struct MapScreen: View {
     }
 
     private var actionButtonsRow: some View {
-        HStack(spacing: 10) {
+        HStack {
             Spacer()
             walkRecordButton
-            currentLocationButton
             Spacer()
         }
     }
@@ -142,22 +149,6 @@ struct MapScreen: View {
             .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         }
         .disabled(locationManager.currentLocation == nil && !locationManager.isRecordingWalk)
-    }
-
-    private var currentLocationButton: some View {
-        Button {
-            guard let coordinate = locationManager.currentLocation else { return }
-            mapSession.moveCamera(to: coordinate)
-            tappedPoint = TappedPoint(coordinate: coordinate)
-        } label: {
-            Label("現在地の昔の物語を見る", systemImage: "figure.walk.motion")
-                .font(.subheadline.bold())
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(.regularMaterial, in: Capsule())
-                .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
-        }
-        .disabled(locationManager.currentLocation == nil)
     }
 
     /// 「スタート」で記録を開始し、もう一度押すと記録を終える。

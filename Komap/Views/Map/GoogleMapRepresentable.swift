@@ -24,6 +24,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     /// 既に御朱印を獲得済みのチェックポイントID（マーカーの色分けに使う）。
     var collectedSiteIDs: Set<String> = []
     var onTap: (CLLocationCoordinate2D) -> Void
+    /// チェックポイントのマーカーに表示される小さなアイコンボタンがタップされた時に呼ばれる。
+    var onCheckpointTap: (HistoricSite) -> Void = { _ in }
 
     func makeUIView(context: Context) -> GMSMapView {
         let initialCamera = GMSCameraPosition.camera(
@@ -42,6 +44,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
     func updateUIView(_ mapView: GMSMapView, context: Context) {
         context.coordinator.onTap = onTap
+        context.coordinator.onCheckpointTap = onCheckpointTap
         context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, to: mapView)
         context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, to: mapView)
         context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
@@ -59,6 +62,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
     final class Coordinator: NSObject, GMSMapViewDelegate {
         var onTap: (CLLocationCoordinate2D) -> Void
+        var onCheckpointTap: (HistoricSite) -> Void = { _ in }
         var lastHandledMoveRequestID: UUID?
 
         private var currentOverlay: GMSGroundOverlay?
@@ -99,6 +103,41 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
             onTap(coordinate)
+        }
+
+        /// チェックポイントのマーカーをタップした時に出す情報ウィンドウを、
+        /// 吹き出しではなく小さな丸いアイコンボタンとして描画する。
+        func mapView(_ mapView: GMSMapView, markerInfoWindow marker: GMSMarker) -> UIView? {
+            guard marker.userData is HistoricSite else { return nil }
+
+            let size: CGFloat = 40
+            let button = UIView(frame: CGRect(x: 0, y: 0, width: size, height: size))
+            button.backgroundColor = .white
+            button.layer.cornerRadius = size / 2
+            button.layer.shadowColor = UIColor.black.cgColor
+            button.layer.shadowOpacity = 0.2
+            button.layer.shadowRadius = 4
+            button.layer.shadowOffset = CGSize(width: 0, height: 2)
+
+            let iconSize: CGFloat = 20
+            let icon = UIImageView(image: UIImage(systemName: "text.book.closed.fill"))
+            icon.tintColor = .systemBrown
+            icon.contentMode = .scaleAspectFit
+            icon.frame = CGRect(
+                x: (size - iconSize) / 2,
+                y: (size - iconSize) / 2,
+                width: iconSize,
+                height: iconSize
+            )
+            button.addSubview(icon)
+
+            return button
+        }
+
+        /// 小さなアイコンボタン（情報ウィンドウ）がタップされたら、その地域の物語を表示する。
+        func mapView(_ mapView: GMSMapView, didTapInfoWindowOf marker: GMSMarker) {
+            guard let site = marker.userData as? HistoricSite else { return }
+            onCheckpointTap(site)
         }
 
         /// 保存済みの徒歩ルートと、記録中のルートをそれぞれポリラインで塗り分ける。
@@ -172,7 +211,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             for site in checkpoints where checkpointMarkers[site.id] == nil {
                 let marker = GMSMarker(position: site.coordinate)
                 marker.title = site.name
-                marker.snippet = site.summary
+                marker.userData = site
                 marker.map = mapView
                 checkpointMarkers[site.id] = marker
             }
