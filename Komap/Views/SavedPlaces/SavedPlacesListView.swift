@@ -19,11 +19,13 @@ struct SavedPlacesListView: View {
                         if !walkRoutes.isEmpty {
                             Section("ウォーキング履歴") {
                                 ForEach(walkRoutes) { route in
-                                    WalkRouteRow(
-                                        route: route,
-                                        stampCount: stampCount(for: route),
-                                        onResume: { resume(route) }
-                                    )
+                                    NavigationLink(value: route) {
+                                        WalkRouteRow(
+                                            route: route,
+                                            stampCount: stampCount(for: route),
+                                            onResume: { resume(route) }
+                                        )
+                                    }
                                 }
                                 .onDelete(perform: deleteRoutes)
                             }
@@ -45,6 +47,9 @@ struct SavedPlacesListView: View {
             .navigationTitle("わたしの時間旅行")
             .navigationDestination(for: SavedPlace.self) { place in
                 SavedPlaceDetailView(place: place)
+            }
+            .navigationDestination(for: WalkRoute.self) { route in
+                WalkRouteDetailView(route: route)
             }
         }
     }
