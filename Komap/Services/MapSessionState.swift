@@ -1,11 +1,6 @@
 import CoreLocation
 import Foundation
 
-/// マップ画面（古地図の選択・不透明度・カメラ位置）とタブ選択を、
-/// 「わたしの時間旅行」など他タブと共有するための状態。
-///
-/// 「わたしの時間旅行」から過去のウォーキングを「再スタート」した時、
-/// その時に使っていた古地図・不透明度を復元してマップタブへ切り替えるために使う。
 /// カメラ移動の1回のリクエスト。同じ座標への再移動でも`id`が異なれば
 /// 「新しい移動要求」として扱えるようにするためのラッパー。
 struct CameraMoveRequest: Equatable {
@@ -22,6 +17,11 @@ struct CameraMoveRequest: Equatable {
     }
 }
 
+/// マップ画面（古地図の選択・不透明度・カメラ位置）とタブ選択を、
+/// 「My TimeTrip」など他タブと共有するための状態。
+///
+/// 「My TimeTrip」から過去のウォーキングを「再スタート」した時、
+/// その時に使っていた古地図・不透明度を復元してマップタブへ切り替えるために使う。
 @MainActor
 final class MapSessionState: ObservableObject {
     @Published var selectedOverlay: HistoricalOverlayMap? = OldMapCatalog.edoCastle
@@ -33,7 +33,7 @@ final class MapSessionState: ObservableObject {
         cameraMoveRequest = CameraMoveRequest(coordinate)
     }
 
-    /// 「わたしの時間旅行」の記録から、その時の古地図・不透明度・位置を復元してマップタブへ移動する。
+    /// 「My TimeTrip」の記録から、その時の古地図・不透明度・位置を復元してマップタブへ移動する。
     func resume(overlayMapID: String?, overlayOpacity: Double, cameraTarget: CLLocationCoordinate2D?) {
         selectedOverlay = overlayMapID.flatMap { id in OldMapCatalog.all.first { $0.id == id } }
         self.overlayOpacity = overlayOpacity
@@ -46,7 +46,6 @@ final class MapSessionState: ObservableObject {
 
 enum AppTab: Hashable {
     case map
-    case timeTravel
-    case stamps
+    case myTimeTrip
     case settings
 }
