@@ -31,14 +31,15 @@ struct AIHistoryService {
 
     func generateStory(
         for coordinate: CLLocationCoordinate2D,
-        overlayMap: HistoricalOverlayMap?
+        overlayMap: HistoricalOverlayMap?,
+        placeName: String? = nil
     ) async throws -> GeneratedStory {
         guard let apiKey = SecretsConfig.openAIAPIKey else {
             throw AIHistoryError.missingAPIKey
         }
 
         let era = overlayMap?.era ?? "江戸時代"
-        let placeHint = overlayMap?.title ?? "この付近"
+        let placeHint = placeName ?? overlayMap?.title ?? "この付近"
 
         let systemPrompt = """
         あなたは日本の歴史・地理に詳しい語り部です。ユーザーは現在地図上のある地点にいて、\

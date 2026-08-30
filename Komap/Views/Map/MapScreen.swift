@@ -12,11 +12,16 @@ struct MapScreen: View {
     @Query private var collectedStamps: [CollectedStamp]
 
     @State private var tappedPoint: TappedPoint?
+    /// チェックポイントのマーカー上の小さなアイコンボタンがタップされた時に表示する史跡。
+    @State private var tappedCheckpoint: HistoricSite?
     @State private var newlyCollectedSite: HistoricSite?
     @State private var newlyCollectedStamp: CollectedStamp?
     /// 記録中のウォーキングを識別するID。停止時に`WalkRoute`へそのまま使い、
     /// 記録中に獲得した御朱印もこのIDで紐付ける。
     @State private var activeWalkSessionID: UUID?
+    /// 「記録終了」を押した直後、保存するかどうかの確認待ちになっているルート。
+    /// 「保存する」が選ばれたらこの内容で`WalkRoute`を作成する。
+    @State private var pendingWalkRoute: PendingWalkRoute?
 
     private let syncService = SyncService()
 
@@ -30,6 +35,11 @@ struct MapScreen: View {
 
     private var collectedSiteIDs: Set<String> {
         Set(collectedStamps.map(\.siteID))
+    }
+
+    /// 現在選択中の古地図に紐づくチェックポイント（5箇所程度）。
+    private var activeCheckpoints: [HistoricSite] {
+        HistoricSiteCatalog.sites(forOverlayID: mapSession.selectedOverlay?.id)
     }
 
     private var isCheckInSheetPresented: Binding<Bool> {
@@ -53,10 +63,13 @@ struct MapScreen: View {
                 bottomInset: bottomPanelHeight,
                 savedWalkPaths: savedRoutes.map(\.coordinates),
                 liveWalkPath: locationManager.walkPath,
-                checkpoints: HistoricSiteCatalog.all,
+                checkpoints: activeCheckpoints,
                 collectedSiteIDs: collectedSiteIDs,
                 onTap: { coordinate in
                     tappedPoint = TappedPoint(coordinate: coordinate)
+                },
+                onCheckpointTap: { site in
+                    tappedCheckpoint = site
                 }
             )
             .ignoresSafeArea(edges: .top)
@@ -78,6 +91,9 @@ struct MapScreen: View {
         .sheet(item: $tappedPoint) { point in
             StorySheetView(point: point, overlayMap: mapSession.selectedOverlay)
         }
+        .sheet(item: $tappedCheckpoint) { site in
+            CheckpointInfoSheet(site: site, overlayMap: mapSession.selectedOverlay)
+        }
         .sheet(isPresented: isCheckInSheetPresented) {
             if let newlyCollectedSite, let newlyCollectedStamp {
                 StampCheckInSheet(site: newlyCollectedSite, stamp: newlyCollectedStamp)
@@ -90,13 +106,31 @@ struct MapScreen: View {
             guard let latest = locationManager.walkPath.last else { return }
             checkForNewStamps(near: latest)
         }
+        .confirmationDialog(
+            "この時間旅を保存しますか？",
+            isPresented: isSaveConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            Button("保存する") { confirmPendingWalkRoute() }
+            Button("保存しない", role: .destructive) { discardPendingWalkRoute() }
+        } message: {
+            Text("使った古地図・歩いたルート・通ったチェックポイントや御朱印を「わたしの時間旅行」に記録します。")
+        }
+    }
+
+    private var isSaveConfirmationPresented: Binding<Bool> {
+        Binding(
+            get: { pendingWalkRoute != nil },
+            set: { isPresented in
+                if !isPresented { discardPendingWalkRoute() }
+            }
+        )
     }
 
     private var actionButtonsRow: some View {
-        HStack(spacing: 10) {
+        HStack {
             Spacer()
             walkRecordButton
-            currentLocationButton
             Spacer()
         }
     }
@@ -122,38 +156,46 @@ struct MapScreen: View {
         .disabled(locationManager.currentLocation == nil && !locationManager.isRecordingWalk)
     }
 
-    private var currentLocationButton: some View {
-        Button {
-            guard let coordinate = locationManager.currentLocation else { return }
-            mapSession.moveCamera(to: coordinate)
-            tappedPoint = TappedPoint(coordinate: coordinate)
-        } label: {
-            Label("現在地の昔の物語を見る", systemImage: "figure.walk.motion")
-                .font(.subheadline.bold())
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(.regularMaterial, in: Capsule())
-                .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
-        }
-        .disabled(locationManager.currentLocation == nil)
-    }
-
-    /// 「スタート」で記録を開始し、もう一度押すと記録を終え、2点以上あればルートとして保存する。
+    /// 「スタート」で記録を開始し、もう一度押すと記録を終える。
+    /// 2点以上歩いていれば、保存するかどうかを確認するダイアログを表示する。
     private func toggleWalkRecording() {
         if locationManager.isRecordingWalk {
             let path = locationManager.stopRecordingWalk()
-            defer { activeWalkSessionID = nil }
-            guard path.count >= 2 else { return }
-            modelContext.insert(WalkRoute(
-                id: activeWalkSessionID ?? UUID(),
+            guard path.count >= 2, let sessionID = activeWalkSessionID else {
+                activeWalkSessionID = nil
+                return
+            }
+            pendingWalkRoute = PendingWalkRoute(
+                id: sessionID,
                 coordinates: path,
                 overlayMapID: mapSession.selectedOverlay?.id,
                 overlayOpacity: mapSession.overlayOpacity
-            ))
+            )
         } else {
             activeWalkSessionID = UUID()
             locationManager.startRecordingWalk()
         }
+    }
+
+    /// 確認ダイアログで「保存する」が選ばれた時、蓄積しておいた内容で`WalkRoute`を作成する。
+    private func confirmPendingWalkRoute() {
+        guard let pending = pendingWalkRoute else { return }
+        modelContext.insert(WalkRoute(
+            id: pending.id,
+            coordinates: pending.coordinates,
+            overlayMapID: pending.overlayMapID,
+            overlayOpacity: pending.overlayOpacity
+        ))
+        pendingWalkRoute = nil
+        activeWalkSessionID = nil
+    }
+
+    /// 「保存しない」が選ばれた、またはダイアログが閉じられた時、記録を破棄する。
+    /// 記録中に獲得した御朱印は「わたしの時間旅行」への記録とは切り離して、
+    /// 御朱印帳の獲得実績としてはそのまま残す。
+    private func discardPendingWalkRoute() {
+        pendingWalkRoute = nil
+        activeWalkSessionID = nil
     }
 
     /// 記録中の現在地が、未獲得のチェックポイントに接近していれば御朱印を獲得する。
@@ -161,7 +203,7 @@ struct MapScreen: View {
         let current = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         let alreadyCollected = collectedSiteIDs
 
-        for site in HistoricSiteCatalog.all where !alreadyCollected.contains(site.id) {
+        for site in activeCheckpoints where !alreadyCollected.contains(site.id) {
             let siteLocation = CLLocation(latitude: site.coordinate.latitude, longitude: site.coordinate.longitude)
             guard current.distance(from: siteLocation) <= stampCollectionRadiusMeters else { continue }
 
@@ -177,6 +219,16 @@ struct MapScreen: View {
             break
         }
     }
+}
+
+/// 「記録終了」を押した直後、保存確認ダイアログの結果待ちで保持しておく内容。
+/// ここではまだ`WalkRoute`（SwiftDataモデル）にはせず、確認が取れてから
+/// `modelContext.insert`する。
+private struct PendingWalkRoute {
+    let id: UUID
+    let coordinates: [CLLocationCoordinate2D]
+    let overlayMapID: String?
+    let overlayOpacity: Double
 }
 
 #Preview {
