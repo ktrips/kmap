@@ -9,6 +9,7 @@ struct MyTimeTripView: View {
     @Query(sort: \SavedPlace.createdAt, order: .reverse) private var places: [SavedPlace]
     @Query(sort: \WalkRoute.startedAt, order: .reverse) private var walkRoutes: [WalkRoute]
     @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var collectedStamps: [CollectedStamp]
+    @Query(sort: \WalkPhotoPost.postedAt, order: .reverse) private var photoPosts: [WalkPhotoPost]
 
     @State private var shareImage: UIImage?
     @State private var isPreparingShare = false
@@ -25,10 +26,14 @@ struct MyTimeTripView: View {
         collectedStamps.filter { $0.photoFileName != nil }
     }
 
+    private var totalPoints: Int {
+        photoPosts.reduce(0) { $0 + $1.points }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
-                if places.isEmpty && walkRoutes.isEmpty && collectedStamps.isEmpty {
+                if places.isEmpty && walkRoutes.isEmpty && collectedStamps.isEmpty && photoPosts.isEmpty {
                     emptyState
                 } else {
                     ScrollView {
@@ -36,6 +41,7 @@ struct MyTimeTripView: View {
                             if !walkRoutes.isEmpty {
                                 walkRoutesSection
                             }
+                            pointsSection
                             if !stampsWithPhoto.isEmpty {
                                 photosSection
                             }
@@ -111,6 +117,19 @@ struct MyTimeTripView: View {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - ポイント
+
+    private var pointsSection: some View {
+        TimeTripSection(title: "ポイント", systemImage: "star.fill") {
+            NavigationLink {
+                PointHistoryView()
+            } label: {
+                PointsSummaryCard(totalPoints: totalPoints, postCount: photoPosts.count)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -429,6 +448,43 @@ private struct StampSummaryCard: View {
     }
 }
 
+/// 「ポイント」カードのサマリー表示。合計ポイントと投稿件数を示す。
+private struct PointsSummaryCard: View {
+    let totalPoints: Int
+    let postCount: Int
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color(red: 0.86, green: 0.63, blue: 0.24).opacity(0.15))
+                Image(systemName: "star.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
+            }
+            .frame(width: 48, height: 48)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(totalPoints) pt")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(postCount == 0 ? "ウォーキング中に写真を投稿して貯めよう" : "\(postCount)件の投稿。タップして見る")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.bold())
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
 struct StampCell: View {
     let site: HistoricSite
     let stamp: CollectedStamp?
@@ -519,5 +575,5 @@ private struct ActivityView: UIViewControllerRepresentable {
 #Preview {
     MyTimeTripView()
         .environmentObject(MapSessionState())
-        .modelContainer(for: [SavedPlace.self, WalkRoute.self, CollectedStamp.self], inMemory: true)
+        .modelContainer(for: [SavedPlace.self, WalkRoute.self, CollectedStamp.self, WalkPhotoPost.self], inMemory: true)
 }

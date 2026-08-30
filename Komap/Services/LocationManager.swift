@@ -12,6 +12,8 @@ final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var authorizationStatus: CLAuthorizationStatus
     /// 「スタート」ボタンでの記録中かどうか。
     @Published private(set) var isRecordingWalk = false
+    /// 記録中に「一時停止」されているかどうか。記録中のみ意味を持つ。
+    @Published private(set) var isWalkPaused = false
     /// 記録中に蓄積されている歩行ルート（表示・保存用）。
     @Published private(set) var walkPath: [CLLocationCoordinate2D] = []
 
@@ -46,13 +48,27 @@ final class LocationManager: NSObject, ObservableObject {
     func startRecordingWalk() {
         walkPath = currentLocation.map { [$0] } ?? []
         isRecordingWalk = true
+        isWalkPaused = false
         manager.startUpdatingLocation()
+    }
+
+    /// 記録を一時停止する。位置情報の取得自体は続けるが、軌跡への追記を止める。
+    func pauseRecordingWalk() {
+        guard isRecordingWalk else { return }
+        isWalkPaused = true
+    }
+
+    /// 一時停止していた記録を再開する。
+    func resumeRecordingWalk() {
+        guard isRecordingWalk else { return }
+        isWalkPaused = false
     }
 
     /// 記録を終了し、それまでに蓄積した軌跡を返す。
     @discardableResult
     func stopRecordingWalk() -> [CLLocationCoordinate2D] {
         isRecordingWalk = false
+        isWalkPaused = false
         let path = walkPath
         walkPath = []
         return path
@@ -74,7 +90,7 @@ extension LocationManager: CLLocationManagerDelegate {
         guard let coordinate = locations.last?.coordinate else { return }
         Task { @MainActor in
             self.currentLocation = coordinate
-            if self.isRecordingWalk {
+            if self.isRecordingWalk && !self.isWalkPaused {
                 self.walkPath.append(coordinate)
             }
         }

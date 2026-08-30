@@ -1,10 +1,12 @@
 import CoreLocation
+import PhotosUI
 import SwiftData
 import SwiftUI
 
 /// メインのマップ画面。現在地・古地図オーバーレイ・タップ操作をまとめる。
 struct MapScreen: View {
     @StateObject private var locationManager = LocationManager()
+    @StateObject private var watchConnectivity = WatchConnectivityManager()
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
@@ -22,6 +24,11 @@ struct MapScreen: View {
     /// 「記録終了」を押した直後、保存するかどうかの確認待ちになっているルート。
     /// 「保存する」が選ばれたらこの内容で`WalkRoute`を作成する。
     @State private var pendingWalkRoute: PendingWalkRoute?
+    /// 記録中に自由なタイミングで写真を投稿するためのピッカー選択値。
+    @State private var photoPostPickerItem: PhotosPickerItem?
+    @State private var isPostingPhoto = false
+    /// 写真投稿で獲得したポイントを一瞬だけ知らせるトースト表示。
+    @State private var pointsToastMessage: String?
 
     private let syncService = SyncService()
 
@@ -88,6 +95,20 @@ struct MapScreen: View {
             }
             .padding(.bottom, 12)
         }
+        .overlay(alignment: .top) {
+            if let pointsToastMessage {
+                Text(pointsToastMessage)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(red: 0.72, green: 0.53, blue: 0.15), in: Capsule())
+                    .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
+        }
         .sheet(item: $tappedPoint) { point in
             StorySheetView(point: point, overlayMap: mapSession.selectedOverlay)
         }
@@ -101,10 +122,26 @@ struct MapScreen: View {
         }
         .onAppear {
             locationManager.requestPermissionIfNeeded()
+            syncWatchState()
         }
         .onChange(of: locationManager.walkPath.count) { _, _ in
             guard let latest = locationManager.walkPath.last else { return }
             checkForNewStamps(near: latest)
+        }
+        .onChange(of: photoPostPickerItem) { _, newItem in
+            loadAndPostPhoto(newItem)
+        }
+        .onChange(of: locationManager.isRecordingWalk) { _, _ in
+            syncWatchState()
+        }
+        .onChange(of: locationManager.isWalkPaused) { _, _ in
+            syncWatchState()
+        }
+        .onChange(of: mapSession.selectedOverlay) { _, _ in
+            syncWatchState()
+        }
+        .onChange(of: watchConnectivity.lastCommand) { _, command in
+            handleWatchCommand(command)
         }
         .confirmationDialog(
             "この時間旅を保存しますか？",
@@ -128,8 +165,12 @@ struct MapScreen: View {
     }
 
     private var actionButtonsRow: some View {
-        HStack {
+        HStack(spacing: 8) {
             Spacer()
+            if locationManager.isRecordingWalk {
+                photoPostButton
+                pauseResumeButton
+            }
             walkRecordButton
             Spacer()
         }
@@ -140,7 +181,7 @@ struct MapScreen: View {
             toggleWalkRecording()
         } label: {
             Label(
-                locationManager.isRecordingWalk ? "記録終了" : "スタート",
+                locationManager.isRecordingWalk ? "終了" : "スタート",
                 systemImage: locationManager.isRecordingWalk ? "stop.circle.fill" : "play.circle.fill"
             )
             .font(.subheadline.bold())
@@ -148,12 +189,51 @@ struct MapScreen: View {
             .padding(.vertical, 10)
             .foregroundStyle(locationManager.isRecordingWalk ? .white : .primary)
             .background(
-                locationManager.isRecordingWalk ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.regularMaterial),
+                locationManager.isRecordingWalk ? AnyShapeStyle(Color.red) : AnyShapeStyle(.regularMaterial),
                 in: Capsule()
             )
             .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         }
         .disabled(locationManager.currentLocation == nil && !locationManager.isRecordingWalk)
+    }
+
+    private var pauseResumeButton: some View {
+        Button {
+            toggleWalkPause()
+        } label: {
+            Label(
+                locationManager.isWalkPaused ? "再開" : "一時停止",
+                systemImage: locationManager.isWalkPaused ? "play.circle.fill" : "pause.circle.fill"
+            )
+            .font(.subheadline.bold())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .foregroundStyle(.white)
+            .background(
+                locationManager.isWalkPaused ? AnyShapeStyle(Color.green) : AnyShapeStyle(Color.orange),
+                in: Capsule()
+            )
+            .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
+        }
+    }
+
+    private var photoPostButton: some View {
+        PhotosPicker(selection: $photoPostPickerItem, matching: .images) {
+            Group {
+                if isPostingPhoto {
+                    ProgressView()
+                } else {
+                    Label("写真投稿", systemImage: "camera.fill")
+                }
+            }
+            .font(.subheadline.bold())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .foregroundStyle(.primary)
+            .background(.regularMaterial, in: Capsule())
+            .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
+        }
+        .disabled(isPostingPhoto)
     }
 
     /// 「スタート」で記録を開始し、もう一度押すと記録を終える。
@@ -174,6 +254,82 @@ struct MapScreen: View {
         } else {
             activeWalkSessionID = UUID()
             locationManager.startRecordingWalk()
+        }
+    }
+
+    /// 記録中の一時停止・再開を切り替える。
+    private func toggleWalkPause() {
+        if locationManager.isWalkPaused {
+            locationManager.resumeRecordingWalk()
+        } else {
+            locationManager.pauseRecordingWalk()
+        }
+    }
+
+    /// Apple Watch側から届いたコマンドを、対応するアクションへ反映する。
+    private func handleWatchCommand(_ command: WatchConnectivityManager.Command?) {
+        guard let command else { return }
+        switch command {
+        case .start:
+            if !locationManager.isRecordingWalk {
+                toggleWalkRecording()
+            }
+        case .pause:
+            if locationManager.isRecordingWalk && !locationManager.isWalkPaused {
+                toggleWalkPause()
+            }
+        case .resume:
+            if locationManager.isRecordingWalk && locationManager.isWalkPaused {
+                toggleWalkPause()
+            }
+        case .stop:
+            if locationManager.isRecordingWalk {
+                toggleWalkRecording()
+            }
+        case .selectMap(let id):
+            guard let overlay = OldMapCatalog.all.first(where: { $0.id == id }) else { return }
+            mapSession.selectedOverlay = overlay
+            mapSession.moveCamera(to: overlay.center)
+        }
+    }
+
+    /// 現在の記録状態・選択中の古地図をWatchへ送る。
+    private func syncWatchState() {
+        watchConnectivity.updateState(
+            isRecording: locationManager.isRecordingWalk,
+            isPaused: locationManager.isWalkPaused,
+            availableMaps: OldMapCatalog.all,
+            selectedMapID: mapSession.selectedOverlay?.id
+        )
+    }
+
+    /// 記録中に選んだ写真を保存し、ポイントを付与した`WalkPhotoPost`を作成する。
+    private func loadAndPostPhoto(_ item: PhotosPickerItem?) {
+        guard let item else { return }
+        photoPostPickerItem = nil
+        isPostingPhoto = true
+        Task {
+            defer { isPostingPhoto = false }
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let uiImage = UIImage(data: data),
+                  let filename = StampPhotoStore.save(uiImage),
+                  let coordinate = locationManager.currentLocation ?? locationManager.walkPath.last
+            else { return }
+
+            let post = WalkPhotoPost(
+                photoFileName: filename,
+                coordinate: coordinate,
+                walkRouteID: activeWalkSessionID
+            )
+            modelContext.insert(post)
+
+            withAnimation {
+                pointsToastMessage = "+\(post.points)pt 獲得！"
+            }
+            try? await Task.sleep(for: .seconds(1.6))
+            withAnimation {
+                pointsToastMessage = nil
+            }
         }
     }
 
@@ -235,5 +391,5 @@ private struct PendingWalkRoute {
     MapScreen()
         .environmentObject(AuthService())
         .environmentObject(MapSessionState())
-        .modelContainer(for: [SavedPlace.self, WalkRoute.self, CollectedStamp.self], inMemory: true)
+        .modelContainer(for: [SavedPlace.self, WalkRoute.self, CollectedStamp.self, WalkPhotoPost.self], inMemory: true)
 }
