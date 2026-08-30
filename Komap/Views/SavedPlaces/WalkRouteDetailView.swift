@@ -10,11 +10,18 @@ struct WalkRouteDetailView: View {
     let route: WalkRoute
 
     @Query private var collectedStamps: [CollectedStamp]
+    @Query private var photoPosts: [WalkPhotoPost]
 
     private var stampsForRoute: [CollectedStamp] {
         collectedStamps
             .filter { $0.walkRouteID == route.id }
             .sorted { $0.collectedAt < $1.collectedAt }
+    }
+
+    private var photoPostsForRoute: [WalkPhotoPost] {
+        photoPosts
+            .filter { $0.walkRouteID == route.id }
+            .sorted { $0.postedAt < $1.postedAt }
     }
 
     private var checkpointsForOverlay: [HistoricSite] {
@@ -35,6 +42,10 @@ struct WalkRouteDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 header
+
+                if !photoPostsForRoute.isEmpty {
+                    photoPostsSection
+                }
 
                 if !stampsForRoute.isEmpty {
                     checkpointsSection
@@ -57,11 +68,45 @@ struct WalkRouteDetailView: View {
 
             HStack(spacing: 12) {
                 Label(distanceText, systemImage: "figure.walk")
-                Label("御朱印 \(stampsForRoute.count)件", systemImage: "seal.fill")
-                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                if let durationText {
+                    Label(durationText, systemImage: "clock")
+                }
+                if let stepCount = route.stepCount {
+                    Label("\(stepCount)歩", systemImage: "shoeprints.fill")
+                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Label("御朱印 \(stampsForRoute.count)件", systemImage: "seal.fill")
+                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                if !photoPostsForRoute.isEmpty {
+                    Label("写真 \(photoPostsForRoute.count)件", systemImage: "camera.fill")
+                        .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private var photoPostsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("投稿した写真")
+                .font(.headline)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
+                ForEach(photoPostsForRoute) { post in
+                    if let photo = post.photo {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 100)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                }
+            }
         }
     }
 
@@ -84,6 +129,15 @@ struct WalkRouteDetailView: View {
             return String(format: "%.1f km", meters / 1000)
         }
         return String(format: "%.0f m", meters)
+    }
+
+    private var durationText: String? {
+        guard let durationSeconds = route.durationSeconds else { return nil }
+        let totalMinutes = Int(durationSeconds / 60)
+        if totalMinutes >= 60 {
+            return "\(totalMinutes / 60)時間\(totalMinutes % 60)分"
+        }
+        return "\(max(totalMinutes, 1))分"
     }
 }
 
@@ -199,5 +253,5 @@ private struct WalkRouteMapView: UIViewRepresentable {
             )
         )
     }
-    .modelContainer(for: [WalkRoute.self, CollectedStamp.self], inMemory: true)
+    .modelContainer(for: [WalkRoute.self, CollectedStamp.self, WalkPhotoPost.self], inMemory: true)
 }

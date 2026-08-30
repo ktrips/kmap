@@ -12,6 +12,9 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
     /// Watchから届いた最新のコマンド。呼び出し側（`MapScreen`）が`onChange`で監視して処理する。
     @Published private(set) var lastCommand: Command?
+    /// セッションの有効化が完了したかどうか。`updateState`は有効化前だと送れないため、
+    /// 呼び出し側はこの変化を見て初回の状態を送り直す。
+    @Published private(set) var isActivated = false
 
     private let session: WCSession?
 
@@ -46,7 +49,12 @@ extension WatchConnectivityManager: WCSessionDelegate {
         _ session: WCSession,
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
-    ) {}
+    ) {
+        guard activationState == .activated else { return }
+        Task { @MainActor in
+            self.isActivated = true
+        }
+    }
 
     nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
 
@@ -59,7 +67,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
         didReceiveMessage message: [String: Any],
         replyHandler: @escaping ([String: Any]) -> Void
     ) {
-        guard let rawCommand = message["command"] as? String, let command = Self.parseCommand(rawCommand, message: message) else {
+        guard let command = Self.parseCommand(from: message) else {
             replyHandler(["ok": false])
             return
         }
@@ -69,7 +77,17 @@ extension WatchConnectivityManager: WCSessionDelegate {
         replyHandler(["ok": true])
     }
 
-    private nonisolated static func parseCommand(_ rawCommand: String, message: [String: Any]) -> Command? {
+    /// Watch側が到達不能な時に使う`transferUserInfo`経由のコマンドも、
+    /// `sendMessage`と同じように処理する。
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        guard let command = Self.parseCommand(from: userInfo) else { return }
+        Task { @MainActor in
+            self.lastCommand = command
+        }
+    }
+
+    private nonisolated static func parseCommand(from message: [String: Any]) -> Command? {
+        guard let rawCommand = message["command"] as? String else { return nil }
         switch rawCommand {
         case "start": return .start
         case "pause": return .pause

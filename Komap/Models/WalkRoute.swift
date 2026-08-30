@@ -13,6 +13,11 @@ final class WalkRoute {
     var latitudes: [Double]
     var longitudes: [Double]
     var startedAt: Date
+    /// 記録を終えた日時。歩いた時間の算出に使う。
+    /// この項目を追加する前に保存された記録には値が無いため`nil`もあり得る。
+    var endedAt: Date?
+    /// 記録中の歩数（`CMPedometer`で計測）。取得できなかった場合は`nil`。
+    var stepCount: Int?
     /// 記録開始時に選んでいた古地図（`HistoricalOverlayMap.id`）。未選択なら nil。
     var overlayMapID: String?
     /// 記録開始時の古地図の不透明度（0...1）。
@@ -22,6 +27,8 @@ final class WalkRoute {
         id: UUID = UUID(),
         coordinates: [CLLocationCoordinate2D],
         startedAt: Date = Date(),
+        endedAt: Date? = Date(),
+        stepCount: Int? = nil,
         overlayMapID: String? = nil,
         overlayOpacity: Double = 0.55
     ) {
@@ -29,8 +36,16 @@ final class WalkRoute {
         self.latitudes = coordinates.map(\.latitude)
         self.longitudes = coordinates.map(\.longitude)
         self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.stepCount = stepCount
         self.overlayMapID = overlayMapID
         self.overlayOpacity = overlayOpacity
+    }
+
+    /// 歩いた時間（秒）。`endedAt`が無い（この項目を追加する前の）記録では`nil`。
+    var durationSeconds: TimeInterval? {
+        guard let endedAt else { return nil }
+        return max(0, endedAt.timeIntervalSince(startedAt))
     }
 
     var coordinates: [CLLocationCoordinate2D] {

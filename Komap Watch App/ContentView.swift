@@ -15,6 +15,12 @@ struct ContentView: View {
                     Text(statusText)
                         .font(.headline)
 
+                    if !sessionManager.isReachable {
+                        Label("iPhoneと未接続", systemImage: "iphone.slash")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
                     switch sessionManager.state {
                     case .idle:
                         Button {

@@ -21,6 +21,8 @@ struct MapScreen: View {
     /// 記録中のウォーキングを識別するID。停止時に`WalkRoute`へそのまま使い、
     /// 記録中に獲得した御朱印もこのIDで紐付ける。
     @State private var activeWalkSessionID: UUID?
+    /// 記録を開始した日時。歩いた時間の算出に使う。
+    @State private var activeWalkStartedAt: Date?
     /// 「記録終了」を押した直後、保存するかどうかの確認待ちになっているルート。
     /// 「保存する」が選ばれたらこの内容で`WalkRoute`を作成する。
     @State private var pendingWalkRoute: PendingWalkRoute?
@@ -31,6 +33,7 @@ struct MapScreen: View {
     @State private var pointsToastMessage: String?
 
     private let syncService = SyncService()
+    private let stepCounter = StepCounter()
 
     /// この距離（メートル）以内にチェックポイントへ近づいたら御朱印を獲得する。
     private let stampCollectionRadiusMeters: CLLocationDistance = 60
@@ -140,6 +143,11 @@ struct MapScreen: View {
         .onChange(of: mapSession.selectedOverlay) { _, _ in
             syncWatchState()
         }
+        .onChange(of: watchConnectivity.isActivated) { _, isActivated in
+            if isActivated {
+                syncWatchState()
+            }
+        }
         .onChange(of: watchConnectivity.lastCommand) { _, command in
             handleWatchCommand(command)
         }
@@ -240,20 +248,47 @@ struct MapScreen: View {
     /// 2点以上歩いていれば、保存するかどうかを確認するダイアログを表示する。
     private func toggleWalkRecording() {
         if locationManager.isRecordingWalk {
-            let path = locationManager.stopRecordingWalk()
-            guard path.count >= 2, let sessionID = activeWalkSessionID else {
-                activeWalkSessionID = nil
-                return
-            }
-            pendingWalkRoute = PendingWalkRoute(
+            stopWalkRecording(autoSave: false)
+        } else {
+            startWalkRecording()
+        }
+    }
+
+    private func startWalkRecording() {
+        activeWalkSessionID = UUID()
+        activeWalkStartedAt = Date()
+        stepCounter.start()
+        locationManager.startRecordingWalk()
+    }
+
+    /// 記録を終える。`autoSave`が`true`の時（Apple Watchからの「終了」など、
+    /// 保存確認ダイアログを見せられない場面）は確認を挟まずそのまま保存する。
+    private func stopWalkRecording(autoSave: Bool) {
+        let path = locationManager.stopRecordingWalk()
+        guard path.count >= 2, let sessionID = activeWalkSessionID, let startedAt = activeWalkStartedAt else {
+            activeWalkSessionID = nil
+            activeWalkStartedAt = nil
+            return
+        }
+        let endedAt = Date()
+        Task {
+            let stepCount = await stepCounter.finish()
+            let pending = PendingWalkRoute(
                 id: sessionID,
                 coordinates: path,
+                startedAt: startedAt,
+                endedAt: endedAt,
+                stepCount: stepCount,
                 overlayMapID: mapSession.selectedOverlay?.id,
                 overlayOpacity: mapSession.overlayOpacity
             )
-        } else {
-            activeWalkSessionID = UUID()
-            locationManager.startRecordingWalk()
+            if autoSave {
+                save(pending)
+                activeWalkSessionID = nil
+                activeWalkStartedAt = nil
+            } else {
+                pendingWalkRoute = pending
+            }
         }
     }
 
@@ -284,7 +319,8 @@ struct MapScreen: View {
             }
         case .stop:
             if locationManager.isRecordingWalk {
-                toggleWalkRecording()
+                // Watchでは保存確認ダイアログを見せられないため、確認を挟まず保存する。
+                stopWalkRecording(autoSave: true)
             }
         case .selectMap(let id):
             guard let overlay = OldMapCatalog.all.first(where: { $0.id == id }) else { return }
@@ -336,14 +372,10 @@ struct MapScreen: View {
     /// 確認ダイアログで「保存する」が選ばれた時、蓄積しておいた内容で`WalkRoute`を作成する。
     private func confirmPendingWalkRoute() {
         guard let pending = pendingWalkRoute else { return }
-        modelContext.insert(WalkRoute(
-            id: pending.id,
-            coordinates: pending.coordinates,
-            overlayMapID: pending.overlayMapID,
-            overlayOpacity: pending.overlayOpacity
-        ))
+        save(pending)
         pendingWalkRoute = nil
         activeWalkSessionID = nil
+        activeWalkStartedAt = nil
     }
 
     /// 「保存しない」が選ばれた、またはダイアログが閉じられた時、記録を破棄する。
@@ -352,6 +384,20 @@ struct MapScreen: View {
     private func discardPendingWalkRoute() {
         pendingWalkRoute = nil
         activeWalkSessionID = nil
+        activeWalkStartedAt = nil
+    }
+
+    private func save(_ pending: PendingWalkRoute) {
+        modelContext.insert(WalkRoute(
+            id: pending.id,
+            coordinates: pending.coordinates,
+            startedAt: pending.startedAt,
+            endedAt: pending.endedAt,
+            stepCount: pending.stepCount,
+            overlayMapID: pending.overlayMapID,
+            overlayOpacity: pending.overlayOpacity
+        ))
+        try? modelContext.save()
     }
 
     /// 記録中の現在地が、未獲得のチェックポイントに接近していれば御朱印を獲得する。
@@ -383,6 +429,9 @@ struct MapScreen: View {
 private struct PendingWalkRoute {
     let id: UUID
     let coordinates: [CLLocationCoordinate2D]
+    let startedAt: Date
+    let endedAt: Date
+    let stepCount: Int?
     let overlayMapID: String?
     let overlayOpacity: Double
 }

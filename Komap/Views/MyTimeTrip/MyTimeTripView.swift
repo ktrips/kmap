@@ -292,6 +292,9 @@ private struct WalkRouteCard: View {
 
             HStack(spacing: 10) {
                 Label(distanceText, systemImage: "figure.walk")
+                if let durationText {
+                    Label(durationText, systemImage: "clock")
+                }
                 if stampCount > 0 {
                     Label("\(stampCount)", systemImage: "seal.fill")
                         .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
@@ -299,6 +302,12 @@ private struct WalkRouteCard: View {
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
+
+            if let stepCount = route.stepCount {
+                Label("\(stepCount)歩", systemImage: "shoeprints.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -324,6 +333,15 @@ private struct WalkRouteCard: View {
             return String(format: "%.1f km", meters / 1000)
         }
         return String(format: "%.0f m", meters)
+    }
+
+    private var durationText: String? {
+        guard let durationSeconds = route.durationSeconds else { return nil }
+        let totalMinutes = Int(durationSeconds / 60)
+        if totalMinutes >= 60 {
+            return "\(totalMinutes / 60)時間\(totalMinutes % 60)分"
+        }
+        return "\(max(totalMinutes, 1))分"
     }
 }
 

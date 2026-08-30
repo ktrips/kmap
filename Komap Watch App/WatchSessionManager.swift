@@ -18,6 +18,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published private(set) var state: RecordingState = .idle
     @Published private(set) var availableMaps: [WatchMapOption] = []
     @Published private(set) var selectedMapID: String?
+    /// iPhoneとすぐに通信できる状態かどうか。`false`の間もコマンドはキューされて後で届く。
+    @Published private(set) var isReachable = false
 
     private let session: WCSession?
 
@@ -28,15 +30,46 @@ final class WatchSessionManager: NSObject, ObservableObject {
         session?.activate()
     }
 
-    func start() { send(["command": "start"]) }
-    func pause() { send(["command": "pause"]) }
-    func resume() { send(["command": "resume"]) }
-    func stop() { send(["command": "stop"]) }
-    func selectMap(_ id: String) { send(["command": "selectMap", "mapID": id]) }
+    /// 「スタート」を押した瞬間に反映されるよう、送信前に画面上の状態も更新しておく。
+    /// 実際の状態はiPhone側から折り返される`applicationContext`で確定する。
+    func start() {
+        state = .recording
+        send(["command": "start"])
+    }
 
+    func pause() {
+        state = .paused
+        send(["command": "pause"])
+    }
+
+    func resume() {
+        state = .recording
+        send(["command": "resume"])
+    }
+
+    func stop() {
+        state = .idle
+        send(["command": "stop"])
+    }
+
+    func selectMap(_ id: String) {
+        selectedMapID = id
+        send(["command": "selectMap", "mapID": id])
+    }
+
+    /// 到達可能なら即時性の高い`sendMessage`、そうでなければ`transferUserInfo`で
+    /// キューに積み、iPhoneが応答できるようになり次第届くようにする。
     private func send(_ payload: [String: Any]) {
         guard let session, session.activationState == .activated else { return }
-        session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil) { [weak self] _ in
+                Task { @MainActor in
+                    self?.session?.transferUserInfo(payload)
+                }
+            }
+        } else {
+            session.transferUserInfo(payload)
+        }
     }
 
     private func applyContext(_ context: [String: Any]) {
@@ -64,8 +97,17 @@ extension WatchSessionManager: WCSessionDelegate {
         error: Error?
     ) {
         let context = session.receivedApplicationContext
+        let reachable = session.isReachable
         Task { @MainActor in
             self.applyContext(context)
+            self.isReachable = reachable
+        }
+    }
+
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        let reachable = session.isReachable
+        Task { @MainActor in
+            self.isReachable = reachable
         }
     }
 

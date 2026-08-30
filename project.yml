@@ -40,6 +40,7 @@ targets:
           - UIInterfaceOrientationPortrait
         NSLocationWhenInUseUsageDescription: "現在地を地図に表示し、あなたが今いる場所の昔の姿をAIが解説するために位置情報を使用します。"
         NSLocationAlwaysAndWhenInUseUsageDescription: "散策中に現在地を地図に表示し、その場所の昔の姿をAIが解説するために位置情報を使用します。"
+        NSMotionUsageDescription: "ウォーキング記録中に歩数を計測するために、モーションデータを使用します。"
         LSApplicationQueriesSchemes:
           - comgooglemaps
           - googlechromes
