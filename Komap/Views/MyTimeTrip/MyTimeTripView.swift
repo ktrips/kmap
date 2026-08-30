@@ -1,7 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// 保存した物語・ウォーキング履歴・御朱印をまとめた「My TimeTrip」タブ。
+/// 自分が歩いた地図・アップした写真・御朱印・保存した物語を、
+/// それぞれカードでまとめて表示する「My TimeTrip」タブ。
 struct MyTimeTripView: View {
     @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
@@ -13,7 +14,7 @@ struct MyTimeTripView: View {
     @State private var isPreparingShare = false
     @State private var selectedStamp: StampSelection?
 
-    private let stampColumns = [GridItem(.adaptive(minimum: 130), spacing: 10)]
+    private let cardColumns = [GridItem(.adaptive(minimum: 140), spacing: 12)]
 
     private var collectedSiteIDs: Set<String> {
         Set(collectedStamps.map(\.siteID))
@@ -23,38 +24,31 @@ struct MyTimeTripView: View {
         Dictionary(collectedStamps.map { ($0.siteID, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
+    /// 「アップした写真」カード用に、写真が添えられている御朱印だけを抽出したもの。
+    private var stampsWithPhoto: [CollectedStamp] {
+        collectedStamps.filter { $0.photoFileName != nil }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
                 if places.isEmpty && walkRoutes.isEmpty && collectedStamps.isEmpty {
                     emptyState
                 } else {
-                    List {
-                        stampSection
-
-                        if !walkRoutes.isEmpty {
-                            Section("ウォーキング履歴") {
-                                ForEach(walkRoutes) { route in
-                                    WalkRouteRow(
-                                        route: route,
-                                        stampCount: stampCount(for: route),
-                                        onResume: { resume(route) }
-                                    )
-                                }
-                                .onDelete(perform: deleteRoutes)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 28) {
+                            if !walkRoutes.isEmpty {
+                                walkRoutesSection
+                            }
+                            if !stampsWithPhoto.isEmpty {
+                                photosSection
+                            }
+                            stampsSection
+                            if !places.isEmpty {
+                                storiesSection
                             }
                         }
-
-                        if !places.isEmpty {
-                            Section("保存した物語") {
-                                ForEach(places) { place in
-                                    NavigationLink(value: place) {
-                                        SavedPlaceRow(place: place)
-                                    }
-                                }
-                                .onDelete(perform: deletePlaces)
-                            }
-                        }
+                        .padding()
                     }
                 }
             }
@@ -76,6 +70,9 @@ struct MyTimeTripView: View {
             .navigationDestination(for: SavedPlace.self) { place in
                 SavedPlaceDetailView(place: place)
             }
+            .navigationDestination(for: WalkRoute.self) { route in
+                WalkRouteDetailView(route: route)
+            }
             .sheet(item: $selectedStamp) { selection in
                 StampCheckInSheet(site: selection.site, stamp: selection.stamp)
             }
@@ -85,9 +82,51 @@ struct MyTimeTripView: View {
         }
     }
 
-    private var stampSection: some View {
-        Section {
-            LazyVGrid(columns: stampColumns, spacing: 10) {
+    // MARK: - 自分がスタート〜終了した地図
+
+    private var walkRoutesSection: some View {
+        TimeTripSection(title: "歩いた地図", systemImage: "map.fill") {
+            LazyVGrid(columns: cardColumns, spacing: 12) {
+                ForEach(walkRoutes) { route in
+                    NavigationLink(value: route) {
+                        WalkRouteCard(route: route, stampCount: stampCount(for: route))
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("この古地図で再スタート") { resume(route) }
+                        Button("削除", role: .destructive) { delete(route) }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - アップした写真
+
+    private var photosSection: some View {
+        TimeTripSection(title: "アップした写真", systemImage: "photo.on.rectangle.angled") {
+            LazyVGrid(columns: cardColumns, spacing: 12) {
+                ForEach(stampsWithPhoto) { stamp in
+                    if let site = stamp.site {
+                        PhotoCard(site: site, stamp: stamp)
+                            .onTapGesture {
+                                selectedStamp = StampSelection(site: site, stamp: stamp)
+                            }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - 御朱印
+
+    private var stampsSection: some View {
+        TimeTripSection(
+            title: "御朱印 \(collectedStamps.count) / \(HistoricSiteCatalog.all.count)",
+            systemImage: "seal.fill",
+            footer: "「スタート」でウォーキングを記録しながら史跡チェックポイントに近づくと、御朱印が自動で貯まります。"
+        ) {
+            LazyVGrid(columns: cardColumns, spacing: 12) {
                 ForEach(HistoricSiteCatalog.all) { site in
                     let stamp = stampsBySiteID[site.id]
                     StampCell(site: site, stamp: stamp)
@@ -98,11 +137,24 @@ struct MyTimeTripView: View {
                         }
                 }
             }
-            .padding(.vertical, 4)
-        } header: {
-            Text("御朱印 \(collectedStamps.count) / \(HistoricSiteCatalog.all.count)")
-        } footer: {
-            Text("「スタート」でウォーキングを記録しながら史跡チェックポイントに近づくと、御朱印が自動で貯まります。")
+        }
+    }
+
+    // MARK: - 保存した物語
+
+    private var storiesSection: some View {
+        TimeTripSection(title: "保存した物語", systemImage: "book.closed.fill") {
+            LazyVGrid(columns: cardColumns, spacing: 12) {
+                ForEach(places) { place in
+                    NavigationLink(value: place) {
+                        StoryCard(place: place)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("削除", role: .destructive) { delete(place) }
+                    }
+                }
+            }
         }
     }
 
@@ -135,16 +187,12 @@ struct MyTimeTripView: View {
         )
     }
 
-    private func deletePlaces(at offsets: IndexSet) {
-        for index in offsets {
-            modelContext.delete(places[index])
-        }
+    private func delete(_ route: WalkRoute) {
+        modelContext.delete(route)
     }
 
-    private func deleteRoutes(at offsets: IndexSet) {
-        for index in offsets {
-            modelContext.delete(walkRoutes[index])
-        }
+    private func delete(_ place: SavedPlace) {
+        modelContext.delete(place)
     }
 
     /// `.sheet(item:)` に渡すための、UIImageをIdentifiableでラップした値。
@@ -172,38 +220,93 @@ struct MyTimeTripView: View {
     }
 }
 
-private struct WalkRouteRow: View {
-    let route: WalkRoute
-    let stampCount: Int
-    let onResume: () -> Void
+/// カードのグリッドをタイトル・アイコン付きの見出しでまとめる共通コンテナ。
+private struct TimeTripSection<Content: View>: View {
+    let title: String
+    let systemImage: String
+    var footer: String?
+    @ViewBuilder let content: Content
+
+    init(
+        title: String,
+        systemImage: String,
+        footer: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.footer = footer
+        self.content = content()
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
-                    .font(.headline)
-                Spacer()
-                Button("再スタート", action: onResume)
-                    .font(.subheadline)
-                    .buttonStyle(.bordered)
-            }
-
-            Text(route.overlayMap?.title ?? "古地図なし")
-                .font(.caption)
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
                 .foregroundStyle(.brown)
+            content
+            if let footer {
+                Text(footer)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
 
-            HStack(spacing: 12) {
+/// 「歩いた地図」カード。使っていた古地図のサムネイル・日時・距離・獲得御朱印数を表示する。
+private struct WalkRouteCard: View {
+    let route: WalkRoute
+    let stampCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .bottomLeading) {
+                thumbnail
+                LinearGradient(
+                    colors: [.black.opacity(0.55), .clear],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                Text(route.overlayMap?.title ?? "古地図なし")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .padding(8)
+            }
+            .frame(height: 90)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
+                .font(.caption.bold())
+                .foregroundStyle(.primary)
+
+            HStack(spacing: 10) {
                 Label(distanceText, systemImage: "figure.walk")
-                Label("不透明度 \(Int(route.overlayOpacity * 100))%", systemImage: "map")
                 if stampCount > 0 {
-                    Label("御朱印 \(stampCount)件", systemImage: "seal.fill")
+                    Label("\(stampCount)", systemImage: "seal.fill")
                         .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
                 }
             }
-            .font(.caption)
+            .font(.caption2)
             .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var thumbnail: some View {
+        if let assetName = route.overlayMap?.imageAssetName, let uiImage = UIImage(named: assetName) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Rectangle()
+                .fill(Color.brown.opacity(0.25))
+                .overlay(Image(systemName: "map").foregroundStyle(.brown))
+        }
     }
 
     private var distanceText: String {
@@ -215,22 +318,64 @@ private struct WalkRouteRow: View {
     }
 }
 
-private struct SavedPlaceRow: View {
+/// 「アップした写真」カード。御朱印獲得時に添えた写真を、場所名・日付とともに見せる。
+private struct PhotoCard: View {
+    let site: HistoricSite
+    let stamp: CollectedStamp
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let photo = stamp.photo {
+                Image(uiImage: photo)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 110)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+
+            Text(site.name)
+                .font(.caption.bold())
+                .lineLimit(1)
+                .foregroundStyle(.primary)
+
+            Text(stamp.collectedAt, format: .dateTime.month().day())
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+/// 「保存した物語」カード。
+private struct StoryCard: View {
     let place: SavedPlace
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(place.title)
-                .font(.headline)
-            Text(place.era)
-                .font(.caption)
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: "book.closed.fill")
+                .font(.system(size: 20))
                 .foregroundStyle(.brown)
+
+            Text(place.title)
+                .font(.subheadline.bold())
+                .lineLimit(2)
+                .foregroundStyle(.primary)
+
+            Text(place.era)
+                .font(.caption2)
+                .foregroundStyle(.brown)
+
             Text(place.storyText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(2)
+                .lineLimit(3)
         }
-        .padding(.vertical, 4)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 
