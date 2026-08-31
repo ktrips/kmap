@@ -1,3 +1,5 @@
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import CoreLocation
 import GoogleMaps
 import SwiftUI
@@ -75,6 +77,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var currentOverlay: GMSGroundOverlay?
         private var currentOverlayID: String?
         private var currentBaseImage: UIImage?
+        /// まだ通っていない場所用に、あらかじめぼかしておいた画像（古地図が変わる度に作り直す）。
+        private var currentBlurredImage: UIImage?
         private var lastRevealedPointCount = 0
 
         private var savedPolylines: [GMSPolyline] = []
@@ -82,8 +86,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var checkpointMarkers: [String: GMSMarker] = [:]
         private var photoPostMarkers: [UUID: GMSMarker] = [:]
 
-        /// 歩いた場所を中心に、この幅（メートル）だけ古地図をはっきり見せる。
-        private let revealCorridorMeters: Double = 45
+        /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
+        private let revealCorridorMeters: Double = 70
 
         init(onTap: @escaping (CLLocationCoordinate2D) -> Void) {
             self.onTap = onTap
@@ -111,6 +115,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if isNewOverlay {
                 currentOverlay?.map = nil
                 currentBaseImage = overlayMap.image
+                currentBlurredImage = currentBaseImage.flatMap(Self.blurredImage)
                 lastRevealedPointCount = 0
 
                 let bounds = GMSCoordinateBounds(
@@ -133,6 +138,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     lastRevealedPointCount = livePath.count
                     currentOverlay.icon = Self.revealedImage(
                         base: baseImage,
+                        blurredBase: currentBlurredImage ?? baseImage,
                         southWest: overlayMap.southWest,
                         northEast: overlayMap.northEast,
                         path: livePath,
@@ -151,9 +157,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
 
         /// 古地図の画像に、`path`に沿った太い帯（`corridorMeters`幅）だけくっきり見せ、
-        /// それ以外は`faintAlpha`で薄く見せた画像を合成する。
+        /// それ以外はぼかした上で`faintAlpha`で薄く見せた画像を合成する（宝探しのような演出）。
         private static func revealedImage(
             base: UIImage,
+            blurredBase: UIImage,
             southWest: CLLocationCoordinate2D,
             northEast: CLLocationCoordinate2D,
             path: [CLLocationCoordinate2D],
@@ -187,10 +194,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 let cg = context.cgContext
                 let fullRect = CGRect(origin: .zero, size: pixelSize)
 
-                // まず全体を薄く描く（まだ通っていない場所の見え方）。
-                base.draw(in: fullRect, blendMode: .normal, alpha: faintAlpha)
+                // まず全体を、ぼかした上で薄く描く（まだ通っていない場所の見え方）。
+                blurredBase.draw(in: fullRect, blendMode: .normal, alpha: faintAlpha)
 
-                // 通った場所だけ、太い帯でくっきり見せる。
+                // 通った場所だけ、太い帯でくっきり鮮明に見せる。
                 cg.saveGState()
                 cg.setLineWidth(corridorWidthPixels)
                 cg.setLineCap(.round)
@@ -210,6 +217,19 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 cg.restoreGState()
             }
             return composited
+        }
+
+        /// 「まだ通っていない場所」を宝探しの霧のようにぼんやりさせるための、
+        /// ガウスぼかしをかけた画像を作る。古地図が変わる度に一度だけ計算してキャッシュする。
+        private static func blurredImage(_ image: UIImage) -> UIImage? {
+            guard let ciImage = CIImage(image: image) else { return nil }
+            let filter = CIFilter.gaussianBlur()
+            filter.inputImage = ciImage
+            filter.radius = 14
+            guard let output = filter.outputImage?.cropped(to: ciImage.extent) else { return nil }
+            let context = CIContext()
+            guard let cgImage = context.createCGImage(output, from: output.extent) else { return nil }
+            return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
         }
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {

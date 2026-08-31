@@ -18,6 +18,12 @@ final class WalkPhotoPost {
     var longitude: Double
     /// 投稿時に記録中だった `WalkRoute.id`。
     var walkRouteID: UUID?
+    /// 逆ジオコーディングで取得した場所の名称。一度取得したら保存し、再取得しない。
+    var placeName: String?
+    /// AIが生成したその場所の物語（見出し）。一度取得したら保存し、再取得しない。
+    var storyTitle: String?
+    /// AIが生成したその場所の物語（本文）。一度取得したら保存し、再取得しない。
+    var storyBody: String?
 
     /// 1回の投稿で獲得できるポイント。
     static let pointsPerPost = 10

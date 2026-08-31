@@ -8,9 +8,8 @@ struct OldMapSearchView: View {
     var onAdd: (HistoricalOverlayMap) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
+    @ObservedObject private var cache = OldMapSearchCache.shared
     @State private var isSearching = false
-    @State private var result: OldMapSearchResult?
     @State private var errorMessage: String?
 
     private let service = OldMapSearchService()
@@ -21,7 +20,7 @@ struct OldMapSearchView: View {
                 Section {
                     TextField(
                         "例: 六本木付近の、毛利庭園や乃木神社などをポイントとした、明治以後の古地図を見つけて",
-                        text: $query,
+                        text: $cache.query,
                         axis: .vertical
                     )
                     .lineLimit(3...6)
@@ -35,11 +34,11 @@ struct OldMapSearchView: View {
                             Label("検索する", systemImage: "magnifyingglass")
                         }
                     }
-                    .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSearching)
+                    .disabled(cache.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSearching)
                 } header: {
                     Text("見つけたい古地図の地域")
                 } footer: {
-                    Text("AIが説明からおおよその位置を推定し、Web検索で見つけた古地図の画像と組み合わせて候補を作ります。位置合わせは概算のため、実際の史料とは多少ずれます。")
+                    Text("AIが説明からおおよその位置を推定し、Web検索で見つけた古地図の画像と組み合わせて候補を作ります。位置合わせは概算のため、実際の史料とは多少ずれます。検索結果はこの画面を閉じても保持され、追加するまで再検索は行われません。")
                 }
 
                 if let errorMessage {
@@ -49,7 +48,7 @@ struct OldMapSearchView: View {
                     }
                 }
 
-                if let result {
+                if let result = cache.result {
                     resultSection(result)
                 }
             }
@@ -88,9 +87,9 @@ struct OldMapSearchView: View {
     private func search() async {
         isSearching = true
         errorMessage = nil
-        result = nil
+        cache.result = nil
         do {
-            result = try await service.search(query: query)
+            cache.result = try await service.search(query: cache.query)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -107,6 +106,7 @@ struct OldMapSearchView: View {
             northEast: result.northEast
         ) else { return }
         onAdd(overlay)
+        cache.clear()
         dismiss()
     }
 }
