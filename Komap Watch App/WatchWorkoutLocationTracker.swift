@@ -25,7 +25,10 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 5
-        locationManager.allowsBackgroundLocationUpdates = true
+        // バックグラウンドでの位置情報継続は`HKWorkoutSession`（ワークアウト実行中の
+        // バックグラウンド実行モード）が担うため、ここでは`allowsBackgroundLocationUpdates`を
+        // 設定しない。Info.plistに対応する背景モードの宣言がない状態でこれを`true`にすると、
+        // アプリ起動時に例外で落ちる（今回の「起動しない」不具合の原因）。
     }
 
     /// 記録を開始する。開始日時と、これまでの軌跡をクリアして返す。

@@ -30,7 +30,9 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published private(set) var isSelfTracking = false
 
     private let session: WCSession?
-    private let tracker = WatchWorkoutLocationTracker()
+    /// 「スタート」を押すまでHealthKit・位置情報まわりの初期化を行わないよう、
+    /// 実際に記録を始める時になって初めて作る（アプリ起動を軽く保つため）。
+    private var tracker: WatchWorkoutLocationTracker?
     private var activeSessionID: UUID?
 
     override init() {
@@ -47,6 +49,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
         activeSessionID = sessionID
         isSelfTracking = true
         state = .recording
+        let tracker = tracker ?? WatchWorkoutLocationTracker()
+        self.tracker = tracker
         tracker.start()
         send(["command": "watchTrackingStarted", "sessionID": sessionID.uuidString])
     }
@@ -55,7 +59,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         guard state == .recording else { return }
         state = .paused
         if isSelfTracking {
-            tracker.pause()
+            tracker?.pause()
             send(["command": "watchTrackingPaused"])
         } else {
             send(["command": "pause"])
@@ -66,7 +70,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         guard state == .paused else { return }
         state = .recording
         if isSelfTracking {
-            tracker.resume()
+            tracker?.resume()
             send(["command": "watchTrackingResumed"])
         } else {
             send(["command": "resume"])
@@ -75,7 +79,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     func stop() {
         guard state != .idle else { return }
-        if isSelfTracking {
+        if isSelfTracking, let tracker {
             let sessionID = activeSessionID
             state = .idle
             isSelfTracking = false
@@ -95,6 +99,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
             }
         } else {
             state = .idle
+            isSelfTracking = false
             send(["command": "stop"])
         }
     }

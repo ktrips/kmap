@@ -115,7 +115,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if isNewOverlay {
                 currentOverlay?.map = nil
                 currentBaseImage = overlayMap.image
-                currentBlurredImage = currentBaseImage.flatMap(Self.blurredImage)
+                currentBlurredImage = nil
                 lastRevealedPointCount = 0
 
                 let bounds = GMSCoordinateBounds(
@@ -127,6 +127,19 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 overlay.map = mapView
                 currentOverlay = overlay
                 currentOverlayID = overlayMap.id
+
+                // ぼかし画像の生成は重いので、メインスレッドをブロックしないよう
+                // バックグラウンドで計算してから後で使う（先に元画像で表示しておく）。
+                if let baseImage = currentBaseImage {
+                    let overlayID = overlayMap.id
+                    DispatchQueue.global(qos: .utility).async { [weak self] in
+                        let blurred = Self.blurredImage(baseImage)
+                        DispatchQueue.main.async {
+                            guard self?.currentOverlayID == overlayID else { return }
+                            self?.currentBlurredImage = blurred
+                        }
+                    }
+                }
             }
 
             guard let currentOverlay, let baseImage = currentBaseImage else { return }
@@ -134,17 +147,29 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if livePath.count >= 2 {
                 // 記録中はスライダーの不透明度を「まだ通っていない場所」の薄さとして使い、
                 // 通った場所だけくっきり見えるように画像を合成し直す。
+                // 合成処理は重いのでメインスレッドをブロックしないようバックグラウンドで行う。
                 if isNewOverlay || livePath.count != lastRevealedPointCount {
                     lastRevealedPointCount = livePath.count
-                    currentOverlay.icon = Self.revealedImage(
-                        base: baseImage,
-                        blurredBase: currentBlurredImage ?? baseImage,
-                        southWest: overlayMap.southWest,
-                        northEast: overlayMap.northEast,
-                        path: livePath,
-                        corridorMeters: revealCorridorMeters,
-                        faintAlpha: CGFloat(opacity)
-                    )
+                    let southWest = overlayMap.southWest
+                    let northEast = overlayMap.northEast
+                    let corridorMeters = revealCorridorMeters
+                    let faintAlpha = CGFloat(opacity)
+                    let blurredBase = currentBlurredImage ?? baseImage
+                    let overlayRef = currentOverlay
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        let image = Self.revealedImage(
+                            base: baseImage,
+                            blurredBase: blurredBase,
+                            southWest: southWest,
+                            northEast: northEast,
+                            path: livePath,
+                            corridorMeters: corridorMeters,
+                            faintAlpha: faintAlpha
+                        )
+                        DispatchQueue.main.async {
+                            overlayRef.icon = image
+                        }
+                    }
                 }
             } else {
                 // 記録していない時は、これまで通りスライダーの不透明度を全体にかける。

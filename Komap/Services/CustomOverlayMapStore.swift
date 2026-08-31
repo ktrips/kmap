@@ -25,6 +25,10 @@ enum CustomOverlayMapStore {
             .appendingPathComponent("CustomOverlayMaps.json")
     }
 
+    /// ディスクからの読み込み・JSONデコードを毎回行わずに済むよう、一度読んだら
+    /// メモリ上に保持しておく。`add`で更新した時だけ作り直す。
+    private static var cachedRecords: [Record]?
+
     /// 保存済みの古地図一覧を読み込む。
     static func all() -> [HistoricalOverlayMap] {
         records().map { $0.overlayMap }
@@ -58,14 +62,22 @@ enum CustomOverlayMapStore {
         current.append(record)
         guard let data = try? JSONEncoder().encode(current) else { return nil }
         try? data.write(to: fileURL)
+        cachedRecords = current
 
         return record.overlayMap
     }
 
     private static func records() -> [Record] {
+        if let cachedRecords {
+            return cachedRecords
+        }
         guard let data = try? Data(contentsOf: fileURL),
               let records = try? JSONDecoder().decode([Record].self, from: data)
-        else { return [] }
+        else {
+            cachedRecords = []
+            return []
+        }
+        cachedRecords = records
         return records
     }
 }
