@@ -18,6 +18,8 @@ struct WatchTrackedRoute {
 final class WatchConnectivityManager: NSObject, ObservableObject {
     enum Command: Equatable {
         case start, pause, resume, stop
+        /// Watchの保存確認シートで「破棄」が選ばれた（iPhone連動モード）。
+        case discard
         case selectMap(id: String)
         /// Watch自身のGPSで記録が始まった／一時停止／再開したという通知（GPSはWatch側のまま）。
         case watchTrackingStarted(sessionID: String)
@@ -25,13 +27,16 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         case watchTrackingResumed
         /// Watch単体の記録が終わり、軌跡がまるごと届いた。
         case watchTrackingFinished(WatchTrackedRoute)
+        /// Watch単体の記録が、Watchの保存確認シートで「破棄」されて終わった。
+        case watchTrackingDiscarded
         /// Watch単体のGPSで記録中、現在地が更新された（御朱印チェックポイントの判定に使う）。
         case watchLocationUpdate(CLLocationCoordinate2D)
 
         static func == (lhs: Command, rhs: Command) -> Bool {
             switch (lhs, rhs) {
-            case (.start, .start), (.pause, .pause), (.resume, .resume), (.stop, .stop),
-                (.watchTrackingPaused, .watchTrackingPaused), (.watchTrackingResumed, .watchTrackingResumed):
+            case (.start, .start), (.pause, .pause), (.resume, .resume), (.stop, .stop), (.discard, .discard),
+                (.watchTrackingPaused, .watchTrackingPaused), (.watchTrackingResumed, .watchTrackingResumed),
+                (.watchTrackingDiscarded, .watchTrackingDiscarded):
                 return true
             case let (.selectMap(a), .selectMap(b)):
                 return a == b
@@ -161,6 +166,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
         case "pause": return .pause
         case "resume": return .resume
         case "stop": return .stop
+        case "discard": return .discard
         case "selectMap":
             guard let mapID = message["mapID"] as? String else { return nil }
             return .selectMap(id: mapID)
@@ -194,6 +200,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 endedAt: Date(timeIntervalSince1970: endedAtInterval),
                 stepCount: message["stepCount"] as? Int
             ))
+        case "watchTrackingDiscarded":
+            return .watchTrackingDiscarded
         default:
             return nil
         }

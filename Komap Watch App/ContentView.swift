@@ -49,7 +49,7 @@ struct ContentView: View {
                         Button(role: .destructive) {
                             isConfirmingStop = true
                         } label: {
-                            Label("終了", systemImage: "stop.circle.fill")
+                            Label("完了", systemImage: "stop.circle.fill")
                         }
 
                     case .paused:
@@ -63,7 +63,7 @@ struct ContentView: View {
                         Button(role: .destructive) {
                             isConfirmingStop = true
                         } label: {
-                            Label("終了", systemImage: "stop.circle.fill")
+                            Label("完了", systemImage: "stop.circle.fill")
                         }
                     }
 
@@ -77,15 +77,11 @@ struct ContentView: View {
                 }
                 .padding()
             }
-            .confirmationDialog(
-                "記録を終了して保存しますか？",
-                isPresented: $isConfirmingStop,
-                titleVisibility: .visible
-            ) {
-                Button("保存して終了", role: .destructive) {
-                    sessionManager.stop()
-                }
-                Button("キャンセル", role: .cancel) {}
+            .sheet(isPresented: $isConfirmingStop) {
+                WatchWalkSaveDecisionView(
+                    onSave: { sessionManager.stop() },
+                    onDiscard: { sessionManager.stop(shouldSave: false) }
+                )
             }
             .sheet(item: stampSheetBinding) { info in
                 StampCollectedView(info: info) {
@@ -214,6 +210,48 @@ private struct StampCollectedView: View {
                     Label("チェックイン", systemImage: "checkmark.circle.fill")
                 }
                 .tint(.green)
+            }
+            .padding()
+        }
+    }
+}
+
+/// 「完了」を押した直後に出す保存確認画面。
+/// 誤って破棄しないよう、「保存」を大きく目立たせ、「破棄」はその下に小さく置く。
+private struct WatchWalkSaveDecisionView: View {
+    let onSave: () -> Void
+    let onDiscard: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                Text("記録を保存しますか？")
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    onSave()
+                    dismiss()
+                } label: {
+                    Text("保存")
+                        .font(.title3.bold())
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                .controlSize(.large)
+
+                Button(role: .destructive) {
+                    onDiscard()
+                    dismiss()
+                } label: {
+                    Text("破棄")
+                        .font(.footnote)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
             }
             .padding()
         }

@@ -196,15 +196,13 @@ struct MapScreen: View {
         .onChange(of: watchConnectivity.lastCommand) { _, command in
             handleWatchCommand(command)
         }
-        .confirmationDialog(
-            "この時間旅を保存しますか？",
-            isPresented: isSaveConfirmationPresented,
-            titleVisibility: .visible
-        ) {
-            Button("保存する") { confirmPendingWalkRoute() }
-            Button("保存しない", role: .destructive) { discardPendingWalkRoute() }
-        } message: {
-            Text("使った古地図・歩いたルート・通ったチェックポイントや御朱印を「わたしの時間旅行」に記録します。")
+        .sheet(isPresented: isSaveConfirmationPresented) {
+            WalkSaveDecisionSheet(
+                onSave: confirmPendingWalkRoute,
+                onDiscard: discardPendingWalkRoute
+            )
+            .presentationDetents([.height(260)])
+            .presentationDragIndicator(.hidden)
         }
     }
 
@@ -254,7 +252,7 @@ struct MapScreen: View {
             toggleWalkRecording()
         } label: {
             Label(
-                locationManager.isRecordingWalk ? "終了" : "スタート",
+                locationManager.isRecordingWalk ? "完了" : "スタート",
                 systemImage: locationManager.isRecordingWalk ? "stop.circle.fill" : "play.circle.fill"
             )
             .font(.subheadline.bold())
@@ -403,8 +401,12 @@ struct MapScreen: View {
             }
         case .stop:
             if locationManager.isRecordingWalk {
-                // Watchでは保存確認ダイアログを見せられないため、確認を挟まず保存する。
+                // 保存するかどうかの確認はWatch側のシートで既に済んでいるため、そのまま保存する。
                 stopWalkRecording(autoSave: true)
+            }
+        case .discard:
+            if locationManager.isRecordingWalk {
+                discardActiveWalkRecording()
             }
         case .selectMap(let id):
             guard let overlay = OldMapCatalog.allIncludingCustom.first(where: { $0.id == id }) else { return }
@@ -425,6 +427,11 @@ struct MapScreen: View {
             activeWatchSessionID = nil
             watchTrackedPath = []
             saveWatchTrackedRoute(route)
+        case .watchTrackingDiscarded:
+            isWatchTrackingActive = false
+            isWatchTrackingPaused = false
+            activeWatchSessionID = nil
+            watchTrackedPath = []
         case .watchLocationUpdate(let coordinate):
             // Watch単体のGPSで記録中は、iPhone側の地図にもリアルタイムで軌跡を表示し、
             // iPhone側の位置情報だけでは気づけない御朱印チェックポイントの判定も行う。
@@ -519,6 +526,13 @@ struct MapScreen: View {
         activeWalkStartedAt = nil
     }
 
+    /// Watchの保存確認シートで「破棄」が選ばれた時、記録中のGPS計測を止めて何も保存しない。
+    private func discardActiveWalkRecording() {
+        _ = locationManager.stopRecordingWalk()
+        activeWalkSessionID = nil
+        activeWalkStartedAt = nil
+    }
+
     private func save(_ pending: PendingWalkRoute) {
         modelContext.insert(WalkRoute(
             id: pending.id,
@@ -567,6 +581,54 @@ private struct PendingWalkRoute {
     let stepCount: Int?
     let overlayMapID: String?
     let overlayOpacity: Double
+}
+
+/// 「完了」を押した直後に出す保存確認シート。
+/// 誤って破棄しないよう、「保存」を大きく目立たせ、「破棄」はその下に小さく置く。
+private struct WalkSaveDecisionSheet: View {
+    let onSave: () -> Void
+    let onDiscard: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 20) {
+            VStack(spacing: 6) {
+                Text("この時間旅を保存しますか？")
+                    .font(.headline)
+                Text("使った古地図・歩いたルート・通ったチェックポイントや御朱印を「My Trips」に記録します。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.top, 24)
+
+            Button {
+                onSave()
+                dismiss()
+            } label: {
+                Text("保存")
+                    .font(.title3.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+
+            Button(role: .destructive) {
+                onDiscard()
+                dismiss()
+            } label: {
+                Text("破棄")
+                    .font(.footnote)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.red)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 24)
+    }
 }
 
 #Preview {

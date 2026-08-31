@@ -101,7 +101,9 @@ final class WatchSessionManager: NSObject, ObservableObject {
         }
     }
 
-    func stop() {
+    /// 記録を終える。`shouldSave`が`false`の時（保存確認シートで「破棄」を選んだ時）は、
+    /// 記録を止めるだけで軌跡は送らず、iPhone側にも保存しないことを伝える。
+    func stop(shouldSave: Bool = true) {
         guard state != .idle else { return }
         if isSelfTracking, let tracker {
             let sessionID = activeSessionID
@@ -110,6 +112,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
             activeSessionID = nil
             Task {
                 let result = await tracker.stop()
+                guard shouldSave else {
+                    send(["command": "watchTrackingDiscarded"])
+                    return
+                }
                 guard result.path.count >= 2 else { return }
                 send([
                     "command": "watchTrackingFinished",
@@ -124,7 +130,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         } else {
             state = .idle
             isSelfTracking = false
-            send(["command": "stop"])
+            send(["command": shouldSave ? "stop" : "discard"])
         }
     }
 
