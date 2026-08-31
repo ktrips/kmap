@@ -13,6 +13,7 @@ xcuserdata/
 Komap/Resources/Info.plist
 Komap/Komap.entitlements
 Komap Watch App/Info.plist
+Komap Watch App/KomapWatchApp.entitlements
 
 # Firebase設定（各自のFirebaseプロジェクトのものを配置し、公開リポジトリにはコミットしない）
 Komap/Resources/GoogleService-Info.plist

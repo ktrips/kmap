@@ -1,13 +1,46 @@
+import CoreLocation
 import Foundation
 import WatchConnectivity
 
-/// Apple Watch用アプリからの「スタート／一時停止／再開／終了／古地図の選択」コマンドを受け取り、
-/// 現在のウォーキング記録状態・選べる古地図の一覧をWatch側へ送り返す。
+/// Watch単体のGPSで記録を終えた時に届く、まるごとの軌跡データ。
+struct WatchTrackedRoute {
+    let sessionID: String
+    let coordinates: [CLLocationCoordinate2D]
+    let startedAt: Date
+    let endedAt: Date
+    let stepCount: Int?
+}
+
+/// Apple Watch用アプリからの「スタート／一時停止／再開／終了／古地図の選択」コマンドや、
+/// Watch単体のGPSで記録した軌跡を受け取り、現在のウォーキング記録状態・選べる
+/// 古地図の一覧をWatch側へ送り返す。
 @MainActor
 final class WatchConnectivityManager: NSObject, ObservableObject {
     enum Command: Equatable {
         case start, pause, resume, stop
         case selectMap(id: String)
+        /// Watch自身のGPSで記録が始まった／一時停止／再開したという通知（GPSはWatch側のまま）。
+        case watchTrackingStarted(sessionID: String)
+        case watchTrackingPaused
+        case watchTrackingResumed
+        /// Watch単体の記録が終わり、軌跡がまるごと届いた。
+        case watchTrackingFinished(WatchTrackedRoute)
+
+        static func == (lhs: Command, rhs: Command) -> Bool {
+            switch (lhs, rhs) {
+            case (.start, .start), (.pause, .pause), (.resume, .resume), (.stop, .stop),
+                (.watchTrackingPaused, .watchTrackingPaused), (.watchTrackingResumed, .watchTrackingResumed):
+                return true
+            case let (.selectMap(a), .selectMap(b)):
+                return a == b
+            case let (.watchTrackingStarted(a), .watchTrackingStarted(b)):
+                return a == b
+            case let (.watchTrackingFinished(a), .watchTrackingFinished(b)):
+                return a.sessionID == b.sessionID
+            default:
+                return false
+            }
+        }
     }
 
     /// Watchから届いた最新のコマンド。呼び出し側（`MapScreen`）が`onChange`で監視して処理する。
@@ -96,6 +129,33 @@ extension WatchConnectivityManager: WCSessionDelegate {
         case "selectMap":
             guard let mapID = message["mapID"] as? String else { return nil }
             return .selectMap(id: mapID)
+        case "watchTrackingStarted":
+            guard let sessionID = message["sessionID"] as? String else { return nil }
+            return .watchTrackingStarted(sessionID: sessionID)
+        case "watchTrackingPaused":
+            return .watchTrackingPaused
+        case "watchTrackingResumed":
+            return .watchTrackingResumed
+        case "watchTrackingFinished":
+            guard let sessionID = message["sessionID"] as? String,
+                  let latitudes = message["latitudes"] as? [Double],
+                  let longitudes = message["longitudes"] as? [Double],
+                  latitudes.count == longitudes.count,
+                  let startedAtInterval = message["startedAt"] as? Double,
+                  let endedAtInterval = message["endedAt"] as? Double
+            else {
+                return nil
+            }
+            let coordinates = zip(latitudes, longitudes).map {
+                CLLocationCoordinate2D(latitude: $0, longitude: $1)
+            }
+            return .watchTrackingFinished(WatchTrackedRoute(
+                sessionID: sessionID,
+                coordinates: coordinates,
+                startedAt: Date(timeIntervalSince1970: startedAtInterval),
+                endedAt: Date(timeIntervalSince1970: endedAtInterval),
+                stepCount: message["stepCount"] as? Int
+            ))
         default:
             return nil
         }

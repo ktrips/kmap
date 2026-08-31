@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import WatchConnectivity
 
@@ -7,8 +8,13 @@ struct WatchMapOption: Identifiable, Equatable {
     let title: String
 }
 
-/// iPhone側の「Komap」アプリへ、スタート／一時停止／再開／終了／古地図の選択の
-/// コマンドを送り、現在の記録状態と選べる古地図の一覧を受け取ってWatch側の画面に反映する。
+/// iPhone側の「Komap」アプリとの連携をまとめる。2つのモードがある。
+///
+/// - Watch単体モード: Watchの「スタート」で自分自身のGPS（`WatchWorkoutLocationTracker`）
+///   を使って記録する。iPhone側アプリが起動していなくても記録・保存できるよう、
+///   終了時に軌跡をまるごと`transferUserInfo`でiPhoneへ送る。
+/// - iPhone連動モード: iPhone側で「スタート」された記録を、従来通りコマンド送信で
+///   一時停止・再開・終了だけ遠隔操作する（GPSはiPhone側のまま）。
 @MainActor
 final class WatchSessionManager: NSObject, ObservableObject {
     enum RecordingState {
@@ -20,8 +26,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published private(set) var selectedMapID: String?
     /// iPhoneとすぐに通信できる状態かどうか。`false`の間もコマンドはキューされて後で届く。
     @Published private(set) var isReachable = false
+    /// 今の記録がWatch自身のGPSによるものかどうか（`false`ならiPhone側の記録を遠隔操作している）。
+    @Published private(set) var isSelfTracking = false
 
     private let session: WCSession?
+    private let tracker = WatchWorkoutLocationTracker()
+    private var activeSessionID: UUID?
 
     override init() {
         session = WCSession.isSupported() ? WCSession.default : nil
@@ -30,26 +40,63 @@ final class WatchSessionManager: NSObject, ObservableObject {
         session?.activate()
     }
 
-    /// 「スタート」を押した瞬間に反映されるよう、送信前に画面上の状態も更新しておく。
-    /// 実際の状態はiPhone側から折り返される`applicationContext`で確定する。
+    /// Watch自身のGPSで記録を開始する。
     func start() {
+        guard state == .idle else { return }
+        let sessionID = UUID()
+        activeSessionID = sessionID
+        isSelfTracking = true
         state = .recording
-        send(["command": "start"])
+        tracker.start()
+        send(["command": "watchTrackingStarted", "sessionID": sessionID.uuidString])
     }
 
     func pause() {
+        guard state == .recording else { return }
         state = .paused
-        send(["command": "pause"])
+        if isSelfTracking {
+            tracker.pause()
+            send(["command": "watchTrackingPaused"])
+        } else {
+            send(["command": "pause"])
+        }
     }
 
     func resume() {
+        guard state == .paused else { return }
         state = .recording
-        send(["command": "resume"])
+        if isSelfTracking {
+            tracker.resume()
+            send(["command": "watchTrackingResumed"])
+        } else {
+            send(["command": "resume"])
+        }
     }
 
     func stop() {
-        state = .idle
-        send(["command": "stop"])
+        guard state != .idle else { return }
+        if isSelfTracking {
+            let sessionID = activeSessionID
+            state = .idle
+            isSelfTracking = false
+            activeSessionID = nil
+            Task {
+                let result = await tracker.stop()
+                guard result.path.count >= 2 else { return }
+                send([
+                    "command": "watchTrackingFinished",
+                    "sessionID": sessionID?.uuidString ?? UUID().uuidString,
+                    "latitudes": result.path.map(\.latitude),
+                    "longitudes": result.path.map(\.longitude),
+                    "startedAt": result.startedAt.timeIntervalSince1970,
+                    "endedAt": result.endedAt.timeIntervalSince1970,
+                    "stepCount": result.stepCount as Any,
+                ], reliable: true)
+            }
+        } else {
+            state = .idle
+            send(["command": "stop"])
+        }
     }
 
     func selectMap(_ id: String) {
@@ -59,8 +106,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// 到達可能なら即時性の高い`sendMessage`、そうでなければ`transferUserInfo`で
     /// キューに積み、iPhoneが応答できるようになり次第届くようにする。
-    private func send(_ payload: [String: Any]) {
+    /// `reliable`が`true`の記録データは、届いたか分からない`sendMessage`に頼らず
+    /// 必ずキュー経由（`transferUserInfo`）で送る。
+    private func send(_ payload: [String: Any], reliable: Bool = false) {
         guard let session, session.activationState == .activated else { return }
+        if reliable {
+            session.transferUserInfo(payload)
+            return
+        }
         if session.isReachable {
             session.sendMessage(payload, replyHandler: nil) { [weak self] _ in
                 Task { @MainActor in
@@ -72,15 +125,19 @@ final class WatchSessionManager: NSObject, ObservableObject {
         }
     }
 
+    /// iPhone側から届く状態。Watch自身が記録中の間は、iPhone側の「記録していない」
+    /// という情報で上書きしてしまわないよう、記録の状態だけは無視する。
     private func applyContext(_ context: [String: Any]) {
-        let isRecording = context["isRecording"] as? Bool ?? false
-        let isPaused = context["isPaused"] as? Bool ?? false
-        if !isRecording {
-            state = .idle
-        } else if isPaused {
-            state = .paused
-        } else {
-            state = .recording
+        if !isSelfTracking {
+            let isRecording = context["isRecording"] as? Bool ?? false
+            let isPaused = context["isPaused"] as? Bool ?? false
+            if !isRecording {
+                state = .idle
+            } else if isPaused {
+                state = .paused
+            } else {
+                state = .recording
+            }
         }
 
         let mapIDs = context["mapIDs"] as? [String] ?? []

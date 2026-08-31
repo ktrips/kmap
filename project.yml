@@ -94,6 +94,15 @@ targets:
         WKCompanionAppBundleIdentifier: com.komap.Komap
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        NSLocationWhenInUseUsageDescription: "ウォーキング記録中、Watch単体で現在地を記録するために位置情報を使用します。"
+        NSHealthShareUsageDescription: "ウォーキング記録をバックグラウンドでも継続するために、ワークアウトセッションを使用します。"
+        NSHealthUpdateUsageDescription: "ウォーキング記録をバックグラウンドでも継続するために、ワークアウトセッションを使用します。"
+        WKBackgroundModes:
+          - workout-processing
+    entitlements:
+      path: "Komap Watch App/KomapWatchApp.entitlements"
+      properties:
+        com.apple.developer.healthkit: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.komap.Komap.watchkitapp

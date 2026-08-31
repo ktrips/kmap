@@ -33,6 +33,9 @@ struct MapScreen: View {
     @State private var pointsToastMessage: String?
     /// 「新しい古地図を登録」から開く検索シートの表示状態。
     @State private var isShowingOldMapSearch = false
+    /// Watch自身のGPSで記録中かどうか（GPSはWatch側、iPhoneはこの状態を表示するだけ）。
+    @State private var isWatchTrackingActive = false
+    @State private var isWatchTrackingPaused = false
 
     private let syncService = SyncService()
     private let stepCounter = StepCounter()
@@ -186,13 +189,32 @@ struct MapScreen: View {
     private var actionButtonsRow: some View {
         HStack(spacing: 8) {
             Spacer()
-            if locationManager.isRecordingWalk {
-                photoPostButton
-                pauseResumeButton
+            if isWatchTrackingActive {
+                watchTrackingIndicator
+            } else {
+                if locationManager.isRecordingWalk {
+                    photoPostButton
+                    pauseResumeButton
+                }
+                walkRecordButton
             }
-            walkRecordButton
             Spacer()
         }
+    }
+
+    /// Watch自身のGPSで記録中の時に、iPhone側では操作ボタンの代わりに表示する状態表示。
+    /// 一時停止・終了はWatch側でのみ行える。
+    private var watchTrackingIndicator: some View {
+        Label(
+            isWatchTrackingPaused ? "Watchで一時停止中" : "Watchで記録中",
+            systemImage: "applewatch"
+        )
+        .font(.subheadline.bold())
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .foregroundStyle(.white)
+        .background(isWatchTrackingPaused ? AnyShapeStyle(Color.orange) : AnyShapeStyle(Color.blue), in: Capsule())
+        .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
     }
 
     private var walkRecordButton: some View {
@@ -337,7 +359,32 @@ struct MapScreen: View {
             guard let overlay = OldMapCatalog.allIncludingCustom.first(where: { $0.id == id }) else { return }
             mapSession.selectedOverlay = overlay
             mapSession.moveCamera(to: overlay.center)
+        case .watchTrackingStarted:
+            isWatchTrackingActive = true
+            isWatchTrackingPaused = false
+        case .watchTrackingPaused:
+            isWatchTrackingPaused = true
+        case .watchTrackingResumed:
+            isWatchTrackingPaused = false
+        case .watchTrackingFinished(let route):
+            isWatchTrackingActive = false
+            isWatchTrackingPaused = false
+            saveWatchTrackedRoute(route)
         }
+    }
+
+    /// Watch単体のGPSで記録し終えた軌跡を、確認ダイアログを挟まずそのまま保存する。
+    private func saveWatchTrackedRoute(_ route: WatchTrackedRoute) {
+        guard route.coordinates.count >= 2 else { return }
+        modelContext.insert(WalkRoute(
+            coordinates: route.coordinates,
+            startedAt: route.startedAt,
+            endedAt: route.endedAt,
+            stepCount: route.stepCount,
+            overlayMapID: mapSession.selectedOverlay?.id,
+            overlayOpacity: mapSession.overlayOpacity
+        ))
+        try? modelContext.save()
     }
 
     /// 現在の記録状態・選択中の古地図をWatchへ送る。

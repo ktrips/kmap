@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Watch側の唯一の画面。iPhone側で記録中のウォーキングを
-/// スタート・一時停止・再開・終了でき、使う古地図も選べる操作盤。
+/// Watch側の唯一の画面。「スタート」を押すとWatch自身のGPSで記録が始まり、
+/// iPhone側アプリを開いていなくても記録・保存できる。iPhone側で先に記録が
+/// 始まっている時は、一時停止・再開・終了だけを遠隔操作する。
 struct ContentView: View {
     @StateObject private var sessionManager = WatchSessionManager()
 
@@ -14,6 +15,12 @@ struct ContentView: View {
                         .foregroundStyle(statusColor)
                     Text(statusText)
                         .font(.headline)
+
+                    if sessionManager.state != .idle {
+                        Text(sessionManager.isSelfTracking ? "Watch単体で記録中" : "iPhoneと連動中")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
 
                     if !sessionManager.isReachable {
                         Label("iPhoneと未接続", systemImage: "iphone.slash")
