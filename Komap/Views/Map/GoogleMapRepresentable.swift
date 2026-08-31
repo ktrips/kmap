@@ -45,8 +45,18 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         mapView.settings.myLocationButton = true
         mapView.settings.compassButton = true
         mapView.delegate = context.coordinator
+        // 歩いた道の朱色をくっきり引き立たせるため、地図自体は少しだけ彩度を落としておく。
+        mapView.mapStyle = try? GMSMapStyle(jsonString: Self.mutedMapStyleJSON)
         return mapView
     }
+
+    private static let mutedMapStyleJSON = """
+    [
+      {"elementType": "geometry", "stylers": [{"saturation": -35}, {"lightness": 8}]},
+      {"elementType": "labels.text.fill", "stylers": [{"saturation": -25}]},
+      {"elementType": "labels.icon", "stylers": [{"saturation": -35}]}
+    ]
+    """
 
     func updateUIView(_ mapView: GMSMapView, context: Context) {
         context.coordinator.onTap = onTap
@@ -88,6 +98,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
+        /// 歩いた道を「自分で塗りつぶした」ように見せる太さ（画面上のポイント数）。
+        private let walkedTrailWidth: CGFloat = 12
 
         init(onTap: @escaping (CLLocationCoordinate2D) -> Void) {
             self.onTap = onTap
@@ -306,7 +318,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if saved.count != savedPolylines.count {
                 savedPolylines.forEach { $0.map = nil }
                 savedPolylines = saved.map { coordinates in
-                    makePolyline(for: coordinates, strokeColor: .systemBlue, strokeWidth: 4, on: mapView)
+                    makePolyline(for: coordinates, strokeColor: .walkedTrail, strokeWidth: walkedTrailWidth, on: mapView)
                 }
             }
 
@@ -321,7 +333,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if let livePolyline {
                 livePolyline.path = path
             } else {
-                livePolyline = makePolyline(path: path, strokeColor: .systemOrange, strokeWidth: 8, on: mapView)
+                livePolyline = makePolyline(path: path, strokeColor: .walkedTrail, strokeWidth: walkedTrailWidth, on: mapView)
             }
         }
 
