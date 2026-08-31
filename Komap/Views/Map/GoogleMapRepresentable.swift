@@ -45,7 +45,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     func updateUIView(_ mapView: GMSMapView, context: Context) {
         context.coordinator.onTap = onTap
         context.coordinator.onCheckpointTap = onCheckpointTap
-        context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, to: mapView)
+        context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, to: mapView)
         context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, to: mapView)
         context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
         mapView.padding = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
@@ -67,38 +67,141 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         private var currentOverlay: GMSGroundOverlay?
         private var currentOverlayID: String?
+        private var currentBaseImage: UIImage?
+        private var lastRevealedPointCount = 0
 
         private var savedPolylines: [GMSPolyline] = []
         private var livePolyline: GMSPolyline?
         private var checkpointMarkers: [String: GMSMarker] = [:]
 
+        /// 歩いた場所を中心に、この幅（メートル）だけ古地図をはっきり見せる。
+        private let revealCorridorMeters: Double = 45
+
         init(onTap: @escaping (CLLocationCoordinate2D) -> Void) {
             self.onTap = onTap
         }
 
-        func applyOverlay(_ overlayMap: HistoricalOverlayMap?, opacity: Float, to mapView: GMSMapView) {
+        /// 古地図を貼り替える。記録中の軌跡（`livePath`）が2点以上あれば、
+        /// 通った場所だけくっきり見えるよう画像を合成し直す。それ以外は
+        /// スライダーの不透明度をそのまま全体にかける、これまで通りの表示。
+        func applyOverlay(
+            _ overlayMap: HistoricalOverlayMap?,
+            opacity: Float,
+            livePath: [CLLocationCoordinate2D],
+            to mapView: GMSMapView
+        ) {
             guard let overlayMap else {
                 currentOverlay?.map = nil
                 currentOverlay = nil
                 currentOverlayID = nil
+                currentBaseImage = nil
+                lastRevealedPointCount = 0
                 return
             }
 
-            if currentOverlayID != overlayMap.id {
+            let isNewOverlay = currentOverlayID != overlayMap.id
+            if isNewOverlay {
                 currentOverlay?.map = nil
+                currentBaseImage = overlayMap.image
+                lastRevealedPointCount = 0
 
                 let bounds = GMSCoordinateBounds(
                     coordinate: overlayMap.southWest,
                     coordinate: overlayMap.northEast
                 )
-                let overlay = GMSGroundOverlay(bounds: bounds, icon: UIImage(named: overlayMap.imageAssetName))
-                overlay.opacity = opacity
+                let overlay = GMSGroundOverlay(bounds: bounds, icon: currentBaseImage)
+                overlay.opacity = 1
                 overlay.map = mapView
                 currentOverlay = overlay
                 currentOverlayID = overlayMap.id
-            } else {
-                currentOverlay?.opacity = opacity
             }
+
+            guard let currentOverlay, let baseImage = currentBaseImage else { return }
+
+            if livePath.count >= 2 {
+                // 記録中はスライダーの不透明度を「まだ通っていない場所」の薄さとして使い、
+                // 通った場所だけくっきり見えるように画像を合成し直す。
+                if isNewOverlay || livePath.count != lastRevealedPointCount {
+                    lastRevealedPointCount = livePath.count
+                    currentOverlay.icon = Self.revealedImage(
+                        base: baseImage,
+                        southWest: overlayMap.southWest,
+                        northEast: overlayMap.northEast,
+                        path: livePath,
+                        corridorMeters: revealCorridorMeters,
+                        faintAlpha: CGFloat(opacity)
+                    )
+                }
+            } else {
+                // 記録していない時は、これまで通りスライダーの不透明度を全体にかける。
+                if lastRevealedPointCount != 0 {
+                    currentOverlay.icon = baseImage
+                    lastRevealedPointCount = 0
+                }
+                currentOverlay.opacity = opacity
+            }
+        }
+
+        /// 古地図の画像に、`path`に沿った太い帯（`corridorMeters`幅）だけくっきり見せ、
+        /// それ以外は`faintAlpha`で薄く見せた画像を合成する。
+        private static func revealedImage(
+            base: UIImage,
+            southWest: CLLocationCoordinate2D,
+            northEast: CLLocationCoordinate2D,
+            path: [CLLocationCoordinate2D],
+            corridorMeters: Double,
+            faintAlpha: CGFloat
+        ) -> UIImage? {
+            guard let cgImage = base.cgImage else { return base }
+            let pixelSize = CGSize(width: cgImage.width, height: cgImage.height)
+            guard pixelSize.width > 0, pixelSize.height > 0 else { return base }
+
+            let latSpan = northEast.latitude - southWest.latitude
+            let lngSpan = northEast.longitude - southWest.longitude
+            guard latSpan > 0, lngSpan > 0 else { return base }
+
+            // 緯度1度あたりの実距離はほぼ一定だが、経度1度あたりの実距離は緯度に応じて縮む。
+            let centerLatRadians = (southWest.latitude + northEast.latitude) / 2 * .pi / 180
+            let metersPerDegreeLat = 111_320.0
+            let metersPerDegreeLng = 111_320.0 * cos(centerLatRadians)
+            let pixelsPerMeterX = pixelSize.width / (lngSpan * metersPerDegreeLng)
+            let pixelsPerMeterY = pixelSize.height / (latSpan * metersPerDegreeLat)
+            let corridorWidthPixels = max(CGFloat(corridorMeters) * CGFloat((pixelsPerMeterX + pixelsPerMeterY) / 2), 6)
+
+            func point(for coordinate: CLLocationCoordinate2D) -> CGPoint {
+                let x = (coordinate.longitude - southWest.longitude) / lngSpan * pixelSize.width
+                let y = (northEast.latitude - coordinate.latitude) / latSpan * pixelSize.height
+                return CGPoint(x: x, y: y)
+            }
+
+            let renderer = UIGraphicsImageRenderer(size: pixelSize)
+            let composited = renderer.image { context in
+                let cg = context.cgContext
+                let fullRect = CGRect(origin: .zero, size: pixelSize)
+
+                // まず全体を薄く描く（まだ通っていない場所の見え方）。
+                base.draw(in: fullRect, blendMode: .normal, alpha: faintAlpha)
+
+                // 通った場所だけ、太い帯でくっきり見せる。
+                cg.saveGState()
+                cg.setLineWidth(corridorWidthPixels)
+                cg.setLineCap(.round)
+                cg.setLineJoin(.round)
+                let corridorPath = CGMutablePath()
+                let points = path.map(point(for:))
+                if let first = points.first {
+                    corridorPath.move(to: first)
+                    for p in points.dropFirst() {
+                        corridorPath.addLine(to: p)
+                    }
+                }
+                cg.addPath(corridorPath)
+                cg.replacePathWithStrokedPath()
+                cg.clip()
+                base.draw(in: fullRect, blendMode: .normal, alpha: 1)
+                cg.restoreGState()
+            }
+            return composited
         }
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
@@ -165,7 +268,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if let livePolyline {
                 livePolyline.path = path
             } else {
-                livePolyline = makePolyline(path: path, strokeColor: .systemOrange, strokeWidth: 5, on: mapView)
+                livePolyline = makePolyline(path: path, strokeColor: .systemOrange, strokeWidth: 8, on: mapView)
             }
         }
 

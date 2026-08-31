@@ -31,6 +31,8 @@ struct MapScreen: View {
     @State private var isPostingPhoto = false
     /// 写真投稿で獲得したポイントを一瞬だけ知らせるトースト表示。
     @State private var pointsToastMessage: String?
+    /// 「新しい古地図を登録」から開く検索シートの表示状態。
+    @State private var isShowingOldMapSearch = false
 
     private let syncService = SyncService()
     private let stepCounter = StepCounter()
@@ -93,6 +95,9 @@ struct MapScreen: View {
                         if let overlay {
                             mapSession.moveCamera(to: overlay.center)
                         }
+                    },
+                    onRequestSearch: {
+                        isShowingOldMapSearch = true
                     }
                 )
             }
@@ -111,6 +116,12 @@ struct MapScreen: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .allowsHitTesting(false)
             }
+        }
+        .sheet(isPresented: $isShowingOldMapSearch) {
+            OldMapSearchView(onAdd: { overlay in
+                mapSession.selectedOverlay = overlay
+                mapSession.moveCamera(to: overlay.center)
+            })
         }
         .sheet(item: $tappedPoint) { point in
             StorySheetView(point: point, overlayMap: mapSession.selectedOverlay)
@@ -323,7 +334,7 @@ struct MapScreen: View {
                 stopWalkRecording(autoSave: true)
             }
         case .selectMap(let id):
-            guard let overlay = OldMapCatalog.all.first(where: { $0.id == id }) else { return }
+            guard let overlay = OldMapCatalog.allIncludingCustom.first(where: { $0.id == id }) else { return }
             mapSession.selectedOverlay = overlay
             mapSession.moveCamera(to: overlay.center)
         }
@@ -334,7 +345,7 @@ struct MapScreen: View {
         watchConnectivity.updateState(
             isRecording: locationManager.isRecordingWalk,
             isPaused: locationManager.isWalkPaused,
-            availableMaps: OldMapCatalog.all,
+            availableMaps: OldMapCatalog.allIncludingCustom,
             selectedMapID: mapSession.selectedOverlay?.id
         )
     }

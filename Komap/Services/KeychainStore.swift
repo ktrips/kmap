@@ -46,4 +46,6 @@ struct KeychainStore {
 
 enum SecretKey {
     static let openAIApiKey = "openAIApiKey"
+    static let customSearchAPIKey = "customSearchAPIKey"
+    static let customSearchEngineID = "customSearchEngineID"
 }

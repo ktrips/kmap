@@ -1,7 +1,8 @@
 import CoreLocation
 import Foundation
+import UIKit
 
-/// 古地図1枚分の情報（画像アセット・時代・位置合わせ範囲）を表す。
+/// 古地図1枚分の情報（画像・時代・位置合わせ範囲）を表す。
 ///
 /// - Important: `southWest` / `northEast` はこのサンプルアプリ用に用意した
 ///   仮の位置合わせ座標です。実際の古地図画像を使う場合は、当時の絵図を
@@ -14,12 +15,34 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
     let era: String
     /// 短い紹介文（ピッカーやカード表示用）
     let summary: String
-    /// Assets.xcassets 内の画像名
-    let imageAssetName: String
+    /// Assets.xcassets 内の画像名。同梱の古地図で使う。
+    let imageAssetName: String?
+    /// `StampPhotoStore`に保存したファイル名。検索して追加した古地図で使う。
+    let imageFileName: String?
     /// 画像の左下（南西）に対応する緯度経度
     let southWest: CLLocationCoordinate2D
     /// 画像の右上（北東）に対応する緯度経度
     let northEast: CLLocationCoordinate2D
+
+    init(
+        id: String,
+        title: String,
+        era: String,
+        summary: String,
+        imageAssetName: String? = nil,
+        imageFileName: String? = nil,
+        southWest: CLLocationCoordinate2D,
+        northEast: CLLocationCoordinate2D
+    ) {
+        self.id = id
+        self.title = title
+        self.era = era
+        self.summary = summary
+        self.imageAssetName = imageAssetName
+        self.imageFileName = imageFileName
+        self.southWest = southWest
+        self.northEast = northEast
+    }
 
     /// この古地図がカバーする範囲の中心（初期表示時のカメラ位置に使う）
     var center: CLLocationCoordinate2D {
@@ -27,6 +50,17 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
             latitude: (southWest.latitude + northEast.latitude) / 2,
             longitude: (southWest.longitude + northEast.longitude) / 2
         )
+    }
+
+    /// 同梱アセット・検索で追加した画像のどちらかから、表示用の画像を読み込む。
+    var image: UIImage? {
+        if let imageAssetName, let image = UIImage(named: imageAssetName) {
+            return image
+        }
+        if let imageFileName {
+            return StampPhotoStore.load(imageFileName)
+        }
+        return nil
     }
 
     static func == (lhs: HistoricalOverlayMap, rhs: HistoricalOverlayMap) -> Bool {
@@ -63,7 +97,7 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.723, longitude: 139.806)
     )
 
-    // 以下5枚は「東京實測全圖」（1891年・明治24年、Geographicus発行）の実画像を
+    // 以下6枚は「東京實測全圖」（1891年・明治24年、Geographicus発行）の実画像を
     // エリアごとに切り出したもの。1931年より前に発行されたためパブリックドメイン
     // （出典: Wikimedia Commons）。位置合わせは地図上の目印（不忍池・皇居のお堀等）
     // を基準に手作業で行った概算で、史料的に厳密な測量座標ではない。
@@ -118,8 +152,23 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.7166, longitude: 139.7929)
     )
 
+    static let roppongi = HistoricalOverlayMap(
+        id: "roppongi-meiji",
+        title: "麻布・六本木周辺（明治時代）",
+        era: "明治時代（1891年・明治24年頃）",
+        summary: "大名屋敷が置かれていた麻布・六本木の町割りが広がっていたエリア。現在の六本木ヒルズ（毛利庭園）・乃木神社周辺に相当します。",
+        imageAssetName: "OldMap_Roppongi",
+        southWest: CLLocationCoordinate2D(latitude: 35.655, longitude: 139.720),
+        northEast: CLLocationCoordinate2D(latitude: 35.672, longitude: 139.740)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
-        edoCastle, asakusa, meijiWriters, ueno, nihonbashi, shiba, kanda,
+        edoCastle, asakusa, meijiWriters, ueno, nihonbashi, shiba, kanda, roppongi,
     ]
+
+    /// 同梱の古地図 + ユーザーが検索して追加した古地図。
+    static var allIncludingCustom: [HistoricalOverlayMap] {
+        all + CustomOverlayMapStore.all()
+    }
 }

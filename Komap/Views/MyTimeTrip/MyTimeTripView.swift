@@ -316,7 +316,7 @@ private struct WalkRouteCard: View {
 
     @ViewBuilder
     private var thumbnail: some View {
-        if let assetName = route.overlayMap?.imageAssetName, let uiImage = UIImage(named: assetName) {
+        if let uiImage = route.overlayMap?.image {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()

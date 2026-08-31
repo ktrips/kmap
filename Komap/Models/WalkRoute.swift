@@ -53,7 +53,7 @@ final class WalkRoute {
     }
 
     var overlayMap: HistoricalOverlayMap? {
-        overlayMapID.flatMap { id in OldMapCatalog.all.first { $0.id == id } }
+        overlayMapID.flatMap { id in OldMapCatalog.allIncludingCustom.first { $0.id == id } }
     }
 
     /// 記録した軌跡のおおよその総距離（メートル）。

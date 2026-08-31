@@ -6,6 +6,9 @@ struct OverlayControlPanel: View {
     @Binding var overlayOpacity: Double
     /// 古地図が選び直された時に呼ばれる（マップの中心をその古地図の中心へ移動する等に使う）。
     var onSelect: (HistoricalOverlayMap?) -> Void = { _ in }
+    /// 「新しい古地図を登録」が選ばれた時に呼ばれる。OpenAI・Googleカスタム検索の
+    /// APIキーが両方とも設定されている時だけメニューに表示する。
+    var onRequestSearch: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 14) {
@@ -15,7 +18,7 @@ struct OverlayControlPanel: View {
                     onSelect(nil)
                 }
                 Divider()
-                ForEach(OldMapCatalog.all) { overlay in
+                ForEach(OldMapCatalog.allIncludingCustom) { overlay in
                     Button {
                         selectedOverlay = overlay
                         onSelect(overlay)
@@ -25,6 +28,14 @@ struct OverlayControlPanel: View {
                         } else {
                             Text(overlay.title)
                         }
+                    }
+                }
+                if SecretsConfig.isOldMapSearchConfigured {
+                    Divider()
+                    Button {
+                        onRequestSearch()
+                    } label: {
+                        Label("新しい古地図を登録", systemImage: "plus.circle")
                     }
                 }
             } label: {

@@ -8,6 +8,9 @@ struct SettingsView: View {
 
     @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
     @State private var savedMessage: String?
+    @State private var customSearchAPIKey: String = SecretsConfig.googleCustomSearchAPIKey ?? ""
+    @State private var customSearchEngineID: String = SecretsConfig.googleCustomSearchEngineID ?? ""
+    @State private var customSearchSavedMessage: String?
     @State private var isSyncing = false
     @State private var syncMessage: String?
 
@@ -35,6 +38,29 @@ struct SettingsView: View {
                     Text("OpenAI APIキー")
                 } footer: {
                     Text("地点をタップした際にAIが昔の物語を生成するために使用します。キーはこの端末のKeychainに安全に保存され、外部には送信されません。")
+                }
+
+                Section {
+                    SecureField("AIzaSy...", text: $customSearchAPIKey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    TextField("検索エンジンID（cx）", text: $customSearchEngineID)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button("保存する") {
+                        SecretsConfig.saveGoogleCustomSearchAPIKey(customSearchAPIKey)
+                        SecretsConfig.saveGoogleCustomSearchEngineID(customSearchEngineID)
+                        customSearchSavedMessage = "保存しました"
+                    }
+                    if let customSearchSavedMessage {
+                        Text(customSearchSavedMessage)
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                } header: {
+                    Text("Googleカスタム検索（古地図検索用）")
+                } footer: {
+                    Text("マップ画面の「古地図を選択」から新しい古地図をWeb検索して追加する機能で使用します。両方設定するとメニューに追加項目が表示されます。APIキーはCloud Console、検索エンジンIDはProgrammable Search Engineで取得できます。")
                 }
 
                 Section("Google Maps") {

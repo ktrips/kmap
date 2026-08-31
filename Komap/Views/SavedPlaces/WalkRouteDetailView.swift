@@ -202,7 +202,7 @@ private struct WalkRouteMapView: UIViewRepresentable {
 
         if let overlayMap {
             let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
-            let overlay = GMSGroundOverlay(bounds: bounds, icon: UIImage(named: overlayMap.imageAssetName))
+            let overlay = GMSGroundOverlay(bounds: bounds, icon: overlayMap.image)
             overlay.opacity = overlayOpacity
             overlay.map = mapView
         }
