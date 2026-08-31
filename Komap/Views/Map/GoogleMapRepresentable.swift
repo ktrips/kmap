@@ -91,15 +91,35 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var currentBlurredImage: UIImage?
         private var lastRevealedPointCount = 0
 
-        private var savedPolylines: [GMSPolyline] = []
-        private var livePolyline: GMSPolyline?
+        private var savedPolylinePairs: [TrailPolylinePair] = []
+        private var liveTrailPair: TrailPolylinePair?
         private var checkpointMarkers: [String: GMSMarker] = [:]
         private var photoPostMarkers: [UUID: GMSMarker] = [:]
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
-        /// 歩いた道を「自分で塗りつぶした」ように見せる太さ（画面上のポイント数）。
-        private let walkedTrailWidth: CGFloat = 12
+        /// 歩いた道の縁取りの太さ（画面上のポイント数）。中の透かし塗りよりわずかに太いだけの、
+        /// 細く濃い縁として見せる。
+        private let walkedTrailBorderWidth: CGFloat = 9
+        /// 歩いた道の中を薄く塗る太さ。縁取りより一回り細くすることで、縁だけが濃い線として残り、
+        /// 中央は明るい色が重なって薄く見える。
+        private let walkedTrailFillWidth: CGFloat = 6
+
+        /// 縁取り（細い線）と内側の透かし塗りの2本を重ねて、1本の「通った道」を表す組。
+        private struct TrailPolylinePair {
+            let border: GMSPolyline
+            let fill: GMSPolyline
+
+            func setPath(_ path: GMSMutablePath) {
+                border.path = path
+                fill.path = path
+            }
+
+            func remove() {
+                border.map = nil
+                fill.map = nil
+            }
+        }
 
         init(onTap: @escaping (CLLocationCoordinate2D) -> Void) {
             self.onTap = onTap
@@ -315,50 +335,46 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             to mapView: GMSMapView
         ) {
             // 保存済みルートは件数が変わった時だけ作り直す（記録終了で1件増える程度の頻度）。
-            if saved.count != savedPolylines.count {
-                savedPolylines.forEach { $0.map = nil }
-                savedPolylines = saved.map { coordinates in
-                    makePolyline(for: coordinates, strokeColor: .walkedTrail, strokeWidth: walkedTrailWidth, on: mapView)
+            if saved.count != savedPolylinePairs.count {
+                savedPolylinePairs.forEach { $0.remove() }
+                savedPolylinePairs = saved.map { coordinates in
+                    let path = GMSMutablePath()
+                    coordinates.forEach { path.add($0) }
+                    return makeTrailPair(path: path, on: mapView)
                 }
             }
 
             guard live.count >= 2 else {
-                livePolyline?.map = nil
-                livePolyline = nil
+                liveTrailPair?.remove()
+                liveTrailPair = nil
                 return
             }
 
             let path = GMSMutablePath()
             live.forEach { path.add($0) }
-            if let livePolyline {
-                livePolyline.path = path
+            if let liveTrailPair {
+                liveTrailPair.setPath(path)
             } else {
-                livePolyline = makePolyline(path: path, strokeColor: .walkedTrail, strokeWidth: walkedTrailWidth, on: mapView)
+                liveTrailPair = makeTrailPair(path: path, on: mapView)
             }
         }
 
-        private func makePolyline(
-            for coordinates: [CLLocationCoordinate2D],
-            strokeColor: UIColor,
-            strokeWidth: CGFloat,
-            on mapView: GMSMapView
-        ) -> GMSPolyline {
-            let path = GMSMutablePath()
-            coordinates.forEach { path.add($0) }
-            return makePolyline(path: path, strokeColor: strokeColor, strokeWidth: strokeWidth, on: mapView)
-        }
+        /// 縁取り（細い線）を先に描き、その上に一回り細い透かし塗りを重ねることで、
+        /// 「縁ははっきり・中は控えめ」な1本の通った道を作る。
+        private func makeTrailPair(path: GMSMutablePath, on mapView: GMSMapView) -> TrailPolylinePair {
+            let border = GMSPolyline(path: path)
+            border.strokeColor = .walkedTrailBorder
+            border.strokeWidth = walkedTrailBorderWidth
+            border.zIndex = 0
+            border.map = mapView
 
-        private func makePolyline(
-            path: GMSMutablePath,
-            strokeColor: UIColor,
-            strokeWidth: CGFloat,
-            on mapView: GMSMapView
-        ) -> GMSPolyline {
-            let polyline = GMSPolyline(path: path)
-            polyline.strokeColor = strokeColor
-            polyline.strokeWidth = strokeWidth
-            polyline.map = mapView
-            return polyline
+            let fill = GMSPolyline(path: path)
+            fill.strokeColor = .walkedTrailFill
+            fill.strokeWidth = walkedTrailFillWidth
+            fill.zIndex = 1
+            fill.map = mapView
+
+            return TrailPolylinePair(border: border, fill: fill)
         }
 
         /// 史跡チェックポイントをマーカーとして描画し、獲得済みかどうかで色を塗り分ける。

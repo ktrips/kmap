@@ -1,7 +1,9 @@
 import UIKit
 
 extension UIColor {
-    /// GPSで歩いた道を「自分で塗りつぶした」ように見せる色。
-    /// 目立ちすぎない落ち着いた焦げ茶がかった色味で、太さで通った場所をはっきり示す。
-    static let walkedTrail = UIColor(red: 0.52, green: 0.31, blue: 0.20, alpha: 0.92)
+    /// GPSで歩いた道の縁取り。濃い色で細く描き、古地図の上でも通った場所がはっきり分かるようにする。
+    static let walkedTrailBorder = UIColor(red: 0.45, green: 0.20, blue: 0.10, alpha: 0.85)
+    /// 縁取りの内側を塗る、明るく薄い色。縁取りの上から少し狭い幅で重ねることで、
+    /// 中央だけ薄い色になり「縁は濃く・中は薄く」という見た目になる。
+    static let walkedTrailFill = UIColor(red: 0.95, green: 0.87, blue: 0.72, alpha: 0.5)
 }

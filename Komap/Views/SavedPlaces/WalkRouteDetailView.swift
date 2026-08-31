@@ -280,10 +280,18 @@ private struct WalkRouteMapView: UIViewRepresentable {
         if path.count >= 2 {
             let gmsPath = GMSMutablePath()
             path.forEach { gmsPath.add($0) }
-            let polyline = GMSPolyline(path: gmsPath)
-            polyline.strokeColor = UIColor.systemOrange.withAlphaComponent(0.85)
-            polyline.strokeWidth = 8
-            polyline.map = mapView
+
+            let border = GMSPolyline(path: gmsPath)
+            border.strokeColor = .walkedTrailBorder
+            border.strokeWidth = 9
+            border.zIndex = 0
+            border.map = mapView
+
+            let fill = GMSPolyline(path: gmsPath)
+            fill.strokeColor = .walkedTrailFill
+            fill.strokeWidth = 6
+            fill.zIndex = 1
+            fill.map = mapView
         }
 
         for site in checkpoints {

@@ -30,6 +30,24 @@ struct MyTimeTripView: View {
         photoPosts.reduce(0) { $0 + $1.points }
     }
 
+    /// 「歩いた地図」を古地図ごとにまとめたグループ。`walkRoutes`が新しい順のため、
+    /// 各グループ内の時間旅も新しい順のまま保たれる。
+    private var walkRouteGroups: [WalkRouteGroup] {
+        var order: [String] = []
+        var routesByKey: [String: [WalkRoute]] = [:]
+        for route in walkRoutes {
+            let key = route.overlayMapID ?? ""
+            if routesByKey[key] == nil {
+                order.append(key)
+            }
+            routesByKey[key, default: []].append(route)
+        }
+        return order.map { key in
+            let routes = routesByKey[key] ?? []
+            return WalkRouteGroup(map: routes.first?.overlayMap, routes: routes)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -54,7 +72,7 @@ struct MyTimeTripView: View {
                     }
                 }
             }
-            .navigationTitle("My TimeTrip")
+            .navigationTitle("My Trips 時空旅")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -88,16 +106,14 @@ struct MyTimeTripView: View {
 
     private var walkRoutesSection: some View {
         TimeTripSection(title: "歩いた地図", systemImage: "map.fill") {
-            LazyVGrid(columns: cardColumns, spacing: 12) {
-                ForEach(walkRoutes) { route in
-                    NavigationLink(value: route) {
-                        WalkRouteCard(route: route, stampCount: stampCount(for: route))
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button("この古地図で再スタート") { resume(route) }
-                        Button("削除", role: .destructive) { delete(route) }
-                    }
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(walkRouteGroups) { group in
+                    WalkRouteGroupCard(
+                        group: group,
+                        stampCount: stampCount(for:),
+                        onResume: resume,
+                        onDelete: delete
+                    )
                 }
             }
         }
@@ -263,61 +279,64 @@ private struct TimeTripSection<Content: View>: View {
     }
 }
 
-/// 「歩いた地図」カード。使っていた古地図のサムネイル・日時・距離・獲得御朱印数を表示する。
-private struct WalkRouteCard: View {
-    let route: WalkRoute
-    let stampCount: Int
+/// 同じ古地図を使った時間旅（`WalkRoute`）をまとめたグループ。
+private struct WalkRouteGroup: Identifiable {
+    let map: HistoricalOverlayMap?
+    let routes: [WalkRoute]
+    var id: UUID { routes.first!.id }
+}
+
+/// 「歩いた地図」カード。古地図を1枚だけ大きく見せ、その下に同じ古地図を使った
+/// 時間旅（Trip）を新しい順に一覧表示する。
+private struct WalkRouteGroupCard: View {
+    let group: WalkRouteGroup
+    let stampCount: (WalkRoute) -> Int
+    let onResume: (WalkRoute) -> Void
+    let onDelete: (WalkRoute) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ZStack(alignment: .bottomLeading) {
-                thumbnail
-                LinearGradient(
-                    colors: [.black.opacity(0.55), .clear],
-                    startPoint: .bottom,
-                    endPoint: .top
-                )
-                Text(route.overlayMap?.title ?? "古地図なし")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .padding(8)
-            }
-            .frame(height: 90)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            Text(route.title?.isEmpty == false ? route.title! : route.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
-                .font(.caption.bold())
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-
-            HStack(spacing: 10) {
-                Label(distanceText, systemImage: "figure.walk")
-                if let durationText {
-                    Label(durationText, systemImage: "clock")
+        VStack(alignment: .leading, spacing: 10) {
+            mapHeader
+            VStack(spacing: 8) {
+                ForEach(group.routes) { route in
+                    NavigationLink(value: route) {
+                        TripRow(route: route, stampCount: stampCount(route))
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("この古地図で再スタート") { onResume(route) }
+                        Button("削除", role: .destructive) { onDelete(route) }
+                    }
                 }
-                if stampCount > 0 {
-                    Label("\(stampCount)", systemImage: "seal.fill")
-                        .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
-                }
-            }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-
-            if let stepCount = route.stepCount {
-                Label("\(stepCount)歩", systemImage: "shoeprints.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
         }
-        .padding(10)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var mapHeader: some View {
+        HStack(spacing: 12) {
+            thumbnail
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(group.map?.title ?? "古地図なし")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                Text("\(group.routes.count)回の時間旅")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
     }
 
     @ViewBuilder
     private var thumbnail: some View {
-        if let uiImage = route.overlayMap?.image {
+        if let uiImage = group.map?.image {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
@@ -326,6 +345,47 @@ private struct WalkRouteCard: View {
                 .fill(Color.brown.opacity(0.25))
                 .overlay(Image(systemName: "map").foregroundStyle(.brown))
         }
+    }
+}
+
+/// 古地図グループ内に並べる、1回分の時間旅（Trip）の詳細行。
+private struct TripRow: View {
+    let route: WalkRoute
+    let stampCount: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(route.title?.isEmpty == false ? route.title! : route.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                HStack(spacing: 10) {
+                    Label(distanceText, systemImage: "figure.walk")
+                    if let durationText {
+                        Label(durationText, systemImage: "clock")
+                    }
+                    if let stepCount = route.stepCount {
+                        Label("\(stepCount)歩", systemImage: "shoeprints.fill")
+                    }
+                    if stampCount > 0 {
+                        Label("\(stampCount)", systemImage: "seal.fill")
+                            .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var distanceText: String {

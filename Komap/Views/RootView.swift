@@ -62,7 +62,7 @@ private struct MainTabView: View {
 
             MyTimeTripView()
                 .tabItem {
-                    Label("My TimeTrip", systemImage: "book.closed")
+                    Label("My Trips", systemImage: "book.closed")
                 }
                 .tag(AppTab.myTimeTrip)
 
