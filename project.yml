@@ -59,6 +59,7 @@ targets:
         PRODUCT_NAME: Komap
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: N5H836M425
         SWIFT_VERSION: "5.0"
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -109,6 +110,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.komap.Komap.watchkitapp
         PRODUCT_NAME: "Komap Watch App"
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: N5H836M425
         SWIFT_VERSION: "5.0"
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
