@@ -22,6 +22,8 @@ final class WalkRoute {
     var overlayMapID: String?
     /// 記録開始時の古地図の不透明度（0...1）。
     var overlayOpacity: Double
+    /// ユーザーが後から付けられる、この時間旅の名前。未設定なら`nil`。
+    var title: String?
 
     init(
         id: UUID = UUID(),
@@ -30,7 +32,8 @@ final class WalkRoute {
         endedAt: Date? = Date(),
         stepCount: Int? = nil,
         overlayMapID: String? = nil,
-        overlayOpacity: Double = 0.55
+        overlayOpacity: Double = 0.55,
+        title: String? = nil
     ) {
         self.id = id
         self.latitudes = coordinates.map(\.latitude)
@@ -40,6 +43,7 @@ final class WalkRoute {
         self.stepCount = stepCount
         self.overlayMapID = overlayMapID
         self.overlayOpacity = overlayOpacity
+        self.title = title
     }
 
     /// 歩いた時間（秒）。`endedAt`が無い（この項目を追加する前の）記録では`nil`。

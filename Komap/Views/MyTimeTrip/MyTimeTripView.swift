@@ -286,9 +286,10 @@ private struct WalkRouteCard: View {
             .frame(height: 90)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
+            Text(route.title?.isEmpty == false ? route.title! : route.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
                 .font(.caption.bold())
                 .foregroundStyle(.primary)
+                .lineLimit(1)
 
             HStack(spacing: 10) {
                 Label(distanceText, systemImage: "figure.walk")

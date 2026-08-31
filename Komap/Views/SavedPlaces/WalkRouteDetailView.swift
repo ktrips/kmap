@@ -9,8 +9,14 @@ import SwiftUI
 struct WalkRouteDetailView: View {
     let route: WalkRoute
 
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Query private var collectedStamps: [CollectedStamp]
     @Query private var photoPosts: [WalkPhotoPost]
+
+    @State private var isRenaming = false
+    @State private var editedTitle = ""
+    @State private var isConfirmingDelete = false
 
     private var stampsForRoute: [CollectedStamp] {
         collectedStamps
@@ -55,12 +61,62 @@ struct WalkRouteDetailView: View {
         }
         .navigationTitle("時間旅の記録")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        editedTitle = route.title ?? ""
+                        isRenaming = true
+                    } label: {
+                        Label("名前を変更", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        isConfirmingDelete = true
+                    } label: {
+                        Label("削除", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .alert("時間旅の名前", isPresented: $isRenaming) {
+            TextField("例: 皇居さんぽ", text: $editedTitle)
+            Button("保存する") {
+                let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                route.title = trimmed.isEmpty ? nil : trimmed
+                try? modelContext.save()
+            }
+            Button("キャンセル", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "この時間旅を削除しますか？",
+            isPresented: $isConfirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button("削除する", role: .destructive) {
+                modelContext.delete(route)
+                try? modelContext.save()
+                dismiss()
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("歩いたルートの記録が削除されます。この操作は取り消せません。")
+        }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
-                .font(.title3.bold())
+            if let title = route.title, !title.isEmpty {
+                Text(title)
+                    .font(.title3.bold())
+                Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
+                    .font(.title3.bold())
+            }
 
             Text(route.overlayMap?.title ?? "古地図なし")
                 .font(.subheadline.bold())
