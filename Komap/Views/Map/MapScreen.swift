@@ -12,10 +12,13 @@ struct MapScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WalkRoute.startedAt, order: .reverse) private var savedRoutes: [WalkRoute]
     @Query private var collectedStamps: [CollectedStamp]
+    @Query private var photoPosts: [WalkPhotoPost]
 
     @State private var tappedPoint: TappedPoint?
     /// チェックポイントのマーカー上の小さなアイコンボタンがタップされた時に表示する史跡。
     @State private var tappedCheckpoint: HistoricSite?
+    /// 地図上の写真ピンがタップされた時に表示する投稿。
+    @State private var tappedPhotoPost: WalkPhotoPost?
     @State private var newlyCollectedSite: HistoricSite?
     @State private var newlyCollectedStamp: CollectedStamp?
     /// 記録中のウォーキングを識別するID。停止時に`WalkRoute`へそのまま使い、
@@ -80,11 +83,15 @@ struct MapScreen: View {
                 liveWalkPath: locationManager.walkPath,
                 checkpoints: activeCheckpoints,
                 collectedSiteIDs: collectedSiteIDs,
+                photoPosts: photoPosts,
                 onTap: { coordinate in
                     tappedPoint = TappedPoint(coordinate: coordinate)
                 },
                 onCheckpointTap: { site in
                     tappedCheckpoint = site
+                },
+                onPhotoPostTap: { post in
+                    tappedPhotoPost = post
                 }
             )
             .ignoresSafeArea(edges: .top)
@@ -131,6 +138,9 @@ struct MapScreen: View {
         }
         .sheet(item: $tappedCheckpoint) { site in
             CheckpointInfoSheet(site: site, overlayMap: mapSession.selectedOverlay)
+        }
+        .sheet(item: $tappedPhotoPost) { post in
+            PhotoPostPreviewSheet(post: post)
         }
         .sheet(isPresented: isCheckInSheetPresented) {
             if let newlyCollectedSite, let newlyCollectedStamp {

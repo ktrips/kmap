@@ -23,9 +23,13 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     var checkpoints: [HistoricSite] = []
     /// 既に御朱印を獲得済みのチェックポイントID（マーカーの色分けに使う）。
     var collectedSiteIDs: Set<String> = []
+    /// 記録中に投稿した写真。地図上にピンとして共有表示する。
+    var photoPosts: [WalkPhotoPost] = []
     var onTap: (CLLocationCoordinate2D) -> Void
     /// チェックポイントのマーカーに表示される小さなアイコンボタンがタップされた時に呼ばれる。
     var onCheckpointTap: (HistoricSite) -> Void = { _ in }
+    /// 投稿写真のピンがタップされた時に呼ばれる。
+    var onPhotoPostTap: (WalkPhotoPost) -> Void = { _ in }
 
     func makeUIView(context: Context) -> GMSMapView {
         let initialCamera = GMSCameraPosition.camera(
@@ -45,9 +49,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     func updateUIView(_ mapView: GMSMapView, context: Context) {
         context.coordinator.onTap = onTap
         context.coordinator.onCheckpointTap = onCheckpointTap
+        context.coordinator.onPhotoPostTap = onPhotoPostTap
         context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, to: mapView)
         context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, to: mapView)
         context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
+        context.coordinator.applyPhotoPosts(photoPosts, to: mapView)
         mapView.padding = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
 
         if let request = moveCameraRequest, context.coordinator.lastHandledMoveRequestID != request.id {
@@ -63,6 +69,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     final class Coordinator: NSObject, GMSMapViewDelegate {
         var onTap: (CLLocationCoordinate2D) -> Void
         var onCheckpointTap: (HistoricSite) -> Void = { _ in }
+        var onPhotoPostTap: (WalkPhotoPost) -> Void = { _ in }
         var lastHandledMoveRequestID: UUID?
 
         private var currentOverlay: GMSGroundOverlay?
@@ -73,6 +80,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var savedPolylines: [GMSPolyline] = []
         private var livePolyline: GMSPolyline?
         private var checkpointMarkers: [String: GMSMarker] = [:]
+        private var photoPostMarkers: [UUID: GMSMarker] = [:]
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図をはっきり見せる。
         private let revealCorridorMeters: Double = 45
@@ -325,6 +333,61 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     with: isCollected ? .systemYellow : .systemBrown
                 )
                 marker.opacity = isCollected ? 1.0 : 0.85
+            }
+        }
+
+        /// 記録中に投稿した写真を、その場所に丸いサムネイルのピンとして地図上に共有表示する。
+        func applyPhotoPosts(_ posts: [WalkPhotoPost], to mapView: GMSMapView) {
+            let currentIDs = Set(posts.map(\.id))
+            let staleIDs = photoPostMarkers.keys.filter { !currentIDs.contains($0) }
+            for id in staleIDs {
+                photoPostMarkers[id]?.map = nil
+                photoPostMarkers.removeValue(forKey: id)
+            }
+
+            for post in posts where photoPostMarkers[post.id] == nil {
+                guard let photo = post.photo else { continue }
+                let marker = GMSMarker(position: post.coordinate)
+                marker.icon = Self.circularThumbnail(photo)
+                marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
+                marker.userData = post
+                marker.map = mapView
+                photoPostMarkers[post.id] = marker
+            }
+        }
+
+        /// 写真ピンがタップされたら、吹き出しを出さずに直接プレビューを開く。
+        func mapView(_ mapView: GMSMapView, didTap marker: GMSMarker) -> Bool {
+            guard let post = marker.userData as? WalkPhotoPost else { return false }
+            onPhotoPostTap(post)
+            return true
+        }
+
+        /// 投稿写真をピン用に、金色の縁取りをつけた丸いサムネイルへ変換する。
+        private static func circularThumbnail(_ image: UIImage, diameter: CGFloat = 44) -> UIImage {
+            let borderWidth: CGFloat = 3
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))
+            return renderer.image { context in
+                let rect = CGRect(x: borderWidth / 2, y: borderWidth / 2, width: diameter - borderWidth, height: diameter - borderWidth)
+                let clipPath = UIBezierPath(ovalIn: rect)
+                context.cgContext.saveGState()
+                clipPath.addClip()
+
+                let imageAspect = image.size.width / image.size.height
+                var drawRect = rect
+                if imageAspect > 1 {
+                    drawRect.size.width = rect.height * imageAspect
+                    drawRect.origin.x -= (drawRect.width - rect.width) / 2
+                } else {
+                    drawRect.size.height = rect.width / imageAspect
+                    drawRect.origin.y -= (drawRect.height - rect.height) / 2
+                }
+                image.draw(in: drawRect)
+                context.cgContext.restoreGState()
+
+                UIColor(red: 0.86, green: 0.63, blue: 0.24, alpha: 1).setStroke()
+                clipPath.lineWidth = borderWidth
+                clipPath.stroke()
             }
         }
     }
