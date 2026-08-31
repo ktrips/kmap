@@ -79,7 +79,7 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
 enum OldMapCatalog {
     static let edoCastle = HistoricalOverlayMap(
         id: "edo-castle-1850s",
-        title: "江戸城周辺（安政期・1850年代）",
+        title: "江戸城周辺（安政期）",
         era: "江戸時代後期（1850年代・安政期）",
         summary: "江戸城の内堀・外堀と大名屋敷が広がっていたエリア。現在の皇居・大手町・丸の内周辺に相当します。",
         imageAssetName: "OldMap_EdoCastle",
@@ -104,12 +104,14 @@ enum OldMapCatalog {
 
     static let meijiWriters = HistoricalOverlayMap(
         id: "meiji-writers",
-        title: "明治の文豪の家（本郷・千駄木・谷中）",
+        title: "明治の文豪の家（本郷・谷中）",
         era: "明治時代（1891年・明治24年頃）",
         summary: "夏目漱石・森鴎外・樋口一葉など、明治の文豪たちが暮らした本郷・千駄木・谷中周辺のエリアです。帝国大学（現・東京大学）や不忍池も見えます。",
         imageAssetName: "OldMap_MeijiWriters",
+        // 谷中七福神のうち田端・西日暮里側の3社寺も収まるよう、北側を少し広げている
+        // （元画像自体の解像度はそのままのため、北端付近はやや引き伸ばされた表示になる）。
         southWest: CLLocationCoordinate2D(latitude: 35.6929, longitude: 139.7484),
-        northEast: CLLocationCoordinate2D(latitude: 35.7272, longitude: 139.7895)
+        northEast: CLLocationCoordinate2D(latitude: 35.7395, longitude: 139.7895)
     )
 
     static let ueno = HistoricalOverlayMap(
@@ -162,9 +164,35 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.672, longitude: 139.740)
     )
 
+    // 以下2枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
+    // の実画像を、地域を絞らず広域のまま使ったもの。1931年より前に発行されたためパブリックドメイン
+    // （出典: Wikimedia Commons）。目黒・世田谷・豊島など東京十五区の外側にあたるエリアも含むため、
+    // 他の6枚に比べて図の密度は粗く、位置合わせもより概算になる。
+
+    static let goshikiFudo = HistoricalOverlayMap(
+        id: "goshiki-fudo-meiji",
+        title: "五色不動めぐり（目黒・目白・目赤・目青・目黄）",
+        era: "明治時代（1891年・明治24年頃）",
+        summary: "江戸の町を鬼門から守るとされた五色不動を東西南北にめぐる、広域の古地図です。目黒区・豊島区・文京区・世田谷区・台東区にまたがります。",
+        imageAssetName: "OldMap_TokyoMeiji1891",
+        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+    )
+
+    static let bashoOkuNoHosomichi = HistoricalOverlayMap(
+        id: "basho-oku-no-hosomichi-meiji",
+        title: "松尾芭蕉ゆかりの地（深川〜千住）",
+        era: "明治時代（1891年・明治24年頃）",
+        summary: "松尾芭蕉が『おくのほそ道』へ旅立った深川の芭蕉庵から、矢立初めの地とされる千住までをたどる古地図です。",
+        imageAssetName: "OldMap_TokyoMeiji1891",
+        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, ueno, nihonbashi, shiba, kanda, roppongi,
+        goshikiFudo, bashoOkuNoHosomichi,
     ]
 
     /// 同梱の古地図 + ユーザーが検索して追加した古地図。

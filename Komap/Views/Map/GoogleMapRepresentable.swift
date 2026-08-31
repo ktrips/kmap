@@ -11,6 +11,9 @@ import SwiftUI
 struct GoogleMapRepresentable: UIViewRepresentable {
     var overlayMap: HistoricalOverlayMap?
     var overlayOpacity: Float
+    /// `true`の間は`overlayMap`単体ではなく、同梱・登録済みの古地図すべてを
+    /// 地図上に重ねて表示する（「全ての古地図を表示」選択時）。
+    var showAllOverlays: Bool = false
     /// カメラを移動させたい座標のリクエスト。同じ`id`には一度だけ反応する
     /// （同じ座標への再移動要求も、`id`が新しければ改めて移動する）。
     var moveCameraRequest: CameraMoveRequest?
@@ -62,7 +65,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         context.coordinator.onTap = onTap
         context.coordinator.onCheckpointTap = onCheckpointTap
         context.coordinator.onPhotoPostTap = onPhotoPostTap
-        context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, to: mapView)
+        if showAllOverlays {
+            context.coordinator.applyAllOverlays(OldMapCatalog.allIncludingCustom, to: mapView)
+        } else {
+            context.coordinator.removeAllOverlays()
+            context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, to: mapView)
+        }
         context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, to: mapView)
         context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
         context.coordinator.applyPhotoPosts(photoPosts, to: mapView)
@@ -86,6 +94,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         private var currentOverlay: GMSGroundOverlay?
         private var currentOverlayID: String?
+        /// 「全ての古地図を表示」中に、同梱・登録済みの古地図それぞれに対応するグラウンドオーバーレイ。
+        private var allOverlays: [GMSGroundOverlay] = []
         private var currentBaseImage: UIImage?
         /// まだ通っていない場所用に、あらかじめぼかしておいた画像（古地図が変わる度に作り直す）。
         private var currentBlurredImage: UIImage?
@@ -98,24 +108,27 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
-        /// 歩いた道の縁取りの太さ（画面上のポイント数）。中の透かし塗りよりわずかに太いだけの、
-        /// 細く濃い縁として見せる。
-        private let walkedTrailBorderWidth: CGFloat = 9
-        /// 歩いた道の中を薄く塗る太さ。縁取りより一回り細くすることで、縁だけが濃い線として残り、
-        /// 中央は明るい色が重なって薄く見える。
-        private let walkedTrailFillWidth: CGFloat = 6
+        /// 歩いた道の周りに広くにじませる、ぼかしのような光暈の太さ。
+        private let walkedTrailGlowWidth: CGFloat = 24
+        /// 歩いた道の縁取りの太さ（画面上のポイント数）。
+        private let walkedTrailBorderWidth: CGFloat = 11
+        /// 歩いた道の中を、下の古地図が透けるように塗る太さ。
+        private let walkedTrailFillWidth: CGFloat = 8
 
-        /// 縁取り（細い線）と内側の透かし塗りの2本を重ねて、1本の「通った道」を表す組。
+        /// 光暈・縁取り・内側の透かし塗りの3本を重ねて、1本の「通った道」を表す組。
         private struct TrailPolylinePair {
+            let glow: GMSPolyline
             let border: GMSPolyline
             let fill: GMSPolyline
 
             func setPath(_ path: GMSMutablePath) {
+                glow.path = path
                 border.path = path
                 fill.path = path
             }
 
             func remove() {
+                glow.map = nil
                 border.map = nil
                 fill.map = nil
             }
@@ -123,6 +136,40 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         init(onTap: @escaping (CLLocationCoordinate2D) -> Void) {
             self.onTap = onTap
+        }
+
+        /// 「全ての古地図を表示」用に、渡された古地図すべてをグラウンドオーバーレイとして重ねる。
+        /// 一度重ねたら（一覧が変わらない限り）作り直さず、初回だけ全体が収まるようカメラを合わせる。
+        func applyAllOverlays(_ overlays: [HistoricalOverlayMap], to mapView: GMSMapView) {
+            currentOverlay?.map = nil
+            currentOverlay = nil
+            currentOverlayID = nil
+
+            guard allOverlays.count != overlays.count else { return }
+            allOverlays.forEach { $0.map = nil }
+            allOverlays = overlays.map { overlayMap in
+                let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+                let overlay = GMSGroundOverlay(bounds: bounds, icon: overlayMap.image)
+                overlay.opacity = 0.75
+                overlay.map = mapView
+                return overlay
+            }
+
+            var combinedBounds: GMSCoordinateBounds?
+            for overlayMap in overlays {
+                combinedBounds = combinedBounds?.includingCoordinate(overlayMap.southWest).includingCoordinate(overlayMap.northEast)
+                    ?? GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+            }
+            if let combinedBounds {
+                mapView.moveCamera(GMSCameraUpdate.fit(combinedBounds, withPadding: 24))
+            }
+        }
+
+        /// 「全ての古地図を表示」を抜けた時に、重ねていたグラウンドオーバーレイをすべて取り除く。
+        func removeAllOverlays() {
+            guard !allOverlays.isEmpty else { return }
+            allOverlays.forEach { $0.map = nil }
+            allOverlays = []
         }
 
         /// 古地図を貼り替える。記録中の軌跡（`livePath`）が2点以上あれば、
@@ -359,22 +406,29 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             }
         }
 
-        /// 縁取り（細い線）を先に描き、その上に一回り細い透かし塗りを重ねることで、
-        /// 「縁ははっきり・中は控えめ」な1本の通った道を作る。
+        /// 幅広で薄い光暈・縁取り・透かし塗りの3本を順に重ねることで、
+        /// ぼんやりとにじんだ縁の中に、下の地図が透けて見える「秘密の探検」のような
+        /// 通った道を作る。
         private func makeTrailPair(path: GMSMutablePath, on mapView: GMSMapView) -> TrailPolylinePair {
+            let glow = GMSPolyline(path: path)
+            glow.strokeColor = .walkedTrailGlow
+            glow.strokeWidth = walkedTrailGlowWidth
+            glow.zIndex = 0
+            glow.map = mapView
+
             let border = GMSPolyline(path: path)
             border.strokeColor = .walkedTrailBorder
             border.strokeWidth = walkedTrailBorderWidth
-            border.zIndex = 0
+            border.zIndex = 1
             border.map = mapView
 
             let fill = GMSPolyline(path: path)
             fill.strokeColor = .walkedTrailFill
             fill.strokeWidth = walkedTrailFillWidth
-            fill.zIndex = 1
+            fill.zIndex = 2
             fill.map = mapView
 
-            return TrailPolylinePair(border: border, fill: fill)
+            return TrailPolylinePair(glow: glow, border: border, fill: fill)
         }
 
         /// 史跡チェックポイントをマーカーとして描画し、獲得済みかどうかで色を塗り分ける。
@@ -435,7 +489,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
 
         /// 投稿写真をピン用に、金色の縁取りをつけた丸いサムネイルへ変換する。
-        private static func circularThumbnail(_ image: UIImage, diameter: CGFloat = 44) -> UIImage {
+        private static func circularThumbnail(_ image: UIImage, diameter: CGFloat = 38) -> UIImage {
             let borderWidth: CGFloat = 3
             let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))
             return renderer.image { context in

@@ -287,6 +287,138 @@ enum HistoricSiteCatalog {
             summary: "神田川に架かる、湯島聖堂のそばの古くからの橋。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6989, longitude: 139.7659)
         ),
+
+        // 谷中七福神（田端・西日暮里・谷中・上野公園）
+        HistoricSite(
+            id: "yanaka7-tokakuji",
+            overlayMapID: OldMapCatalog.meijiWriters.id,
+            name: "東覚寺（福禄寿）",
+            summary: "谷中七福神の福禄寿を祀る、田端にある赤紙仁王で知られる寺院。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7355, longitude: 139.7585)
+        ),
+        HistoricSite(
+            id: "yanaka7-seiunji",
+            overlayMapID: OldMapCatalog.meijiWriters.id,
+            name: "青雲寺（恵比寿）",
+            summary: "谷中七福神の恵比寿を祀る、西日暮里の花見寺のひとつ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7311, longitude: 139.7660)
+        ),
+        HistoricSite(
+            id: "yanaka7-shushoin",
+            overlayMapID: OldMapCatalog.meijiWriters.id,
+            name: "修性院（布袋尊）",
+            summary: "谷中七福神の布袋尊を祀る、西日暮里の花見寺のひとつ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7301, longitude: 139.7661)
+        ),
+        HistoricSite(
+            id: "yanaka7-choanji",
+            overlayMapID: OldMapCatalog.meijiWriters.id,
+            name: "長安寺（寿老人）",
+            summary: "谷中七福神の寿老人を祀る、谷中霊園近くの寺院。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7252, longitude: 139.7684)
+        ),
+        HistoricSite(
+            id: "yanaka7-tennoji",
+            overlayMapID: OldMapCatalog.meijiWriters.id,
+            name: "天王寺（毘沙門天）",
+            summary: "谷中七福神の毘沙門天を祀る、谷中霊園に隣接する古刹。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7267, longitude: 139.7712)
+        ),
+        HistoricSite(
+            id: "yanaka7-gokokuin",
+            overlayMapID: OldMapCatalog.meijiWriters.id,
+            name: "護国院（大黒天）",
+            summary: "谷中七福神の大黒天を祀る、上野公園内の寛永寺子院。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7193, longitude: 139.7701)
+        ),
+        HistoricSite(
+            id: "yanaka7-bentendo",
+            overlayMapID: OldMapCatalog.meijiWriters.id,
+            name: "不忍池辯天堂（弁才天）",
+            summary: "谷中七福神の弁才天を祀る、不忍池に浮かぶお堂。江戸最古とされる七福神めぐりの終点。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7139, longitude: 139.7717)
+        ),
+
+        // 五色不動めぐり（目黒・目白・目赤・目青・目黄）
+        HistoricSite(
+            id: "goshiki-meguro",
+            overlayMapID: OldMapCatalog.goshikiFudo.id,
+            name: "目黒不動（瀧泉寺）",
+            summary: "五色不動のひとつ。目黒区下目黒にある、関東三大不動のひとつにも数えられる古刹。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6277, longitude: 139.7083)
+        ),
+        HistoricSite(
+            id: "goshiki-mejiro",
+            overlayMapID: OldMapCatalog.goshikiFudo.id,
+            name: "目白不動（金乗院）",
+            summary: "五色不動のひとつ。豊島区高田にある、目白の地名の由来となった不動尊。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7163, longitude: 139.7148)
+        ),
+        HistoricSite(
+            id: "goshiki-meaka",
+            overlayMapID: OldMapCatalog.goshikiFudo.id,
+            name: "目赤不動（南谷寺）",
+            summary: "五色不動のひとつ。文京区本駒込にある不動尊。もとは動坂にあったと伝わる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7262, longitude: 139.7530)
+        ),
+        HistoricSite(
+            id: "goshiki-meao",
+            overlayMapID: OldMapCatalog.goshikiFudo.id,
+            name: "目青不動（教学院）",
+            summary: "五色不動のひとつ。世田谷区太子堂、三軒茶屋近くにある不動尊。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6445, longitude: 139.6706)
+        ),
+        HistoricSite(
+            id: "goshiki-meki",
+            overlayMapID: OldMapCatalog.goshikiFudo.id,
+            name: "目黄不動（永久寺）",
+            summary: "五色不動のひとつ。台東区三ノ輪にある不動尊。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7275, longitude: 139.7885)
+        ),
+
+        // 松尾芭蕉ゆかりの地（深川〜千住）
+        HistoricSite(
+            id: "basho-fukagawa-an",
+            overlayMapID: OldMapCatalog.bashoOkuNoHosomichi.id,
+            name: "深川芭蕉庵跡",
+            summary: "芭蕉が『おくのほそ道』へ旅立つまで暮らした庵の跡。隅田川のほとりにある。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6822, longitude: 139.8022)
+        ),
+        HistoricSite(
+            id: "basho-kinenkan",
+            overlayMapID: OldMapCatalog.bashoOkuNoHosomichi.id,
+            name: "江東区芭蕉記念館",
+            summary: "芭蕉庵跡のそばに立つ、芭蕉の生涯と作品を紹介する記念館。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6809, longitude: 139.8014)
+        ),
+        HistoricSite(
+            id: "basho-saian",
+            overlayMapID: OldMapCatalog.bashoOkuNoHosomichi.id,
+            name: "采茶庵跡",
+            summary: "芭蕉が『おくのほそ道』の旅へ実際に船出したとされる庵の跡。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6822, longitude: 139.7989)
+        ),
+        HistoricSite(
+            id: "basho-senju-ohashi",
+            overlayMapID: OldMapCatalog.bashoOkuNoHosomichi.id,
+            name: "千住大橋",
+            summary: "芭蕉が舟を降り、江戸を離れて奥州への旅を歩き始めた地。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7461, longitude: 139.7986)
+        ),
+        HistoricSite(
+            id: "basho-yatate-hajime",
+            overlayMapID: OldMapCatalog.bashoOkuNoHosomichi.id,
+            name: "矢立初めの地",
+            summary: "「行く春や鳥啼き魚の目は泪」の句とともに、旅の第一歩を記した記念碑が立つ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7466, longitude: 139.7983)
+        ),
+        HistoricSite(
+            id: "basho-susanoo-shrine",
+            overlayMapID: OldMapCatalog.bashoOkuNoHosomichi.id,
+            name: "素盞雄神社",
+            summary: "千住にある古社。境内には松尾芭蕉の句碑「奥の細道矢立初めの碑」が立つ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7458, longitude: 139.7965)
+        ),
     ]
 
     static func site(withID id: String) -> HistoricSite? {

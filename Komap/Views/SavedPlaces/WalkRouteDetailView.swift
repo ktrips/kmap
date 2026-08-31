@@ -281,16 +281,22 @@ private struct WalkRouteMapView: UIViewRepresentable {
             let gmsPath = GMSMutablePath()
             path.forEach { gmsPath.add($0) }
 
+            let glow = GMSPolyline(path: gmsPath)
+            glow.strokeColor = .walkedTrailGlow
+            glow.strokeWidth = 24
+            glow.zIndex = 0
+            glow.map = mapView
+
             let border = GMSPolyline(path: gmsPath)
             border.strokeColor = .walkedTrailBorder
-            border.strokeWidth = 9
-            border.zIndex = 0
+            border.strokeWidth = 11
+            border.zIndex = 1
             border.map = mapView
 
             let fill = GMSPolyline(path: gmsPath)
             fill.strokeColor = .walkedTrailFill
-            fill.strokeWidth = 6
-            fill.zIndex = 1
+            fill.strokeWidth = 8
+            fill.zIndex = 2
             fill.map = mapView
         }
 

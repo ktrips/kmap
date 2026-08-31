@@ -47,6 +47,8 @@ struct MapScreen: View {
     @State private var watchTrackedPath: [CLLocationCoordinate2D] = []
     /// カメラで写真を撮って投稿するためのシート表示状態。
     @State private var isShowingPhotoPostCamera = false
+    /// 「全ての古地図を表示」が選ばれているかどうか。
+    @State private var isShowingAllOverlays = false
 
     private let syncService = SyncService()
     private let stepCounter = StepCounter()
@@ -64,8 +66,12 @@ struct MapScreen: View {
     }
 
     /// 現在選択中の古地図に紐づくチェックポイント（5箇所程度）。
+    /// 「全ての古地図を表示」中は、同梱・登録済みの古地図すべてのチェックポイントを返す。
     private var activeCheckpoints: [HistoricSite] {
-        HistoricSiteCatalog.sites(forOverlayID: mapSession.selectedOverlay?.id)
+        if isShowingAllOverlays {
+            return HistoricSiteCatalog.all
+        }
+        return HistoricSiteCatalog.sites(forOverlayID: mapSession.selectedOverlay?.id)
     }
 
     /// 今の記録セッションのID。iPhoneでの記録中は`activeWalkSessionID`、
@@ -98,6 +104,7 @@ struct MapScreen: View {
             GoogleMapRepresentable(
                 overlayMap: mapSession.selectedOverlay,
                 overlayOpacity: Float(mapSession.overlayOpacity),
+                showAllOverlays: isShowingAllOverlays,
                 moveCameraRequest: mapSession.cameraMoveRequest,
                 bottomInset: bottomPanelHeight,
                 savedWalkPaths: savedRoutes.map(\.coordinates),
@@ -122,6 +129,7 @@ struct MapScreen: View {
                 OverlayControlPanel(
                     selectedOverlay: $mapSession.selectedOverlay,
                     overlayOpacity: $mapSession.overlayOpacity,
+                    isShowingAllOverlays: $isShowingAllOverlays,
                     onSelect: { overlay in
                         if let overlay {
                             mapSession.moveCamera(to: overlay.center)
@@ -201,7 +209,7 @@ struct MapScreen: View {
                 onSave: confirmPendingWalkRoute,
                 onDiscard: discardPendingWalkRoute
             )
-            .presentationDetents([.height(260)])
+            .presentationDetents([.height(300)])
             .presentationDragIndicator(.hidden)
         }
     }
@@ -590,6 +598,8 @@ private struct WalkSaveDecisionSheet: View {
     let onDiscard: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    /// 「破棄」を押した直後、誤操作を防ぐための小さな確認待ち状態。
+    @State private var isConfirmingDiscard = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -615,19 +625,38 @@ private struct WalkSaveDecisionSheet: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
 
-            Button(role: .destructive) {
-                onDiscard()
-                dismiss()
-            } label: {
-                Text("破棄")
-                    .font(.footnote)
+            if isConfirmingDiscard {
+                VStack(spacing: 6) {
+                    Text("本当に破棄しますか？")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 16) {
+                        Button("キャンセル") { isConfirmingDiscard = false }
+                            .font(.caption)
+                        Button("破棄する", role: .destructive) {
+                            onDiscard()
+                            dismiss()
+                        }
+                        .font(.caption.bold())
+                        .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                Button(role: .destructive) {
+                    isConfirmingDiscard = true
+                } label: {
+                    Text("破棄")
+                        .font(.footnote)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.red)
 
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 24)
+        .animation(.easeInOut(duration: 0.15), value: isConfirmingDiscard)
     }
 }
 

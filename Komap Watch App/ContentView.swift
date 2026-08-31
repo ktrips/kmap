@@ -223,6 +223,8 @@ private struct WatchWalkSaveDecisionView: View {
     let onDiscard: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    /// 「破棄」を押した直後、誤操作を防ぐための小さな確認待ち状態。
+    @State private var isConfirmingDiscard = false
 
     var body: some View {
         ScrollView {
@@ -243,17 +245,36 @@ private struct WatchWalkSaveDecisionView: View {
                 .tint(.green)
                 .controlSize(.large)
 
-                Button(role: .destructive) {
-                    onDiscard()
-                    dismiss()
-                } label: {
-                    Text("破棄")
-                        .font(.footnote)
+                if isConfirmingDiscard {
+                    VStack(spacing: 6) {
+                        Text("本当に破棄しますか？")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button("破棄する", role: .destructive) {
+                            onDiscard()
+                            dismiss()
+                        }
+                        .font(.caption.bold())
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.red)
+                        Button("キャンセル") { isConfirmingDiscard = false }
+                            .font(.caption2)
+                            .buttonStyle(.plain)
+                    }
+                } else {
+                    Button(role: .destructive) {
+                        isConfirmingDiscard = true
+                    } label: {
+                        Text("破棄")
+                            .font(.footnote)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.red)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.red)
             }
             .padding()
+            .animation(.easeInOut(duration: 0.15), value: isConfirmingDiscard)
         }
     }
 }

@@ -4,8 +4,13 @@ import SwiftUI
 struct OverlayControlPanel: View {
     @Binding var selectedOverlay: HistoricalOverlayMap?
     @Binding var overlayOpacity: Double
+    /// 「全ての古地図を表示」が選ばれているかどうか。選ばれている間は、単一の`selectedOverlay`ではなく
+    /// 同梱・登録済みの古地図すべてとそのチェックポイントを地図上に重ねて表示する。
+    @Binding var isShowingAllOverlays: Bool
     /// 古地図が選び直された時に呼ばれる（マップの中心をその古地図の中心へ移動する等に使う）。
     var onSelect: (HistoricalOverlayMap?) -> Void = { _ in }
+    /// 「全ての古地図を表示」が選ばれた時に呼ばれる。
+    var onSelectAll: () -> Void = {}
     /// 「新しい古地図を登録」が選ばれた時に呼ばれる。OpenAI・Googleカスタム検索の
     /// APIキーが両方とも設定されている時だけメニューに表示する。
     var onRequestSearch: () -> Void = {}
@@ -13,17 +18,30 @@ struct OverlayControlPanel: View {
     var body: some View {
         VStack(spacing: 14) {
             Menu {
+                Button {
+                    isShowingAllOverlays = true
+                    onSelectAll()
+                } label: {
+                    if isShowingAllOverlays {
+                        Label("全ての古地図を表示", systemImage: "checkmark")
+                    } else {
+                        Text("全ての古地図を表示")
+                    }
+                }
+                Divider()
                 Button("古地図を表示しない") {
+                    isShowingAllOverlays = false
                     selectedOverlay = nil
                     onSelect(nil)
                 }
                 Divider()
                 ForEach(OldMapCatalog.allIncludingCustom) { overlay in
                     Button {
+                        isShowingAllOverlays = false
                         selectedOverlay = overlay
                         onSelect(overlay)
                     } label: {
-                        if overlay.id == selectedOverlay?.id {
+                        if !isShowingAllOverlays && overlay.id == selectedOverlay?.id {
                             Label(overlay.title, systemImage: "checkmark")
                         } else {
                             Text(overlay.title)
@@ -41,7 +59,8 @@ struct OverlayControlPanel: View {
             } label: {
                 HStack {
                     Image(systemName: "map.fill")
-                    Text(selectedOverlay?.title ?? "古地図を選択")
+                    Text(isShowingAllOverlays ? "全ての古地図" : (selectedOverlay?.title ?? "古地図を選択"))
+                        .font(.subheadline)
                         .lineLimit(1)
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
@@ -50,7 +69,7 @@ struct OverlayControlPanel: View {
                 .foregroundStyle(.primary)
             }
 
-            if selectedOverlay != nil {
+            if selectedOverlay != nil && !isShowingAllOverlays {
                 HStack(spacing: 10) {
                     Text("現在")
                         .font(.caption.bold())
@@ -76,7 +95,8 @@ struct OverlayControlPanel: View {
             Spacer()
             OverlayControlPanel(
                 selectedOverlay: .constant(OldMapCatalog.edoCastle),
-                overlayOpacity: .constant(0.6)
+                overlayOpacity: .constant(0.6),
+                isShowingAllOverlays: .constant(false)
             )
             .padding(.bottom, 20)
         }
