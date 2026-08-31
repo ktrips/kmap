@@ -2,7 +2,7 @@ import PhotosUI
 import SwiftUI
 
 /// 御朱印を獲得した直後、または御朱印帳から後で開いた時に、
-/// その史跡の写真を追加・変更できるシート。
+/// その史跡の写真を追加・変更でき、場所の詳細も見られるシート。
 struct StampCheckInSheet: View {
     let site: HistoricSite
     @Bindable var stamp: CollectedStamp
@@ -10,6 +10,17 @@ struct StampCheckInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var isLoadingPhoto = false
+    @State private var isShowingCamera = false
+
+    @State private var isLoadingStory = true
+    @State private var story: GeneratedStory?
+    @State private var storyErrorMessage: String?
+
+    private let historyService = AIHistoryService()
+
+    private var overlayMap: HistoricalOverlayMap? {
+        OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
+    }
 
     var body: some View {
         NavigationStack {
@@ -34,20 +45,17 @@ struct StampCheckInSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
 
-                    PhotosPicker(selection: $photosPickerItem, matching: .images) {
-                        if isLoadingPhoto {
-                            ProgressView()
-                        } else {
-                            Label(stamp.photo == nil ? "写真を追加" : "写真を変更", systemImage: "camera")
-                        }
-                    }
-                    .disabled(isLoadingPhoto)
+                    photoButtons
 
                     if stamp.photo != nil {
                         Button("写真を削除", role: .destructive) {
                             stamp.updatePhoto(nil)
                         }
                     }
+
+                    Divider()
+
+                    detailSection
                 }
                 .padding()
             }
@@ -61,7 +69,78 @@ struct StampCheckInSheet: View {
             .onChange(of: photosPickerItem) { _, newItem in
                 loadPickedPhoto(newItem)
             }
+            .fullScreenCover(isPresented: $isShowingCamera) {
+                CameraCaptureView(
+                    onCapture: { image in
+                        isShowingCamera = false
+                        stamp.updatePhoto(image)
+                    },
+                    onCancel: { isShowingCamera = false }
+                )
+                .ignoresSafeArea()
+            }
         }
+        .task {
+            await loadStoryIfNeeded()
+        }
+    }
+
+    private var photoButtons: some View {
+        HStack(spacing: 12) {
+            PhotosPicker(selection: $photosPickerItem, matching: .images) {
+                if isLoadingPhoto {
+                    ProgressView()
+                } else {
+                    Label(stamp.photo == nil ? "写真を追加" : "写真を変更", systemImage: "photo.on.rectangle")
+                }
+            }
+            .disabled(isLoadingPhoto)
+
+            Button {
+                isShowingCamera = true
+            } label: {
+                Label("カメラで撮る", systemImage: "camera.fill")
+            }
+            .disabled(isLoadingPhoto)
+        }
+    }
+
+    /// 場所の詳細（由来やエピソード）をAIで補足する。
+    private var detailSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("この場所の詳細", systemImage: "text.book.closed.fill")
+                .font(.headline)
+                .foregroundStyle(.brown)
+
+            if isLoadingStory {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("AIが昔の出来事を紐解いています…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let storyErrorMessage {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(storyErrorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    Button("もう一度試す") {
+                        Task { await loadStoryIfNeeded(force: true) }
+                    }
+                }
+            } else if let story {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(story.title)
+                        .font(.subheadline.bold())
+                    Text(story.body)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineSpacing(4)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func loadPickedPhoto(_ item: PhotosPickerItem?) {
@@ -74,5 +153,21 @@ struct StampCheckInSheet: View {
             else { return }
             stamp.updatePhoto(uiImage)
         }
+    }
+
+    private func loadStoryIfNeeded(force: Bool = false) async {
+        guard force || story == nil else { return }
+        isLoadingStory = true
+        storyErrorMessage = nil
+        do {
+            story = try await historyService.generateStory(
+                for: site.coordinate,
+                overlayMap: overlayMap,
+                placeName: site.name
+            )
+        } catch {
+            storyErrorMessage = error.localizedDescription
+        }
+        isLoadingStory = false
     }
 }

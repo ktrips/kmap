@@ -17,6 +17,8 @@ struct WalkRouteDetailView: View {
     @State private var isRenaming = false
     @State private var editedTitle = ""
     @State private var isConfirmingDelete = false
+    @State private var selectedPhotoPost: WalkPhotoPost?
+    @State private var selectedStamp: StampSelection?
 
     private var stampsForRoute: [CollectedStamp] {
         collectedStamps
@@ -103,6 +105,12 @@ struct WalkRouteDetailView: View {
         } message: {
             Text("歩いたルートの記録が削除されます。この操作は取り消せません。")
         }
+        .sheet(item: $selectedPhotoPost) { post in
+            PhotoPostPreviewSheet(post: post)
+        }
+        .sheet(item: $selectedStamp) { selection in
+            StampCheckInSheet(site: selection.site, stamp: selection.stamp)
+        }
     }
 
     private var header: some View {
@@ -160,6 +168,9 @@ struct WalkRouteDetailView: View {
                             .scaledToFill()
                             .frame(height: 100)
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .onTapGesture {
+                                selectedPhotoPost = post
+                            }
                     }
                 }
             }
@@ -174,6 +185,9 @@ struct WalkRouteDetailView: View {
             ForEach(stampsForRoute) { stamp in
                 if let site = stamp.site {
                     CheckpointRow(site: site, stamp: stamp)
+                        .onTapGesture {
+                            selectedStamp = StampSelection(site: site, stamp: stamp)
+                        }
                 }
             }
         }
@@ -275,9 +289,7 @@ private struct WalkRouteMapView: UIViewRepresentable {
         for site in checkpoints {
             let marker = GMSMarker(position: site.coordinate)
             marker.title = site.name
-            marker.icon = GMSMarker.markerImage(
-                with: collectedSiteIDs.contains(site.id) ? .systemYellow : .systemBrown
-            )
+            marker.icon = GMSMarker.markerImage(with: .shuiro)
             marker.opacity = collectedSiteIDs.contains(site.id) ? 1.0 : 0.6
             marker.map = mapView
         }

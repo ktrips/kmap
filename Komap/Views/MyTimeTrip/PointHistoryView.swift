@@ -5,6 +5,8 @@ import SwiftUI
 struct PointHistoryView: View {
     @Query(sort: \WalkPhotoPost.postedAt, order: .reverse) private var photoPosts: [WalkPhotoPost]
 
+    @State private var selectedPost: WalkPhotoPost?
+
     private var totalPoints: Int {
         photoPosts.reduce(0) { $0 + $1.points }
     }
@@ -17,6 +19,9 @@ struct PointHistoryView: View {
                 LazyVStack(spacing: 12) {
                     ForEach(photoPosts) { post in
                         PhotoPostRow(post: post)
+                            .onTapGesture {
+                                selectedPost = post
+                            }
                     }
                 }
                 .padding()
@@ -24,6 +29,9 @@ struct PointHistoryView: View {
         }
         .navigationTitle("ポイント \(totalPoints) pt")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $selectedPost) { post in
+            PhotoPostPreviewSheet(post: post)
+        }
     }
 
     private var emptyState: some View {
@@ -66,6 +74,10 @@ private struct PhotoPostRow: View {
             }
 
             Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.bold())
+                .foregroundStyle(.secondary)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)

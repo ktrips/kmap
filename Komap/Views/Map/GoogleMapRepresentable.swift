@@ -374,10 +374,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             for (siteID, marker) in checkpointMarkers {
                 let isCollected = collectedSiteIDs.contains(siteID)
-                marker.icon = GMSMarker.markerImage(
-                    with: isCollected ? .systemYellow : .systemBrown
-                )
-                marker.opacity = isCollected ? 1.0 : 0.85
+                marker.icon = GMSMarker.markerImage(with: .shuiro)
+                marker.opacity = isCollected ? 1.0 : 0.6
             }
         }
 

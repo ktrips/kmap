@@ -25,6 +25,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         case watchTrackingResumed
         /// Watch単体の記録が終わり、軌跡がまるごと届いた。
         case watchTrackingFinished(WatchTrackedRoute)
+        /// Watch単体のGPSで記録中、現在地が更新された（御朱印チェックポイントの判定に使う）。
+        case watchLocationUpdate(CLLocationCoordinate2D)
 
         static func == (lhs: Command, rhs: Command) -> Bool {
             switch (lhs, rhs) {
@@ -37,6 +39,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                 return a == b
             case let (.watchTrackingFinished(a), .watchTrackingFinished(b)):
                 return a.sessionID == b.sessionID
+            case let (.watchLocationUpdate(a), .watchLocationUpdate(b)):
+                return a.latitude == b.latitude && a.longitude == b.longitude
             default:
                 return false
             }
@@ -74,6 +78,37 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "mapTitles": availableMaps.map(\.title),
             "selectedMapID": selectedMapID as Any,
         ])
+    }
+
+    /// 御朱印を新しく獲得した時、Watch側にも通知してその場で確認・チェックインできるようにする。
+    /// Apple Watchで計測中かどうかに関わらず、獲得のたびに知らせる。
+    func notifyStampCollected(siteName: String, siteSummary: String) {
+        guard let session, session.activationState == .activated else { return }
+        let payload: [String: Any] = [
+            "command": "stampCollected",
+            "siteName": siteName,
+            "siteSummary": siteSummary,
+        ]
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil) { [weak session] _ in
+                session?.transferUserInfo(payload)
+            }
+        } else {
+            session.transferUserInfo(payload)
+        }
+    }
+
+    /// 写真を投稿してポイントを獲得した時、Watch側にも知らせる。
+    func notifyPhotoPosted(points: Int) {
+        guard let session, session.activationState == .activated else { return }
+        let payload: [String: Any] = ["command": "photoPosted", "points": points]
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil) { [weak session] _ in
+                session?.transferUserInfo(payload)
+            }
+        } else {
+            session.transferUserInfo(payload)
+        }
     }
 }
 
@@ -136,6 +171,9 @@ extension WatchConnectivityManager: WCSessionDelegate {
             return .watchTrackingPaused
         case "watchTrackingResumed":
             return .watchTrackingResumed
+        case "watchLocationUpdate":
+            guard let lat = message["lat"] as? Double, let lon = message["lon"] as? Double else { return nil }
+            return .watchLocationUpdate(CLLocationCoordinate2D(latitude: lat, longitude: lon))
         case "watchTrackingFinished":
             guard let sessionID = message["sessionID"] as? String,
                   let latitudes = message["latitudes"] as? [Double],

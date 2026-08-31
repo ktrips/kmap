@@ -12,6 +12,8 @@ import HealthKit
 final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
     @Published private(set) var path: [CLLocationCoordinate2D] = []
     @Published private(set) var isTracking = false
+    /// 現在地が更新される度に呼ばれる。iPhoneへ転送し、御朱印チェックポイントの判定に使う。
+    var onLocationUpdate: ((CLLocationCoordinate2D) -> Void)?
 
     private let locationManager = CLLocationManager()
     private let healthStore = HKHealthStore()
@@ -115,6 +117,7 @@ extension WatchWorkoutLocationTracker: CLLocationManagerDelegate {
         Task { @MainActor in
             guard self.isTracking else { return }
             self.path.append(coordinate)
+            self.onLocationUpdate?(coordinate)
         }
     }
 }

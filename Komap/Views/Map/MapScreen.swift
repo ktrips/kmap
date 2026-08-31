@@ -39,6 +39,14 @@ struct MapScreen: View {
     /// Watch自身のGPSで記録中かどうか（GPSはWatch側、iPhoneはこの状態を表示するだけ）。
     @State private var isWatchTrackingActive = false
     @State private var isWatchTrackingPaused = false
+    /// Watch自身のGPSで記録中のセッションID。iPhone側の`activeWalkSessionID`が無い間、
+    /// このIDで写真投稿・御朱印獲得を紐付け、記録終了時に届く`WalkRoute`と一致させる。
+    @State private var activeWatchSessionID: UUID?
+    /// Watch単体のGPSで記録中、Watchから転送されてきた軌跡。iPhone側の地図にも
+    /// リアルタイムで表示するために使う（GPS自体はWatch側のまま）。
+    @State private var watchTrackedPath: [CLLocationCoordinate2D] = []
+    /// カメラで写真を撮って投稿するためのシート表示状態。
+    @State private var isShowingPhotoPostCamera = false
 
     private let syncService = SyncService()
     private let stepCounter = StepCounter()
@@ -58,6 +66,19 @@ struct MapScreen: View {
     /// 現在選択中の古地図に紐づくチェックポイント（5箇所程度）。
     private var activeCheckpoints: [HistoricSite] {
         HistoricSiteCatalog.sites(forOverlayID: mapSession.selectedOverlay?.id)
+    }
+
+    /// 今の記録セッションのID。iPhoneでの記録中は`activeWalkSessionID`、
+    /// Apple Watch単体での記録中は`activeWatchSessionID`を使う。
+    /// 御朱印獲得・写真投稿を、後で作られる`WalkRoute`と正しく紐付けるために使う。
+    private var currentSessionID: UUID? {
+        activeWalkSessionID ?? activeWatchSessionID
+    }
+
+    /// 地図に描く「記録中の軌跡」。iPhoneで記録中はiPhone自身のGPS、Apple Watch単体で
+    /// 記録中はWatchから転送された軌跡を使う。
+    private var displayedLiveWalkPath: [CLLocationCoordinate2D] {
+        isWatchTrackingActive ? watchTrackedPath : locationManager.walkPath
     }
 
     private var isCheckInSheetPresented: Binding<Bool> {
@@ -80,7 +101,7 @@ struct MapScreen: View {
                 moveCameraRequest: mapSession.cameraMoveRequest,
                 bottomInset: bottomPanelHeight,
                 savedWalkPaths: savedRoutes.map(\.coordinates),
-                liveWalkPath: locationManager.walkPath,
+                liveWalkPath: displayedLiveWalkPath,
                 checkpoints: activeCheckpoints,
                 collectedSiteIDs: collectedSiteIDs,
                 photoPosts: photoPosts,
@@ -201,6 +222,7 @@ struct MapScreen: View {
             Spacer()
             if isWatchTrackingActive {
                 watchTrackingIndicator
+                photoPostButton
             } else {
                 if locationManager.isRecordingWalk {
                     photoPostButton
@@ -269,7 +291,16 @@ struct MapScreen: View {
     }
 
     private var photoPostButton: some View {
-        PhotosPicker(selection: $photoPostPickerItem, matching: .images) {
+        Menu {
+            Button {
+                isShowingPhotoPostCamera = true
+            } label: {
+                Label("カメラで撮る", systemImage: "camera.fill")
+            }
+            PhotosPicker(selection: $photoPostPickerItem, matching: .images) {
+                Label("ライブラリから選ぶ", systemImage: "photo.on.rectangle")
+            }
+        } label: {
             Group {
                 if isPostingPhoto {
                     ProgressView()
@@ -285,6 +316,16 @@ struct MapScreen: View {
             .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         }
         .disabled(isPostingPhoto)
+        .fullScreenCover(isPresented: $isShowingPhotoPostCamera) {
+            CameraCaptureView(
+                onCapture: { image in
+                    isShowingPhotoPostCamera = false
+                    postPhoto(image)
+                },
+                onCancel: { isShowingPhotoPostCamera = false }
+            )
+            .ignoresSafeArea()
+        }
     }
 
     /// 「スタート」で記録を開始し、もう一度押すと記録を終える。
@@ -369,9 +410,11 @@ struct MapScreen: View {
             guard let overlay = OldMapCatalog.allIncludingCustom.first(where: { $0.id == id }) else { return }
             mapSession.selectedOverlay = overlay
             mapSession.moveCamera(to: overlay.center)
-        case .watchTrackingStarted:
+        case .watchTrackingStarted(let sessionID):
             isWatchTrackingActive = true
             isWatchTrackingPaused = false
+            activeWatchSessionID = UUID(uuidString: sessionID)
+            watchTrackedPath = []
         case .watchTrackingPaused:
             isWatchTrackingPaused = true
         case .watchTrackingResumed:
@@ -379,14 +422,25 @@ struct MapScreen: View {
         case .watchTrackingFinished(let route):
             isWatchTrackingActive = false
             isWatchTrackingPaused = false
+            activeWatchSessionID = nil
+            watchTrackedPath = []
             saveWatchTrackedRoute(route)
+        case .watchLocationUpdate(let coordinate):
+            // Watch単体のGPSで記録中は、iPhone側の地図にもリアルタイムで軌跡を表示し、
+            // iPhone側の位置情報だけでは気づけない御朱印チェックポイントの判定も行う。
+            guard isWatchTrackingActive else { return }
+            watchTrackedPath.append(coordinate)
+            checkForNewStamps(near: coordinate)
         }
     }
 
-    /// Watch単体のGPSで記録し終えた軌跡を、確認ダイアログを挟まずそのまま保存する。
+    /// Watch単体のGPSで記録し終えた軌跡を、確認ダイアログを挟まずそのまま保存する
+    /// （保存確認はWatch側で既に済んでいるため）。`WalkRoute`のIDはWatchのセッションIDと
+    /// 揃え、記録中にiPhoneへ転送された御朱印・写真投稿がこの記録に正しく紐付くようにする。
     private func saveWatchTrackedRoute(_ route: WatchTrackedRoute) {
         guard route.coordinates.count >= 2 else { return }
         modelContext.insert(WalkRoute(
+            id: UUID(uuidString: route.sessionID) ?? UUID(),
             coordinates: route.coordinates,
             startedAt: route.startedAt,
             endedAt: route.endedAt,
@@ -407,7 +461,7 @@ struct MapScreen: View {
         )
     }
 
-    /// 記録中に選んだ写真を保存し、ポイントを付与した`WalkPhotoPost`を作成する。
+    /// 記録中に選んだ写真を読み込み、`postPhoto`で投稿する。
     private func loadAndPostPhoto(_ item: PhotosPickerItem?) {
         guard let item else { return }
         photoPostPickerItem = nil
@@ -415,18 +469,28 @@ struct MapScreen: View {
         Task {
             defer { isPostingPhoto = false }
             guard let data = try? await item.loadTransferable(type: Data.self),
-                  let uiImage = UIImage(data: data),
-                  let filename = StampPhotoStore.save(uiImage),
-                  let coordinate = locationManager.currentLocation ?? locationManager.walkPath.last
+                  let uiImage = UIImage(data: data)
             else { return }
+            postPhoto(uiImage)
+        }
+    }
 
-            let post = WalkPhotoPost(
-                photoFileName: filename,
-                coordinate: coordinate,
-                walkRouteID: activeWalkSessionID
-            )
-            modelContext.insert(post)
+    /// 撮影・選択した写真を保存し、ポイントを付与した`WalkPhotoPost`を作成する。
+    /// Apple Watch側にもトーストで知らせる。
+    private func postPhoto(_ uiImage: UIImage) {
+        guard let filename = StampPhotoStore.save(uiImage),
+              let coordinate = locationManager.currentLocation ?? locationManager.walkPath.last ?? watchTrackedPath.last
+        else { return }
 
+        let post = WalkPhotoPost(
+            photoFileName: filename,
+            coordinate: coordinate,
+            walkRouteID: currentSessionID
+        )
+        modelContext.insert(post)
+        watchConnectivity.notifyPhotoPosted(points: post.points)
+
+        Task {
             withAnimation {
                 pointsToastMessage = "+\(post.points)pt 獲得！"
             }
@@ -477,10 +541,11 @@ struct MapScreen: View {
             let siteLocation = CLLocation(latitude: site.coordinate.latitude, longitude: site.coordinate.longitude)
             guard current.distance(from: siteLocation) <= stampCollectionRadiusMeters else { continue }
 
-            let stamp = CollectedStamp(siteID: site.id, walkRouteID: activeWalkSessionID)
+            let stamp = CollectedStamp(siteID: site.id, walkRouteID: currentSessionID)
             modelContext.insert(stamp)
             newlyCollectedSite = site
             newlyCollectedStamp = stamp
+            watchConnectivity.notifyStampCollected(siteName: site.name, siteSummary: site.summary)
 
             if let userID = authService.userID {
                 Task { try? await syncService.upload(stamp, userID: userID) }

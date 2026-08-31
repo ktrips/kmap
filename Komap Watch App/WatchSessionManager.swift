@@ -8,6 +8,13 @@ struct WatchMapOption: Identifiable, Equatable {
     let title: String
 }
 
+/// iPhoneから届いた「御朱印を新しく獲得した」という通知。Watch画面でその場チェックインできるようにする。
+struct WatchCollectedStampInfo: Identifiable, Equatable {
+    let id = UUID()
+    let siteName: String
+    let siteSummary: String
+}
+
 /// iPhone側の「Komap」アプリとの連携をまとめる。2つのモードがある。
 ///
 /// - Watch単体モード: Watchの「スタート」で自分自身のGPS（`WatchWorkoutLocationTracker`）
@@ -28,6 +35,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published private(set) var isReachable = false
     /// 今の記録がWatch自身のGPSによるものかどうか（`false`ならiPhone側の記録を遠隔操作している）。
     @Published private(set) var isSelfTracking = false
+    /// iPhoneから届いた、新しく獲得した御朱印の通知。表示したら`acknowledgeStampCollected()`で消す。
+    @Published private(set) var newlyCollectedStamp: WatchCollectedStampInfo?
+    /// iPhoneから届いた、写真投稿で獲得したポイント。表示したら`acknowledgePhotoPosted()`で消す。
+    @Published private(set) var newlyPostedPhotoPoints: Int?
 
     private let session: WCSession?
     /// 「スタート」を押すまでHealthKit・位置情報まわりの初期化を行わないよう、
@@ -51,8 +62,21 @@ final class WatchSessionManager: NSObject, ObservableObject {
         state = .recording
         let tracker = tracker ?? WatchWorkoutLocationTracker()
         self.tracker = tracker
+        tracker.onLocationUpdate = { [weak self] coordinate in
+            self?.sendLocationUpdate(coordinate)
+        }
         tracker.start()
         send(["command": "watchTrackingStarted", "sessionID": sessionID.uuidString])
+    }
+
+    /// 新しく獲得した御朱印の通知を確認したら呼ぶ。
+    func acknowledgeStampCollected() {
+        newlyCollectedStamp = nil
+    }
+
+    /// 写真投稿のポイント通知を確認したら呼ぶ。
+    func acknowledgePhotoPosted() {
+        newlyPostedPhotoPoints = nil
     }
 
     func pause() {
@@ -130,6 +154,31 @@ final class WatchSessionManager: NSObject, ObservableObject {
         }
     }
 
+    /// Watch単体のGPSで得た現在地をiPhoneへ転送し、御朱印チェックポイントの判定に使ってもらう。
+    /// 位置更新は頻繁なので、キューに積む`transferUserInfo`は使わず、到達可能な時だけ
+    /// ベストエフォートで送る（届かなくても次の更新ですぐ追いつくため問題ない）。
+    private func sendLocationUpdate(_ coordinate: CLLocationCoordinate2D) {
+        guard let session, session.activationState == .activated, session.isReachable else { return }
+        session.sendMessage(
+            ["command": "watchLocationUpdate", "lat": coordinate.latitude, "lon": coordinate.longitude],
+            replyHandler: nil,
+            errorHandler: nil
+        )
+    }
+
+    /// iPhoneから届いた「御朱印を新しく獲得した」通知を受け取る。
+    private func applyStampCollected(_ message: [String: Any]) {
+        guard let siteName = message["siteName"] as? String else { return }
+        let siteSummary = message["siteSummary"] as? String ?? ""
+        newlyCollectedStamp = WatchCollectedStampInfo(siteName: siteName, siteSummary: siteSummary)
+    }
+
+    /// iPhoneから届いた「写真投稿でポイントを獲得した」通知を受け取る。
+    private func applyPhotoPosted(_ message: [String: Any]) {
+        guard let points = message["points"] as? Int else { return }
+        newlyPostedPhotoPoints = points
+    }
+
     /// iPhone側から届く状態。Watch自身が記録中の間は、iPhone側の「記録していない」
     /// という情報で上書きしてしまわないよう、記録の状態だけは無視する。
     private func applyContext(_ context: [String: Any]) {
@@ -176,6 +225,33 @@ extension WatchSessionManager: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         Task { @MainActor in
             self.applyContext(applicationContext)
+        }
+    }
+
+    nonisolated func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        switch message["command"] as? String {
+        case "stampCollected":
+            Task { @MainActor in self.applyStampCollected(message) }
+        case "photoPosted":
+            Task { @MainActor in self.applyPhotoPosted(message) }
+        default:
+            break
+        }
+        replyHandler(["ok": true])
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        switch userInfo["command"] as? String {
+        case "stampCollected":
+            Task { @MainActor in self.applyStampCollected(userInfo) }
+        case "photoPosted":
+            Task { @MainActor in self.applyPhotoPosted(userInfo) }
+        default:
+            break
         }
     }
 }
