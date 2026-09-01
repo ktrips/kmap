@@ -21,7 +21,7 @@ export default function App() {
   const { trips } = useWalkRoutes(user?.uid ?? null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
-  const [tab, setTab] = useState<SidebarTab>("places");
+  const [tab, setTab] = useState<SidebarTab>("trips");
 
   const selectedPlace = places.find((place) => place.id === selectedId) ?? null;
   const selectedTrip = trips.find((trip) => trip.id === selectedTripId) ?? null;
