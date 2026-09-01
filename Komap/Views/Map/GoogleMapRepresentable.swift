@@ -100,6 +100,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// まだ通っていない場所用に、あらかじめぼかしておいた画像（古地図が変わる度に作り直す）。
         private var currentBlurredImage: UIImage?
         private var lastRevealedPointCount = 0
+        /// リビール画像の合成中に、GPSの更新が続けて何度も来た場合に合成タスクが
+        /// 積み重ならないようにするためのフラグ。
+        private var isComposingRevealedImage = false
 
         private var savedPolylinePairs: [TrailPolylinePair] = []
         private var liveTrailPair: TrailPolylinePair?
@@ -248,15 +251,16 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 // 記録中はスライダーの不透明度を「まだ通っていない場所」の薄さとして使い、
                 // 通った場所だけくっきり見えるように画像を合成し直す。
                 // 合成処理は重いのでメインスレッドをブロックしないようバックグラウンドで行う。
-                if isNewOverlay || livePath.count != lastRevealedPointCount {
+                if !isComposingRevealedImage && (isNewOverlay || livePath.count != lastRevealedPointCount) {
                     lastRevealedPointCount = livePath.count
+                    isComposingRevealedImage = true
                     let southWest = overlayMap.southWest
                     let northEast = overlayMap.northEast
                     let corridorMeters = revealCorridorMeters
                     let faintAlpha = CGFloat(opacity)
                     let blurredBase = currentBlurredImage ?? baseImage
                     let overlayRef = currentOverlay
-                    DispatchQueue.global(qos: .userInitiated).async {
+                    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                         let image = Self.revealedImage(
                             base: baseImage,
                             blurredBase: blurredBase,
@@ -268,6 +272,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                         )
                         DispatchQueue.main.async {
                             overlayRef.icon = image
+                            self?.isComposingRevealedImage = false
                         }
                     }
                 }

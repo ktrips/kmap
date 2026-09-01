@@ -21,6 +21,14 @@ enum StampPhotoStore {
         return url
     }
 
+    /// `load(_:)`はSwiftUIの再描画のたびに呼ばれうるため、毎回ディスクから読み直して
+    /// JPEGをデコードし直すと重い。直近に読んだ分だけメモリ上に持っておく。
+    private static let cache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 80
+        return cache
+    }()
+
     /// 画像を縮小・圧縮して保存し、保存先のファイル名を返す（失敗時は`nil`）。
     static func save(_ image: UIImage) -> String? {
         guard let data = compress(image) else { return nil }
@@ -34,12 +42,20 @@ enum StampPhotoStore {
     }
 
     static func load(_ filename: String) -> UIImage? {
-        guard let data = try? Data(contentsOf: directoryURL.appendingPathComponent(filename)) else { return nil }
-        return UIImage(data: data)
+        let key = filename as NSString
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+        guard let data = try? Data(contentsOf: directoryURL.appendingPathComponent(filename)),
+              let image = UIImage(data: data)
+        else { return nil }
+        cache.setObject(image, forKey: key)
+        return image
     }
 
     /// 差し替え時などに古いファイルを削除する。
     static func delete(_ filename: String) {
+        cache.removeObject(forKey: filename as NSString)
         try? FileManager.default.removeItem(at: directoryURL.appendingPathComponent(filename))
     }
 
