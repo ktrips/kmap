@@ -105,7 +105,7 @@ struct SettingsView: View {
                     if isSyncing {
                         ProgressView()
                     } else {
-                        Label("保存済みの地点をすべてクラウドに同期", systemImage: "icloud.and.arrow.up")
+                        Label("保存済みの地点・私の時空旅をすべてクラウドに同期", systemImage: "icloud.and.arrow.up")
                     }
                 }
                 .disabled(isSyncing)
@@ -140,7 +140,7 @@ struct SettingsView: View {
         } header: {
             Text("アカウント / Web連携")
         } footer: {
-            Text("Googleでサインインすると、保存した地点がクラウドに同期され、Webアプリ（map.ktrips.net）で同じGoogleアカウントでログインした際に「自分のマップ」として見られるようになります。")
+            Text("Googleでサインインすると、保存した地点・私の時空旅（歩いたルート）が新しく記録するたびにクラウドへ同期され、Webアプリで同じGoogleアカウントでログインした際に「My Trips」として見られるようになります。サインインより前に記録していたものは、上のボタンでまとめて同期してください。")
         }
     }
 
@@ -153,7 +153,11 @@ struct SettingsView: View {
             for place in places {
                 try await syncService.upload(place, userID: userID)
             }
-            syncMessage = "\(places.count)件を同期しました"
+            let walkRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>())
+            for route in walkRoutes {
+                try await syncService.upload(route, userID: userID)
+            }
+            syncMessage = "地点\(places.count)件・時空旅\(walkRoutes.count)件を同期しました"
         } catch {
             syncMessage = "同期に失敗しました: \(error.localizedDescription)"
         }
