@@ -24,6 +24,9 @@ final class WalkRoute {
     var overlayOpacity: Double
     /// ユーザーが後から付けられる、この時間旅の名前。未設定なら`nil`。
     var title: String?
+    /// `true`の間、この時間旅は自分だけの「My Trips」ではなく、
+    /// 全ユーザー共通の「みんなの時空旅」にも公開される。
+    var isSharedPublicly: Bool = false
 
     init(
         id: UUID = UUID(),
@@ -33,7 +36,8 @@ final class WalkRoute {
         stepCount: Int? = nil,
         overlayMapID: String? = nil,
         overlayOpacity: Double = 0.55,
-        title: String? = nil
+        title: String? = nil,
+        isSharedPublicly: Bool = false
     ) {
         self.id = id
         self.latitudes = coordinates.map(\.latitude)
@@ -44,6 +48,7 @@ final class WalkRoute {
         self.overlayMapID = overlayMapID
         self.overlayOpacity = overlayOpacity
         self.title = title
+        self.isSharedPublicly = isSharedPublicly
     }
 
     /// 歩いた時間（秒）。`endedAt`が無い（この項目を追加する前の）記録では`nil`。

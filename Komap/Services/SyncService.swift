@@ -37,6 +37,12 @@ struct SyncService {
         Firestore.firestore().collection("users").document(userID).collection("walkRoutes")
     }
 
+    /// 全ユーザー共通の「みんなの時空旅」。`users/{uid}/walkRoutes`とは別に、
+    /// トップレベルの`sharedTrips`へ公開したものだけを置く（サインインしていれば誰でも読める）。
+    private var sharedTripsCollection: CollectionReference {
+        Firestore.firestore().collection("sharedTrips")
+    }
+
     /// 1件をアップロード（新規作成 or 上書き更新）する。
     func upload(_ place: SavedPlace, userID: String?) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
@@ -120,6 +126,7 @@ struct SyncService {
             "stepCount": route.stepCount as Any? ?? NSNull(),
             "overlayMapID": route.overlayMapID as Any? ?? NSNull(),
             "totalDistanceMeters": route.totalDistanceMeters,
+            "isSharedPublicly": route.isSharedPublicly,
         ]
 
         try await walkRoutesCollection(for: userID)
@@ -132,6 +139,44 @@ struct SyncService {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         guard let userID else { throw SyncError.notSignedIn }
         try await walkRoutesCollection(for: userID).document(walkRouteID.uuidString).delete()
+    }
+
+    /// 「みんなの時空旅」への公開・非公開を切り替える。公開する場合は`sharedTrips/{id}`に
+    /// コピーを置き、非公開にする場合はそのドキュメントを削除する。
+    func setPubliclyShared(_ route: WalkRoute, isShared: Bool, userID: String?, ownerDisplayName: String?) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        guard let userID else { throw SyncError.notSignedIn }
+
+        if isShared {
+            let data: [String: Any] = [
+                "ownerUserID": userID,
+                "ownerDisplayName": ownerDisplayName as Any? ?? NSNull(),
+                "title": route.title as Any? ?? NSNull(),
+                "latitudes": route.latitudes,
+                "longitudes": route.longitudes,
+                "startedAt": Timestamp(date: route.startedAt),
+                "endedAt": route.endedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
+                "stepCount": route.stepCount as Any? ?? NSNull(),
+                "overlayMapID": route.overlayMapID as Any? ?? NSNull(),
+                "totalDistanceMeters": route.totalDistanceMeters,
+            ]
+            try await sharedTripsCollection.document(route.id.uuidString).setData(data, merge: true)
+        } else {
+            try await sharedTripsCollection.document(route.id.uuidString).delete()
+        }
+    }
+
+    /// 「みんなの時空旅」に公開されている、全ユーザー分の時空旅を取得する。
+    func fetchAllSharedTrips() async throws -> [RemoteSharedTrip] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+
+        let snapshot = try await sharedTripsCollection
+            .order(by: "startedAt", descending: true)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { document in
+            RemoteSharedTrip(id: document.documentID, data: document.data())
+        }
     }
 }
 
@@ -176,5 +221,35 @@ struct RemoteStamp {
         self.id = id
         self.siteID = siteID
         self.collectedAt = (data["collectedAt"] as? Timestamp)?.dateValue() ?? Date()
+    }
+}
+
+/// 「みんなの時空旅」（`sharedTrips/{id}`）から読み取った、他ユーザーを含む時空旅1件分のデータ。
+struct RemoteSharedTrip: Identifiable {
+    let id: String
+    let ownerUserID: String
+    let ownerDisplayName: String?
+    let title: String?
+    let latitudes: [Double]
+    let longitudes: [Double]
+    let startedAt: Date
+    let endedAt: Date?
+    let stepCount: Int?
+    let overlayMapID: String?
+    let totalDistanceMeters: Double
+
+    init?(id: String, data: [String: Any]) {
+        guard let ownerUserID = data["ownerUserID"] as? String else { return nil }
+        self.id = id
+        self.ownerUserID = ownerUserID
+        self.ownerDisplayName = data["ownerDisplayName"] as? String
+        self.title = data["title"] as? String
+        self.latitudes = data["latitudes"] as? [Double] ?? []
+        self.longitudes = data["longitudes"] as? [Double] ?? []
+        self.startedAt = (data["startedAt"] as? Timestamp)?.dateValue() ?? Date()
+        self.endedAt = (data["endedAt"] as? Timestamp)?.dateValue()
+        self.stepCount = data["stepCount"] as? Int
+        self.overlayMapID = data["overlayMapID"] as? String
+        self.totalDistanceMeters = data["totalDistanceMeters"] as? Double ?? 0
     }
 }

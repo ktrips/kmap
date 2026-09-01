@@ -9,6 +9,7 @@ import SwiftUI
 struct WalkRouteDetailView: View {
     let route: WalkRoute
 
+    @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query private var collectedStamps: [CollectedStamp]
@@ -19,6 +20,10 @@ struct WalkRouteDetailView: View {
     @State private var isConfirmingDelete = false
     @State private var selectedPhotoPost: WalkPhotoPost?
     @State private var selectedStamp: StampSelection?
+    @State private var isUpdatingShare = false
+    @State private var shareErrorMessage: String?
+
+    private let syncService = SyncService()
 
     private var stampsForRoute: [CollectedStamp] {
         collectedStamps
@@ -72,6 +77,16 @@ struct WalkRouteDetailView: View {
                     } label: {
                         Label("名前を変更", systemImage: "pencil")
                     }
+                    Button {
+                        Task { await togglePublicSharing() }
+                    } label: {
+                        if route.isSharedPublicly {
+                            Label("「みんなの時空旅」への公開をやめる", systemImage: "person.2.slash")
+                        } else {
+                            Label("「みんなの時空旅」に公開する", systemImage: "person.2.fill")
+                        }
+                    }
+                    .disabled(isUpdatingShare)
                     Button(role: .destructive) {
                         isConfirmingDelete = true
                     } label: {
@@ -129,6 +144,18 @@ struct WalkRouteDetailView: View {
             Text(route.overlayMap?.title ?? "古地図なし")
                 .font(.subheadline.bold())
                 .foregroundStyle(.brown)
+
+            if route.isSharedPublicly {
+                Label("みんなの時空旅に公開中", systemImage: "person.2.fill")
+                    .font(.caption.bold())
+                    .foregroundStyle(.blue)
+            }
+
+            if let shareErrorMessage {
+                Text(shareErrorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
 
             HStack(spacing: 12) {
                 Label(distanceText, systemImage: "figure.walk")
@@ -191,6 +218,26 @@ struct WalkRouteDetailView: View {
                 }
             }
         }
+    }
+
+    /// 「みんなの時空旅」への公開・非公開を切り替える。
+    private func togglePublicSharing() async {
+        isUpdatingShare = true
+        shareErrorMessage = nil
+        let newValue = !route.isSharedPublicly
+        do {
+            try await syncService.setPubliclyShared(
+                route,
+                isShared: newValue,
+                userID: authService.userID,
+                ownerDisplayName: authService.displayName
+            )
+            route.isSharedPublicly = newValue
+            try? modelContext.save()
+        } catch {
+            shareErrorMessage = "共有の変更に失敗しました: \(error.localizedDescription)"
+        }
+        isUpdatingShare = false
     }
 
     private var distanceText: String {
