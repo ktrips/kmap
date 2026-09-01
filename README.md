@@ -1,18 +1,36 @@
 # Komap 古地図巡り
 
 現在のGoogle Map上に古地図を重ね合わせ、自分が歩いている場所の「昔の姿」をAIが解説してくれる、
-時間旅行気分の散策アプリです。iOSアプリで保存した「わたしの時間旅行」は、Webアプリ
-（`map.ktrips.net`）からも同じGoogleアカウントでログインして見ることができます。
+時間旅行気分の散策アプリです。iOSアプリ本体に加えてApple Watch単体でも記録でき、
+保存した「My Trips（私の時空旅）」はWebアプリ（`komap.ktrips.net` など）からも
+同じGoogleアカウントでログインして見ることができます。
 
 ## 主な機能
 
+### 地図・古地図まわり
 - 現在地をGoogle Map上に表示（現在の一般的な地図表示）
-- 江戸時代の古地図（サンプル：江戸城周辺・浅草周辺）を現在の地図に重ねて表示
+- 江戸〜明治期の古地図（同梱サンプル、詳細は後述）を現在の地図に重ねて表示
 - スライダーで「現在の地図」⇔「古地図」の濃さ（不透明度）を自由に調整
-- 地図上の好きな地点をタップ（または現在地ボタン）すると、AIがその場所の昔の出来事や物語を生成
-- 気に入った物語は「わたしの時間旅行」として端末に保存し、後から一覧・詳細で見返せる
-- Googleでサインインすると、保存した地点がクラウド（Firestore）に同期され、
-  Webアプリ（`map.ktrips.net` を予定）でも同じ記録を閲覧できる
+- 「全ての古地図を表示」を選ぶと、同梱・登録済みの古地図とチェックポイントを
+  地図上にまとめて重ねて見られる（タップするとその古地図単体の表示に切り替わる）
+- OpenAI + Google カスタム検索を使って、新しい古地図をその場で検索して追加する機能
+- 地図上の好きな地点をタップ（または史跡チェックポイントのアイコン）すると、
+  AIがその場所の昔の出来事や物語を生成
+
+### 記録・ゲーミフィケーション
+- 「スタート」でGPSによる徒歩ルートの記録を開始。「完了」を押すと、大きな「保存」ボタンと
+  小さな「破棄」ボタン（誤操作防止の確認つき）で記録を残すか選べる
+- Apple Watch単体でも同じ記録ができ（iPhoneを開いていなくても可）、iPhone側にも
+  リアルタイムで軌跡・御朱印・写真投稿が同期される
+- 古地図ごとに置かれた史跡チェックポイントに近づくと「御朱印」を自動で獲得
+- ウォーキング中に自由なタイミングで写真を投稿するとポイントを獲得（史跡の御朱印時の写真とは別枠）
+- 「My Trips（私の時空旅）」タブで、歩いた記録を古地図ごとにグルーピングして一覧表示。
+  御朱印・アップした写真（チェックポイント／プラスポイントに分けて4枚横並び）・
+  保存した物語もまとめて見返せる
+
+### クラウド連携
+- Googleでサインインすると、保存した地点・御朱印・時間旅（歩いたルート）がクラウド
+  （Firestore）に同期され、Webアプリからも同じ記録を閲覧できる
 
 ## 技術構成
 
@@ -21,26 +39,31 @@
 | iOS UI | SwiftUI（iOS 17+） |
 | iOS 地図 | Google Maps SDK for iOS（Swift Package Manager） |
 | 位置情報 | CoreLocation |
-| ローカル保存 | SwiftData（保存した地点・物語） |
+| Watch連携 | Apple Watch単体アプリ（WatchOS）+ WatchConnectivity |
+| ローカル保存 | SwiftData（保存した地点・物語・時間旅・御朱印・投稿写真） |
 | AI | OpenAI Chat Completions API（`gpt-4o-mini`） |
 | クラウド同期 | Firebase Authentication（Googleサインイン） + Cloud Firestore |
 | Webアプリ | Vite + React + TypeScript、Firebase JS SDK、Google Maps JavaScript API |
 | iOSプロジェクト管理 | [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`project.yml` から `.xcodeproj` を生成） |
+| CI/CD | GitHub Actions（`main`へのpushでWebアプリをFirebase Hostingへ自動デプロイ） |
 
 `.xcodeproj` はリポジトリにコミットせず、`project.yml` から都度生成する運用です（`.gitignore` 済み）。
 
 ## リポジトリ構成
 
 ```
-project.yml                 # iOS: XcodeGenのプロジェクト定義
+project.yml                 # iOS: XcodeGenのプロジェクト定義（iOS + Watchの両ターゲット）
 Config/Secrets.xcconfig     # iOS: APIキー（Google Maps）などのビルド設定
 Komap/                      # iOSアプリ本体（詳細は後述）
+Komap Watch App/             # Apple Watch単体アプリ（スタート/一時停止/終了・保存確認など）
 firebase.json               # Firebase Hosting / Firestore の設定
 .firebaserc                 # Firebaseプロジェクトのエイリアス（要編集）
 firebase/
-  firestore.rules            # Firestoreセキュリティルール（本人のデータのみ読み書き可）
+  firestore.rules            # Firestoreセキュリティルール（本人のplaces/stamps/walkRoutesのみ読み書き可）
   firestore.indexes.json
 web/                         # Webアプリ本体（Vite + React）
+.github/workflows/
+  deploy-web.yml              # main へのpushでWebアプリをFirebase Hostingへ自動デプロイ
 ```
 
 ---
@@ -214,17 +237,67 @@ firebase deploy --only hosting
 GoogleサインインはWeb上では追加設定なしで動作します（Firebase Consoleで
 Googleプロバイダを有効化するだけです）。ただし本番ドメイン（`map.ktrips.net`）を
 Firebase Authenticationの「承認済みドメイン」に追加しておく必要があります
-（Authentication → Settings → Authorized domains）。
+（Authentication → Settings → Authorized domains）。カスタムドメインを複数接続した場合は、
+それぞれをこの承認済みドメインに追加してください。
+
+### 2-4. GitHub Actionsでの自動デプロイ
+
+`web/**`・`firebase.json`・`firebase/**` を変更して`main`ブランチにpushすると、
+`.github/workflows/deploy-web.yml` が自動的にWebアプリをビルドし、Firebase Hosting と
+Firestoreルールへデプロイします（手動で`workflow_dispatch`から実行することも可能）。
+
+利用するには、GitHubリポジトリの Settings → Secrets and variables → Actions に、
+以下のRepository secretsを登録してください。
+
+| Secret名 | 内容 |
+|---|---|
+| `FIREBASE_SERVICE_ACCOUNT` | デプロイ用サービスアカウントのJSONキー（下記手順で発行） |
+| `VITE_FIREBASE_API_KEY` 他 `VITE_FIREBASE_*` | `web/.env` と同じ値（2-1を参照） |
+| `VITE_GOOGLE_MAPS_API_KEY` | `web/.env` と同じ値 |
+
+サービスアカウントは、Hosting・Firestoreルールのデプロイだけができる最小権限で
+発行することを推奨します。
+
+```bash
+gcloud iam service-accounts create github-actions-deploy \
+  --project=YOUR_FIREBASE_PROJECT_ID \
+  --display-name="GitHub Actions (Firebase deploy)"
+
+for role in roles/firebasehosting.admin roles/firebaserules.admin roles/datastore.indexAdmin; do
+  gcloud projects add-iam-policy-binding YOUR_FIREBASE_PROJECT_ID \
+    --member="serviceAccount:github-actions-deploy@YOUR_FIREBASE_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="$role"
+done
+
+gcloud iam service-accounts keys create github-actions-deploy-key.json \
+  --iam-account=github-actions-deploy@YOUR_FIREBASE_PROJECT_ID.iam.gserviceaccount.com
+```
+
+発行した `github-actions-deploy-key.json` の**中身**（JSON全体）を `FIREBASE_SERVICE_ACCOUNT`
+シークレットに貼り付けたら、ローカルのキーファイルは削除してください。漏洩した場合は
+`gcloud iam service-accounts keys delete` で失効できます。
 
 ---
 
 ## 古地図データについて（重要な注意）
 
-同梱している古地図画像（江戸城周辺・浅草周辺）は、このサンプルアプリのために生成した
-**古地図"風"のイラスト画像**であり、実際の歴史史料をスキャンしたものではありません。
-また、それぞれの画像に設定している緯度経度の位置合わせ座標
-（`Komap/Models/HistoricalOverlayMap.swift` 内の `southWest` / `northEast`）も、
-現在の地理に大まかに合わせた**仮の値**です。
+同梱している古地図は、大きく2種類に分かれます（いずれも `Komap/Models/HistoricalOverlayMap.swift`
+の `OldMapCatalog` で定義）。
+
+- **イラスト画像**（江戸城周辺・浅草周辺）: このサンプルアプリのために生成した
+  **古地図"風"のイラスト**で、実際の歴史史料をスキャンしたものではありません。
+- **実在の歴史地図**（本郷・谷中／上野／日本橋／芝／神田／麻布・六本木、および
+  「五色不動めぐり」「松尾芭蕉ゆかりの地」）: 「1891 Meiji Map of Tokyo or Edo, Japan」
+  （Geographicus発行、1931年より前の発行につきパブリックドメイン。出典: Wikimedia Commons）
+  の実画像を、エリアごとに切り出す、または広域のまま使ったものです。位置合わせは
+  地図上の目印（不忍池・皇居のお堀等）を基準に手作業で行った概算で、史料的に厳密な
+  測量座標ではありません。特に「五色不動めぐり」「松尾芭蕉ゆかりの地」は、旧東京市の
+  外側にあたる地域（目黒・世田谷など）も含む広域表示のため、地図の密度が粗く、
+  位置合わせもより概算になります。
+
+いずれの画像も、設定している緯度経度の位置合わせ座標
+（`OldMapCatalog` 内の `southWest` / `northEast`）は、現在の地理に大まかに合わせた
+**仮の値**です。
 
 実際の史料に基づく古地図を使いたい場合は、次の手順で入れ替えてください。
 
@@ -245,24 +318,35 @@ Komap/
     KomapApp.swift             # アプリのエントリーポイント（Google Maps / Firebase初期化）
   Models/
     SavedPlace.swift            # SwiftDataモデル（保存した地点・物語）
+    WalkRoute.swift              # SwiftDataモデル（歩いた時間旅・軌跡）
+    CollectedStamp.swift         # SwiftDataモデル（獲得した御朱印）
+    WalkPhotoPost.swift          # SwiftDataモデル（投稿写真・ポイント）
     HistoricalOverlayMap.swift  # 古地図カタログ（画像・時代・位置合わせ座標）
+    HistoricSite.swift           # 古地図ごとの史跡チェックポイント一覧
     TappedPoint.swift
   Services/
-    LocationManager.swift       # 現在地の取得
+    LocationManager.swift       # 現在地・徒歩ルートの記録
     AIHistoryService.swift      # OpenAI APIで物語を生成
     KeychainStore.swift         # APIキーの安全な保存
     SecretsConfig.swift         # APIキーの読み込み口
     AuthService.swift           # Googleサインイン → Firebase Auth
-    SyncService.swift           # Firestoreへの地点の同期（アップロード/取得）
+    SyncService.swift           # Firestoreへの同期（地点・御朱印・時間旅）
+    WatchConnectivityManager.swift # Apple Watchとのコマンド・状態のやり取り
+    OldMapSearchService.swift    # AI + Google検索で新しい古地図を探す
   Views/
     RootView.swift
     Map/                         # マップ画面・古地図オーバーレイ・物語シート
-    SavedPlaces/                 # 保存済み地点の一覧・詳細
+    SavedPlaces/                 # 保存済み地点・時間旅の一覧・詳細
+    MyTimeTrip/                  # 「My Trips」タブ（時間旅・御朱印・写真・物語）
     Settings/                    # APIキー設定・Googleサインイン
   Resources/
-    Assets.xcassets              # 古地図画像などのアセット
+    Assets.xcassets              # 古地図画像・アプリアイコンなどのアセット
     Info.plist                   # xcodegenが project.yml から自動生成（コミット対象外）
     GoogleService-Info.plist     # 各自のFirebase設定（要配置・コミット対象外）
+Komap Watch App/
+  ContentView.swift              # Watch単体の記録UI（スタート/一時停止/完了・保存確認）
+  WatchSessionManager.swift      # Watch単体のGPS記録 + iPhoneとの連携
+  WatchWorkoutLocationTracker.swift # HealthKitワークアウトセッション経由の位置情報取得
 ```
 
 ## 既知の制約・今後の拡張候補
@@ -274,7 +358,7 @@ Komap/
 - Firebase未設定のままでもiOSアプリは起動できますが、クラウド同期・Web連携・
   Googleサインインは利用できません（設定タブにその旨のメッセージが表示されます）。
 - Sign in with Appleは未対応です（無料のApple IDでは使えないため。上記1-4の注記を参照）。
-- Webアプリはmap一覧の閲覧が中心で、古地図画像のオーバーレイ表示は現時点では未対応です
-  （地点ごとの時代・古地図タイトルはラベルとして表示されます）。
-- 現在は古地図2種（江戸城周辺・浅草周辺）のサンプルのみですが、
-  `OldMapCatalog` にエントリを追加するだけで拡張できます。
+- Webアプリの「My Trips」は、古地図ごとにまとめた時間旅の一覧・詳細（距離・時間・歩数など）
+  が中心で、iOS版のように歩いたルートを地図上にポリライン表示する機能は現時点では未対応です。
+- `OldMapCatalog` にエントリを追加するだけで、選べる古地図を拡張できます
+  （Web側でも表示したい場合は `web/src/lib/oldMapCatalog.ts` にも同じ `id` で追加）。

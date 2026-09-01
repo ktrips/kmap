@@ -119,7 +119,7 @@ struct MyTimeTripView: View {
     // MARK: - 自分がスタート〜終了した地図
 
     private var walkRoutesSection: some View {
-        TimeTripSection(title: "歩いた地図", systemImage: "map.fill") {
+        TimeTripSection(title: "私の時空旅", systemImage: "map.fill") {
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(walkRouteGroups) { group in
                     WalkRouteGroupCard(
@@ -395,6 +395,23 @@ private struct WalkRouteGroupCard: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+
+            if let map = group.map {
+                NavigationLink {
+                    StampListView(overlayMapID: map.id, title: map.title)
+                } label: {
+                    Label("御朱印", systemImage: "seal.fill")
+                        .font(.caption.bold())
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                        .background(
+                            Color(red: 0.72, green: 0.53, blue: 0.15).opacity(0.12),
+                            in: Capsule()
+                        )
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -476,31 +493,21 @@ private struct PhotoThumbnail: View {
     var name: String?
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        VStack(alignment: .leading, spacing: 3) {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
                 .aspectRatio(1, contentMode: .fill)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             if let name, !name.isEmpty {
-                LinearGradient(
-                    colors: [.black.opacity(0.65), .clear],
-                    startPoint: .bottom,
-                    endPoint: .top
-                )
-                .frame(height: 34)
-
                 Text(name)
-                    .font(.system(size: 9).bold())
-                    .foregroundStyle(.white)
+                    .font(.system(size: 10).bold())
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .padding(.horizontal, 6)
-                    .padding(.bottom, 4)
             }
         }
-        .aspectRatio(1, contentMode: .fill)
-        .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 

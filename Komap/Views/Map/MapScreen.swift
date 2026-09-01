@@ -59,7 +59,7 @@ struct MapScreen: View {
     /// 画面下部に浮かせているパネル（アクションボタン＋古地図コントロール）が占める高さ。
     /// Google純正の現在地ボタンなどがこのパネルに隠れて押せなくなるのを防ぐため、
     /// `GoogleMapRepresentable` にこの分の下余白を持たせる。
-    private let bottomPanelHeight: CGFloat = 210
+    private let bottomPanelHeight: CGFloat = 175
 
     private var collectedSiteIDs: Set<String> {
         Set(collectedStamps.map(\.siteID))
