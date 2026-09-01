@@ -67,9 +67,16 @@ struct MapScreen: View {
 
     /// 現在選択中の古地図に紐づくチェックポイント（5箇所程度）。
     /// 「全ての古地図を表示」中は、同梱・登録済みの古地図すべてのチェックポイントを返す。
+    /// 同じ実在の場所が複数の古地図（谷中七福神と上野の不忍池辯天堂など）にまたがって
+    /// 登録されている場合、マーカーが同じ座標に重なって表示がおかしくなるため、
+    /// 座標が同じチェックポイントは1つにまとめる。
     private var activeCheckpoints: [HistoricSite] {
         if isShowingAllOverlays {
-            return HistoricSiteCatalog.all
+            var seenCoordinateKeys = Set<String>()
+            return HistoricSiteCatalog.all.filter { site in
+                let key = "\((site.coordinate.latitude * 100_000).rounded()),\((site.coordinate.longitude * 100_000).rounded())"
+                return seenCoordinateKeys.insert(key).inserted
+            }
         }
         return HistoricSiteCatalog.sites(forOverlayID: mapSession.selectedOverlay?.id)
     }
