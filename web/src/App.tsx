@@ -1,48 +1,52 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Header } from "./components/Header";
 import { MapView } from "./components/MapView";
 import { PlaceDetail } from "./components/PlaceDetail";
 import { PlaceList } from "./components/PlaceList";
-import { SharedTripDetail } from "./components/SharedTripDetail";
-import { SharedTripList } from "./components/SharedTripList";
 import { SignInScreen } from "./components/SignInScreen";
 import { TripDetail } from "./components/TripDetail";
 import { TripList } from "./components/TripList";
 import { isFirebaseConfigured } from "./lib/firebase";
 import { useAuth } from "./lib/useAuth";
+import { usePhotoPosts } from "./lib/usePhotoPosts";
 import { usePlaces } from "./lib/usePlaces";
 import { useSharedTrips } from "./lib/useSharedTrips";
+import { useStamps } from "./lib/useStamps";
 import { useWalkRoutes } from "./lib/useWalkRoutes";
+import { fromSharedTrip, fromWalkTrip, type UnifiedTrip } from "./types/unifiedTrip";
 import type { SavedPlace } from "./types/place";
-import type { SharedTrip } from "./types/sharedTrip";
-import type { WalkTrip } from "./types/walkRoute";
 
-type SidebarTab = "places" | "trips" | "shared";
+type SidebarTab = "places" | "trips";
 
 export default function App() {
   const { user, isInitializing, isSigningIn, error, signInWithGoogle, signOut } = useAuth();
   const { places } = usePlaces(user?.uid ?? null);
-  const { trips } = useWalkRoutes(user?.uid ?? null);
+  const { trips: ownTrips } = useWalkRoutes(user?.uid ?? null);
   const { trips: sharedTrips } = useSharedTrips(Boolean(user));
+  const { stamps } = useStamps(user?.uid ?? null);
+  const { photoPosts } = usePhotoPosts(user?.uid ?? null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
-  const [selectedSharedTripId, setSelectedSharedTripId] = useState<string | null>(null);
   const [tab, setTab] = useState<SidebarTab>("trips");
 
+  // 自分の時空旅を優先し、同じidが「みんなの時空旅」側にも重複していれば除く
+  // （自分が公開した時空旅は、自分のリストにだけ実際の御朱印数・写真つきで出す）。
+  const unifiedTrips = useMemo<UnifiedTrip[]>(() => {
+    const own = ownTrips.map((trip) => fromWalkTrip(trip, stamps, photoPosts));
+    const ownIDs = new Set(own.map((trip) => trip.id));
+    const shared = sharedTrips.filter((trip) => !ownIDs.has(trip.id)).map(fromSharedTrip);
+    return [...own, ...shared].sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+  }, [ownTrips, sharedTrips, stamps, photoPosts]);
+
   const selectedPlace = places.find((place) => place.id === selectedId) ?? null;
-  const selectedTrip = trips.find((trip) => trip.id === selectedTripId) ?? null;
-  const selectedSharedTrip = sharedTrips.find((trip) => trip.id === selectedSharedTripId) ?? null;
+  const selectedTrip = unifiedTrips.find((trip) => trip.id === selectedTripId) ?? null;
 
   const handleSelect = (place: SavedPlace) => {
     setSelectedId(place.id);
   };
 
-  const handleSelectTrip = (trip: WalkTrip) => {
+  const handleSelectTrip = (trip: UnifiedTrip) => {
     setSelectedTripId(trip.id);
-  };
-
-  const handleSelectSharedTrip = (trip: SharedTrip) => {
-    setSelectedSharedTripId(trip.id);
   };
 
   if (isInitializing) {
@@ -80,19 +84,12 @@ export default function App() {
               className={`sidebar-tab ${tab === "trips" ? "is-active" : ""}`}
               onClick={() => setTab("trips")}
             >
-              My Trips
-            </button>
-            <button
-              className={`sidebar-tab ${tab === "shared" ? "is-active" : ""}`}
-              onClick={() => setTab("shared")}
-            >
-              みんなの時空旅
+              時空旅
             </button>
           </div>
           {tab === "places" && <PlaceList places={places} selectedId={selectedId} onSelect={handleSelect} />}
-          {tab === "trips" && <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />}
-          {tab === "shared" && (
-            <SharedTripList trips={sharedTrips} selectedId={selectedSharedTripId} onSelect={handleSelectSharedTrip} />
+          {tab === "trips" && (
+            <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
           )}
         </aside>
         <main className="app-main">
@@ -103,7 +100,6 @@ export default function App() {
             </>
           )}
           {tab === "trips" && <TripDetail trip={selectedTrip} />}
-          {tab === "shared" && <SharedTripDetail trip={selectedSharedTrip} />}
         </main>
       </div>
     </div>

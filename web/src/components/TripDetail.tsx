@@ -1,8 +1,9 @@
 import { findOldMap } from "../lib/oldMapCatalog";
-import type { WalkTrip } from "../types/walkRoute";
+import { TripMapView } from "./TripMapView";
+import type { UnifiedTrip } from "../types/unifiedTrip";
 
 interface Props {
-  trip: WalkTrip | null;
+  trip: UnifiedTrip | null;
 }
 
 const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
@@ -15,18 +16,19 @@ function distanceLabel(meters: number): string {
   return `${Math.round(meters)} m`;
 }
 
-function durationLabel(trip: WalkTrip): string | null {
+function durationLabel(trip: UnifiedTrip): string | null {
   if (!trip.endedAt) return null;
   const totalMinutes = Math.round((trip.endedAt.getTime() - trip.startedAt.getTime()) / 60000);
   if (totalMinutes >= 60) return `${Math.floor(totalMinutes / 60)}時間${totalMinutes % 60}分`;
   return `${Math.max(totalMinutes, 1)}分`;
 }
 
+/** 選んだ時空旅の、使った古地図・歩いたルート・写真・御朱印をまとめて見せる詳細パネル。 */
 export function TripDetail({ trip }: Props) {
   if (!trip) {
     return (
       <div className="place-detail place-detail-empty">
-        <p>左のリストから、時間旅の記録を選んでください。</p>
+        <p>左のリストから、時空旅を選んでください。</p>
       </div>
     );
   }
@@ -36,15 +38,28 @@ export function TripDetail({ trip }: Props) {
 
   return (
     <div className="place-detail">
+      {trip.latitudes.length > 0 && <TripMapView latitudes={trip.latitudes} longitudes={trip.longitudes} />}
+
       <p className="place-detail-era">{dateFormatter.format(trip.startedAt)}</p>
-      <h2>{trip.title && trip.title.length > 0 ? trip.title : "時間旅の記録"}</h2>
+      <h2>{trip.title && trip.title.length > 0 ? trip.title : "時空旅の記録"}</h2>
+      {trip.kind === "shared" && trip.ownerDisplayName && (
+        <p className="place-detail-oldmap">投稿者：{trip.ownerDisplayName}</p>
+      )}
       {oldMap && <p className="place-detail-oldmap">使っていた古地図：{oldMap.title}</p>}
       <p className="place-detail-coordinate">
         {distanceLabel(trip.totalDistanceMeters)}
         {duration ? ` ・ ${duration}` : ""}
         {trip.stepCount ? ` ・ ${trip.stepCount}歩` : ""}
+        {trip.stampCount !== null ? ` ・ 御朱印 ${trip.stampCount}件` : ""}
       </p>
-      <p className="muted">歩いたルートの地図表示は、iOSアプリの「My Trips」でご覧いただけます。</p>
+
+      {trip.photoURLs.length > 0 && (
+        <div className="shared-trip-photos">
+          {trip.photoURLs.map((url) => (
+            <img key={url} src={url} alt="" className="shared-trip-photo" loading="lazy" />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

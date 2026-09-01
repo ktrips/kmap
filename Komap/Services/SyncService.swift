@@ -111,6 +111,7 @@ struct SyncService {
             "siteID": stamp.siteID,
             "collectedAt": Timestamp(date: stamp.collectedAt),
             "photoURL": stamp.cloudPhotoURL as Any? ?? NSNull(),
+            "walkRouteID": stamp.walkRouteID?.uuidString as Any? ?? NSNull(),
         ]
 
         try await stampsCollection(for: userID)
