@@ -230,7 +230,9 @@ struct WalkRouteDetailView: View {
                 route,
                 isShared: newValue,
                 userID: authService.userID,
-                ownerDisplayName: authService.displayName
+                ownerDisplayName: authService.displayName,
+                stamps: stampsForRoute,
+                photoPosts: photoPostsForRoute
             )
             route.isSharedPublicly = newValue
             try? modelContext.save()

@@ -42,6 +42,7 @@ export function useSharedTrips(isSignedIn: boolean) {
             stepCount: typeof data.stepCount === "number" ? data.stepCount : null,
             overlayMapID: data.overlayMapID ?? null,
             totalDistanceMeters: typeof data.totalDistanceMeters === "number" ? data.totalDistanceMeters : 0,
+            photoURLs: Array.isArray(data.photoURLs) ? data.photoURLs : [],
           };
         });
         setTrips(next);

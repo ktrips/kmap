@@ -522,6 +522,13 @@ struct MapScreen: View {
         modelContext.insert(post)
         watchConnectivity.notifyPhotoPosted(points: post.points)
 
+        if let userID = authService.userID {
+            Task {
+                try? await syncService.uploadPhotoPostImage(post, userID: userID)
+                try? modelContext.save()
+            }
+        }
+
         Task {
             withAnimation {
                 pointsToastMessage = "+\(post.points)pt 獲得！"

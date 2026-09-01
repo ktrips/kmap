@@ -45,6 +45,14 @@ export function SharedTripDetail({ trip }: Props) {
         {duration ? ` ・ ${duration}` : ""}
         {trip.stepCount ? ` ・ ${trip.stepCount}歩` : ""}
       </p>
+
+      {trip.photoURLs.length > 0 && (
+        <div className="shared-trip-photos">
+          {trip.photoURLs.map((url) => (
+            <img key={url} src={url} alt="" className="shared-trip-photo" loading="lazy" />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

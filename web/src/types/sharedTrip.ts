@@ -11,4 +11,5 @@ export interface SharedTrip {
   stepCount: number | null;
   overlayMapID: string | null;
   totalDistanceMeters: number;
+  photoURLs: string[];
 }

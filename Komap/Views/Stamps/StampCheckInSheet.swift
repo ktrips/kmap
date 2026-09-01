@@ -7,6 +7,8 @@ struct StampCheckInSheet: View {
     let site: HistoricSite
     @Bindable var stamp: CollectedStamp
 
+    @EnvironmentObject private var authService: AuthService
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var isLoadingPhoto = false
@@ -17,6 +19,7 @@ struct StampCheckInSheet: View {
     @State private var storyErrorMessage: String?
 
     private let historyService = AIHistoryService()
+    private let syncService = SyncService()
 
     private var overlayMap: HistoricalOverlayMap? {
         OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
@@ -49,7 +52,7 @@ struct StampCheckInSheet: View {
 
                     if stamp.photo != nil {
                         Button("写真を削除", role: .destructive) {
-                            stamp.updatePhoto(nil)
+                            applyPhotoUpdate(nil)
                         }
                     }
 
@@ -73,7 +76,7 @@ struct StampCheckInSheet: View {
                 CameraCaptureView(
                     onCapture: { image in
                         isShowingCamera = false
-                        stamp.updatePhoto(image)
+                        applyPhotoUpdate(image)
                     },
                     onCancel: { isShowingCamera = false }
                 )
@@ -151,7 +154,22 @@ struct StampCheckInSheet: View {
             guard let data = try? await item.loadTransferable(type: Data.self),
                   let uiImage = UIImage(data: data)
             else { return }
-            stamp.updatePhoto(uiImage)
+            applyPhotoUpdate(uiImage)
+        }
+    }
+
+    /// 写真を差し替え、Firebaseが設定済みでサインイン中ならクラウドにも
+    /// （スマホできれいに見える範囲まで圧縮して）アップロードする。
+    private func applyPhotoUpdate(_ image: UIImage?) {
+        let previousStamp = stamp
+        Task { await syncService.deleteStampPhoto(previousStamp, userID: authService.userID) }
+        stamp.updatePhoto(image)
+        try? modelContext.save()
+
+        guard image != nil, let userID = authService.userID else { return }
+        Task {
+            try? await syncService.uploadStampPhoto(stamp, userID: userID)
+            try? modelContext.save()
         }
     }
 

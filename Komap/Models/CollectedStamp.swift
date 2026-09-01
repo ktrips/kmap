@@ -15,6 +15,8 @@ final class CollectedStamp {
     var photoFileName: String?
     /// 獲得時に記録中だった `WalkRoute.id`。どの徒歩セッションで獲得したかを辿るために使う。
     var walkRouteID: UUID?
+    /// Firebase Storageへアップロード済みの画像URL。未アップロードなら`nil`。
+    var cloudPhotoURL: String?
 
     init(
         id: UUID = UUID(),
@@ -39,10 +41,12 @@ final class CollectedStamp {
     }
 
     /// 写真を差し替える。古いファイルは削除してから新しいものを保存する。
+    /// クラウドへのアップロードは呼び出し側（`StampCheckInSheet`）が別途行う。
     func updatePhoto(_ image: UIImage?) {
         if let photoFileName {
             StampPhotoStore.delete(photoFileName)
         }
         photoFileName = image.flatMap(StampPhotoStore.save)
+        cloudPhotoURL = nil
     }
 }

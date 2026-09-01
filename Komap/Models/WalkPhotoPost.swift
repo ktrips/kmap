@@ -24,6 +24,8 @@ final class WalkPhotoPost {
     var storyTitle: String?
     /// AIが生成したその場所の物語（本文）。一度取得したら保存し、再取得しない。
     var storyBody: String?
+    /// Firebase Storageへアップロード済みの画像URL。未アップロードなら`nil`。
+    var cloudPhotoURL: String?
 
     /// 1回の投稿で獲得できるポイント。
     static let pointsPerPost = 10
