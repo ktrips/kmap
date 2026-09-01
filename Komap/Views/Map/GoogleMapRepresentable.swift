@@ -69,7 +69,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             context.coordinator.applyAllOverlays(OldMapCatalog.allIncludingCustom, to: mapView)
         } else {
             context.coordinator.removeAllOverlays()
-            context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, to: mapView)
+            context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, checkpoints: checkpoints, to: mapView)
         }
         context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, to: mapView)
         context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
@@ -108,27 +108,24 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
-        /// 歩いた道の周りに広くにじませる、ぼかしのような光暈の太さ。
-        private let walkedTrailGlowWidth: CGFloat = 24
-        /// 歩いた道の縁取りの太さ（画面上のポイント数）。
-        private let walkedTrailBorderWidth: CGFloat = 11
-        /// 歩いた道の中を、下の古地図が透けるように塗る太さ。
-        private let walkedTrailFillWidth: CGFloat = 8
+        /// 歩いた道の縁取りの太さ（画面上のポイント数）。中の透かし塗りよりわずかに太いだけの、
+        /// 細く濃い縁として見せる。
+        private let walkedTrailBorderWidth: CGFloat = 9
+        /// 歩いた道の中を薄く塗る太さ。縁取りより一回り細くすることで、縁だけが濃い線として残り、
+        /// 中央は明るい色が重なって薄く見える。
+        private let walkedTrailFillWidth: CGFloat = 6
 
-        /// 光暈・縁取り・内側の透かし塗りの3本を重ねて、1本の「通った道」を表す組。
+        /// 縁取り（細い線）と内側の透かし塗りの2本を重ねて、1本の「通った道」を表す組。
         private struct TrailPolylinePair {
-            let glow: GMSPolyline
             let border: GMSPolyline
             let fill: GMSPolyline
 
             func setPath(_ path: GMSMutablePath) {
-                glow.path = path
                 border.path = path
                 fill.path = path
             }
 
             func remove() {
-                glow.map = nil
                 border.map = nil
                 fill.map = nil
             }
@@ -147,12 +144,26 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             guard allOverlays.count != overlays.count else { return }
             allOverlays.forEach { $0.map = nil }
+
+            // 画像の読み込み・デコードは重いので、まず枠だけ（画像なし）のオーバーレイを
+            // メインスレッドで即座に置いてから、それぞれの画像をバックグラウンドで
+            // デコードして後から差し込む。10枚分をまとめて同期デコードすると
+            // メインスレッドが固まって表示がもたつくため。
             allOverlays = overlays.map { overlayMap in
                 let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
-                let overlay = GMSGroundOverlay(bounds: bounds, icon: overlayMap.image)
+                let overlay = GMSGroundOverlay(bounds: bounds, icon: nil)
                 overlay.opacity = 0.75
                 overlay.map = mapView
                 return overlay
+            }
+
+            for (overlay, overlayMap) in zip(allOverlays, overlays) {
+                DispatchQueue.global(qos: .userInitiated).async { [weak overlay] in
+                    let image = overlayMap.image
+                    DispatchQueue.main.async {
+                        overlay?.icon = image
+                    }
+                }
             }
 
             var combinedBounds: GMSCoordinateBounds?
@@ -179,6 +190,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             _ overlayMap: HistoricalOverlayMap?,
             opacity: Float,
             livePath: [CLLocationCoordinate2D],
+            checkpoints: [HistoricSite] = [],
             to mapView: GMSMapView
         ) {
             guard let overlayMap else {
@@ -206,6 +218,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 overlay.map = mapView
                 currentOverlay = overlay
                 currentOverlayID = overlayMap.id
+
+                // 古地図の範囲だけでなく、その古地図のチェックポイントも収まるようカメラを合わせる
+                // （古地図の位置合わせが実際の座標と少しずれていても、チェックポイントが画面外に
+                // 出てしまわないようにする）。
+                var fitBounds = bounds
+                for checkpoint in checkpoints where checkpoint.overlayMapID == overlayMap.id {
+                    fitBounds = fitBounds.includingCoordinate(checkpoint.coordinate)
+                }
+                mapView.moveCamera(GMSCameraUpdate.fit(fitBounds, withPadding: 24))
 
                 // ぼかし画像の生成は重いので、メインスレッドをブロックしないよう
                 // バックグラウンドで計算してから後で使う（先に元画像で表示しておく）。
@@ -323,6 +344,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             return composited
         }
 
+        /// `CIContext`はGPUコンテキストの初期化コストが大きいため、呼び出しのたびに
+        /// 作り直さず使い回す。
+        private static let sharedCIContext = CIContext()
+
         /// 「まだ通っていない場所」を宝探しの霧のようにぼんやりさせるための、
         /// ガウスぼかしをかけた画像を作る。古地図が変わる度に一度だけ計算してキャッシュする。
         private static func blurredImage(_ image: UIImage) -> UIImage? {
@@ -331,8 +356,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             filter.inputImage = ciImage
             filter.radius = 14
             guard let output = filter.outputImage?.cropped(to: ciImage.extent) else { return nil }
-            let context = CIContext()
-            guard let cgImage = context.createCGImage(output, from: output.extent) else { return nil }
+            guard let cgImage = sharedCIContext.createCGImage(output, from: output.extent) else { return nil }
             return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
         }
 
@@ -341,32 +365,36 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
 
         /// チェックポイントのマーカーをタップした時に出す情報ウィンドウを、
-        /// 吹き出しではなく小さな丸いアイコンボタンとして描画する。
+        /// そのチェックポイント名を示す小さな丸みのあるラベルとして描画する。
+        /// これ自体をタップすると`didTapInfoWindowOf`が呼ばれ、詳細（物語）を開く。
         func mapView(_ mapView: GMSMapView, markerInfoWindow marker: GMSMarker) -> UIView? {
-            guard marker.userData is HistoricSite else { return nil }
+            guard let site = marker.userData as? HistoricSite else { return nil }
 
-            let size: CGFloat = 40
-            let button = UIView(frame: CGRect(x: 0, y: 0, width: size, height: size))
-            button.backgroundColor = .white
-            button.layer.cornerRadius = size / 2
-            button.layer.shadowColor = UIColor.black.cgColor
-            button.layer.shadowOpacity = 0.2
-            button.layer.shadowRadius = 4
-            button.layer.shadowOffset = CGSize(width: 0, height: 2)
+            let label = UILabel()
+            label.text = site.name
+            label.font = .systemFont(ofSize: 13, weight: .bold)
+            label.textColor = .systemBrown
+            label.numberOfLines = 1
+            label.sizeToFit()
 
-            let iconSize: CGFloat = 20
-            let icon = UIImageView(image: UIImage(systemName: "text.book.closed.fill"))
-            icon.tintColor = .systemBrown
-            icon.contentMode = .scaleAspectFit
-            icon.frame = CGRect(
-                x: (size - iconSize) / 2,
-                y: (size - iconSize) / 2,
-                width: iconSize,
-                height: iconSize
-            )
-            button.addSubview(icon)
+            let horizontalPadding: CGFloat = 14
+            let verticalPadding: CGFloat = 10
+            let container = UIView(frame: CGRect(
+                x: 0, y: 0,
+                width: label.bounds.width + horizontalPadding * 2,
+                height: label.bounds.height + verticalPadding * 2
+            ))
+            container.backgroundColor = .white
+            container.layer.cornerRadius = container.bounds.height / 2
+            container.layer.shadowColor = UIColor.black.cgColor
+            container.layer.shadowOpacity = 0.2
+            container.layer.shadowRadius = 4
+            container.layer.shadowOffset = CGSize(width: 0, height: 2)
 
-            return button
+            label.frame = CGRect(x: horizontalPadding, y: verticalPadding, width: label.bounds.width, height: label.bounds.height)
+            container.addSubview(label)
+
+            return container
         }
 
         /// 小さなアイコンボタン（情報ウィンドウ）がタップされたら、その地域の物語を表示する。
@@ -406,29 +434,22 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             }
         }
 
-        /// 幅広で薄い光暈・縁取り・透かし塗りの3本を順に重ねることで、
-        /// ぼんやりとにじんだ縁の中に、下の地図が透けて見える「秘密の探検」のような
-        /// 通った道を作る。
+        /// 縁取り（細い線）を先に描き、その上に一回り細い透かし塗りを重ねることで、
+        /// 「縁ははっきり・中は控えめ」な1本の通った道を作る。
         private func makeTrailPair(path: GMSMutablePath, on mapView: GMSMapView) -> TrailPolylinePair {
-            let glow = GMSPolyline(path: path)
-            glow.strokeColor = .walkedTrailGlow
-            glow.strokeWidth = walkedTrailGlowWidth
-            glow.zIndex = 0
-            glow.map = mapView
-
             let border = GMSPolyline(path: path)
             border.strokeColor = .walkedTrailBorder
             border.strokeWidth = walkedTrailBorderWidth
-            border.zIndex = 1
+            border.zIndex = 0
             border.map = mapView
 
             let fill = GMSPolyline(path: path)
             fill.strokeColor = .walkedTrailFill
             fill.strokeWidth = walkedTrailFillWidth
-            fill.zIndex = 2
+            fill.zIndex = 1
             fill.map = mapView
 
-            return TrailPolylinePair(glow: glow, border: border, fill: fill)
+            return TrailPolylinePair(border: border, fill: fill)
         }
 
         /// 史跡チェックポイントをマーカーとして描画し、獲得済みかどうかで色を塗り分ける。
@@ -489,7 +510,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
 
         /// 投稿写真をピン用に、金色の縁取りをつけた丸いサムネイルへ変換する。
-        private static func circularThumbnail(_ image: UIImage, diameter: CGFloat = 38) -> UIImage {
+        private static func circularThumbnail(_ image: UIImage, diameter: CGFloat = 32) -> UIImage {
             let borderWidth: CGFloat = 3
             let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))
             return renderer.image { context in

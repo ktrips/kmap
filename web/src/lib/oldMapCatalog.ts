@@ -1,6 +1,6 @@
 /**
  * iOS側の `Komap/Models/HistoricalOverlayMap.swift` と対になる古地図カタログ。
- * Web側では地点に紐づく古地図の「タイトル・時代」をラベル表示するために使う。
+ * Web側では地点・時間旅に紐づく古地図の「タイトル・時代」をラベル表示するために使う。
  */
 export interface OldMapEntry {
   id: string;
@@ -11,13 +11,53 @@ export interface OldMapEntry {
 export const OLD_MAP_CATALOG: OldMapEntry[] = [
   {
     id: "edo-castle-1850s",
-    title: "江戸城周辺（安政期・1850年代）",
+    title: "江戸城周辺（安政期）",
     era: "江戸時代後期（1850年代・安政期）",
   },
   {
     id: "asakusa-edo",
     title: "浅草・浅草寺周辺（江戸時代）",
     era: "江戸時代（浅草寺門前町が賑わった時期）",
+  },
+  {
+    id: "meiji-writers",
+    title: "明治の文豪の家（本郷・谷中）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
+  {
+    id: "ueno-edo",
+    title: "上野（寛永寺・不忍池周辺）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
+  {
+    id: "nihonbashi-edo",
+    title: "日本橋（商人の町）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
+  {
+    id: "shiba-edo",
+    title: "芝（増上寺周辺）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
+  {
+    id: "kanda-edo",
+    title: "神田（神田明神周辺）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
+  {
+    id: "roppongi-meiji",
+    title: "麻布・六本木周辺（明治時代）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
+  {
+    id: "goshiki-fudo-meiji",
+    title: "五色不動めぐり（目黒・目白・目赤・目青・目黄）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
+  {
+    id: "basho-oku-no-hosomichi-meiji",
+    title: "松尾芭蕉ゆかりの地（深川〜千住）",
+    era: "明治時代（1891年・明治24年頃）",
   },
 ];
 

@@ -116,7 +116,14 @@ struct MapScreen: View {
                     tappedPoint = TappedPoint(coordinate: coordinate)
                 },
                 onCheckpointTap: { site in
-                    tappedCheckpoint = site
+                    if isShowingAllOverlays {
+                        // 「全ての古地図を表示」中にチェックポイントを押したら、
+                        // その古地図単体の表示に切り替える。
+                        isShowingAllOverlays = false
+                        mapSession.selectedOverlay = OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
+                    } else {
+                        tappedCheckpoint = site
+                    }
                 },
                 onPhotoPostTap: { post in
                     tappedPhotoPost = post
@@ -130,10 +137,9 @@ struct MapScreen: View {
                     selectedOverlay: $mapSession.selectedOverlay,
                     overlayOpacity: $mapSession.overlayOpacity,
                     isShowingAllOverlays: $isShowingAllOverlays,
-                    onSelect: { overlay in
-                        if let overlay {
-                            mapSession.moveCamera(to: overlay.center)
-                        }
+                    onSelect: { _ in
+                        // カメラ移動は`GoogleMapRepresentable`側で、古地図の範囲と
+                        // チェックポイントが収まるよう自動的に行う。
                     },
                     onRequestSearch: {
                         isShowingOldMapSearch = true
@@ -159,7 +165,6 @@ struct MapScreen: View {
         .sheet(isPresented: $isShowingOldMapSearch) {
             OldMapSearchView(onAdd: { overlay in
                 mapSession.selectedOverlay = overlay
-                mapSession.moveCamera(to: overlay.center)
             })
         }
         .sheet(item: $tappedPoint) { point in
@@ -454,7 +459,7 @@ struct MapScreen: View {
     /// 揃え、記録中にiPhoneへ転送された御朱印・写真投稿がこの記録に正しく紐付くようにする。
     private func saveWatchTrackedRoute(_ route: WatchTrackedRoute) {
         guard route.coordinates.count >= 2 else { return }
-        modelContext.insert(WalkRoute(
+        let walkRoute = WalkRoute(
             id: UUID(uuidString: route.sessionID) ?? UUID(),
             coordinates: route.coordinates,
             startedAt: route.startedAt,
@@ -462,8 +467,13 @@ struct MapScreen: View {
             stepCount: route.stepCount,
             overlayMapID: mapSession.selectedOverlay?.id,
             overlayOpacity: mapSession.overlayOpacity
-        ))
+        )
+        modelContext.insert(walkRoute)
         try? modelContext.save()
+
+        if let userID = authService.userID {
+            Task { try? await syncService.upload(walkRoute, userID: userID) }
+        }
     }
 
     /// 現在の記録状態・選択中の古地図をWatchへ送る。
@@ -542,7 +552,7 @@ struct MapScreen: View {
     }
 
     private func save(_ pending: PendingWalkRoute) {
-        modelContext.insert(WalkRoute(
+        let route = WalkRoute(
             id: pending.id,
             coordinates: pending.coordinates,
             startedAt: pending.startedAt,
@@ -550,8 +560,13 @@ struct MapScreen: View {
             stepCount: pending.stepCount,
             overlayMapID: pending.overlayMapID,
             overlayOpacity: pending.overlayOpacity
-        ))
+        )
+        modelContext.insert(route)
         try? modelContext.save()
+
+        if let userID = authService.userID {
+            Task { try? await syncService.upload(route, userID: userID) }
+        }
     }
 
     /// 記録中の現在地が、未獲得のチェックポイントに接近していれば御朱印を獲得する。

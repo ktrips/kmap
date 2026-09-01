@@ -14,6 +14,7 @@ struct MyTimeTripView: View {
     @State private var shareImage: UIImage?
     @State private var isPreparingShare = false
     @State private var selectedStamp: StampSelection?
+    @State private var selectedPhotoPost: WalkPhotoPost?
 
     private let cardColumns = [GridItem(.adaptive(minimum: 140), spacing: 12)]
 
@@ -21,13 +22,23 @@ struct MyTimeTripView: View {
         Set(collectedStamps.map(\.siteID))
     }
 
-    /// 「アップした写真」カード用に、写真が添えられている御朱印だけを抽出したもの。
+    /// 「アップした写真」の「チェックポイント」列用に、写真が添えられている御朱印だけを抽出したもの。
     private var stampsWithPhoto: [CollectedStamp] {
         collectedStamps.filter { $0.photoFileName != nil }
     }
 
     private var totalPoints: Int {
         photoPosts.reduce(0) { $0 + $1.points }
+    }
+
+    /// 4枚横並びのグリッド（アップした写真セクション用）。
+    private let photoGridColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
+
+    /// チェックポイントが1つ以上ある古地図だけを、カタログの並び順のまま返す。
+    private var mapsWithCheckpoints: [HistoricalOverlayMap] {
+        OldMapCatalog.allIncludingCustom.filter { map in
+            HistoricSiteCatalog.all.contains { $0.overlayMapID == map.id }
+        }
     }
 
     /// 「歩いた地図」を古地図ごとにまとめたグループ。`walkRoutes`が新しい順のため、
@@ -60,10 +71,10 @@ struct MyTimeTripView: View {
                                 walkRoutesSection
                             }
                             pointsSection
-                            if !stampsWithPhoto.isEmpty {
+                            stampsSection
+                            if !stampsWithPhoto.isEmpty || !photoPosts.isEmpty {
                                 photosSection
                             }
-                            stampsSection
                             if !places.isEmpty {
                                 storiesSection
                             }
@@ -96,6 +107,9 @@ struct MyTimeTripView: View {
             .sheet(item: $selectedStamp) { selection in
                 StampCheckInSheet(site: selection.site, stamp: selection.stamp)
             }
+            .sheet(item: $selectedPhotoPost) { post in
+                PhotoPostPreviewSheet(post: post)
+            }
             .sheet(item: shareImageBinding) { holder in
                 ActivityView(items: [holder.image])
             }
@@ -123,15 +137,43 @@ struct MyTimeTripView: View {
 
     private var photosSection: some View {
         TimeTripSection(title: "アップした写真", systemImage: "photo.on.rectangle.angled") {
-            LazyVGrid(columns: cardColumns, spacing: 12) {
-                ForEach(stampsWithPhoto) { stamp in
-                    if let site = stamp.site {
-                        PhotoCard(site: site, stamp: stamp)
-                            .onTapGesture {
-                                selectedStamp = StampSelection(site: site, stamp: stamp)
+            VStack(alignment: .leading, spacing: 20) {
+                if !stampsWithPhoto.isEmpty {
+                    photoSubsection(title: "チェックポイント") {
+                        ForEach(stampsWithPhoto) { stamp in
+                            if let site = stamp.site, let photo = stamp.photo {
+                                PhotoThumbnail(image: photo, name: site.name)
+                                    .onTapGesture {
+                                        selectedStamp = StampSelection(site: site, stamp: stamp)
+                                    }
                             }
+                        }
                     }
                 }
+                if !photoPosts.isEmpty {
+                    photoSubsection(title: "プラスポイント") {
+                        ForEach(photoPosts) { post in
+                            if let photo = post.photo {
+                                PhotoThumbnail(image: photo, name: post.placeName)
+                                    .onTapGesture {
+                                        selectedPhotoPost = post
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func photoSubsection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.bold())
+                .foregroundStyle(.secondary)
+            LazyVGrid(columns: photoGridColumns, spacing: 8) {
+                content()
             }
         }
     }
@@ -153,16 +195,38 @@ struct MyTimeTripView: View {
 
     private var stampsSection: some View {
         TimeTripSection(title: "御朱印", systemImage: "seal.fill") {
-            NavigationLink {
-                StampListView()
-            } label: {
-                StampSummaryCard(
-                    collectedCount: collectedStamps.count,
-                    totalCount: HistoricSiteCatalog.all.count
-                )
+            VStack(alignment: .leading, spacing: 12) {
+                NavigationLink {
+                    StampListView()
+                } label: {
+                    StampSummaryCard(
+                        title: "すべての御朱印",
+                        collectedCount: collectedStamps.count,
+                        totalCount: HistoricSiteCatalog.all.count
+                    )
+                }
+                .buttonStyle(.plain)
+
+                ForEach(mapsWithCheckpoints) { map in
+                    NavigationLink {
+                        StampListView(overlayMapID: map.id, title: map.title)
+                    } label: {
+                        MapStampRow(
+                            map: map,
+                            collectedCount: collectedCount(forOverlayID: map.id),
+                            totalCount: HistoricSiteCatalog.sites(forOverlayID: map.id).count
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .buttonStyle(.plain)
         }
+    }
+
+    private func collectedCount(forOverlayID overlayMapID: String) -> Int {
+        HistoricSiteCatalog.sites(forOverlayID: overlayMapID)
+            .filter { collectedSiteIDs.contains($0.id) }
+            .count
     }
 
     // MARK: - 保存した物語
@@ -406,34 +470,37 @@ private struct TripRow: View {
     }
 }
 
-/// 「アップした写真」カード。御朱印獲得時に添えた写真を、場所名・日付とともに見せる。
-private struct PhotoCard: View {
-    let site: HistoricSite
-    let stamp: CollectedStamp
+/// 「アップした写真」セクションで、1行4枚に並べる正方形のサムネイル。
+private struct PhotoThumbnail: View {
+    let image: UIImage
+    var name: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let photo = stamp.photo {
-                Image(uiImage: photo)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 110)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        ZStack(alignment: .bottom) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .aspectRatio(1, contentMode: .fill)
+
+            if let name, !name.isEmpty {
+                LinearGradient(
+                    colors: [.black.opacity(0.65), .clear],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                .frame(height: 34)
+
+                Text(name)
+                    .font(.system(size: 9).bold())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 4)
             }
-
-            Text(site.name)
-                .font(.caption.bold())
-                .lineLimit(1)
-                .foregroundStyle(.primary)
-
-            Text(stamp.collectedAt, format: .dateTime.month().day())
-                .font(.caption2)
-                .foregroundStyle(.secondary)
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .aspectRatio(1, contentMode: .fill)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 
@@ -481,6 +548,7 @@ struct StampSelection: Identifiable {
 
 /// 「御朱印」カードのサマリー表示。集めた数と、タップで一覧へ進めることを示す。
 private struct StampSummaryCard: View {
+    var title: String
     let collectedCount: Int
     let totalCount: Int
 
@@ -507,12 +575,12 @@ private struct StampSummaryCard: View {
             .frame(width: 48, height: 48)
 
             VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
                 Text("\(collectedCount) / \(totalCount) 集めました")
                     .font(.headline)
                     .foregroundStyle(.primary)
-                Text(collectedCount == 0 ? "まだ御朱印がありません" : "タップして一覧を見る")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -524,6 +592,52 @@ private struct StampSummaryCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+/// 古地図ごとの御朱印の集まり具合を示す、コンパクトな行。
+private struct MapStampRow: View {
+    let map: HistoricalOverlayMap
+    let collectedCount: Int
+    let totalCount: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            thumbnail
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(map.title)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text("御朱印 \(collectedCount) / \(totalCount)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.bold())
+                .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var thumbnail: some View {
+        if let uiImage = map.image {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Rectangle()
+                .fill(Color.brown.opacity(0.25))
+                .overlay(Image(systemName: "map").foregroundStyle(.brown))
+        }
     }
 }
 

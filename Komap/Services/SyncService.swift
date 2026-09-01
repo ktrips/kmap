@@ -33,6 +33,10 @@ struct SyncService {
         Firestore.firestore().collection("users").document(userID).collection("stamps")
     }
 
+    private func walkRoutesCollection(for userID: String) -> CollectionReference {
+        Firestore.firestore().collection("users").document(userID).collection("walkRoutes")
+    }
+
     /// 1件をアップロード（新規作成 or 上書き更新）する。
     func upload(_ place: SavedPlace, userID: String?) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
@@ -99,6 +103,35 @@ struct SyncService {
         return snapshot.documents.compactMap { document in
             RemoteStamp(id: document.documentID, data: document.data())
         }
+    }
+
+    /// 保存した時間旅（`WalkRoute`）を `users/{uid}/walkRoutes/{id}` へアップロードする。
+    /// Webアプリの「My Trips」で、同じGoogleアカウントの記録を見られるようにするために使う。
+    func upload(_ route: WalkRoute, userID: String?) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        guard let userID else { throw SyncError.notSignedIn }
+
+        let data: [String: Any] = [
+            "title": route.title as Any? ?? NSNull(),
+            "latitudes": route.latitudes,
+            "longitudes": route.longitudes,
+            "startedAt": Timestamp(date: route.startedAt),
+            "endedAt": route.endedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
+            "stepCount": route.stepCount as Any? ?? NSNull(),
+            "overlayMapID": route.overlayMapID as Any? ?? NSNull(),
+            "totalDistanceMeters": route.totalDistanceMeters,
+        ]
+
+        try await walkRoutesCollection(for: userID)
+            .document(route.id.uuidString)
+            .setData(data, merge: true)
+    }
+
+    /// 削除をクラウド側にも反映する。
+    func delete(walkRouteID: UUID, userID: String?) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        guard let userID else { throw SyncError.notSignedIn }
+        try await walkRoutesCollection(for: userID).document(walkRouteID.uuidString).delete()
     }
 }
 

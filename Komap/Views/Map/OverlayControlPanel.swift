@@ -42,9 +42,9 @@ struct OverlayControlPanel: View {
                         onSelect(overlay)
                     } label: {
                         if !isShowingAllOverlays && overlay.id == selectedOverlay?.id {
-                            Label(overlay.title, systemImage: "checkmark")
+                            Label(menuTitle(for: overlay), systemImage: "checkmark")
                         } else {
-                            Text(overlay.title)
+                            Text(menuTitle(for: overlay))
                         }
                     }
                 }
@@ -85,6 +85,15 @@ struct OverlayControlPanel: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
         .padding(.horizontal)
+    }
+
+    /// メニュー一覧だけで使う、少し短くした古地図名。選択後に表示される名称（`title`そのもの）は変えない。
+    private func menuTitle(for overlay: HistoricalOverlayMap) -> String {
+        if overlay.id == OldMapCatalog.goshikiFudo.id {
+            return "五色不動巡り(目黒・目白・目赤・目青・目黄)"
+        }
+        return overlay.title
+            .replacingOccurrences(of: "・谷中", with: "")
     }
 }
 
