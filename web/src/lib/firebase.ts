@@ -1,7 +1,7 @@
 import { type FirebaseApp, initializeApp } from "firebase/app";
-import { type Analytics, isSupported as isAnalyticsSupported, getAnalytics } from "firebase/analytics";
 import { type Auth, getAuth } from "firebase/auth";
 import { type Firestore, getFirestore } from "firebase/firestore";
+import type { Analytics } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -28,11 +28,13 @@ if (isFirebaseConfigured) {
   authInstance = getAuth(app);
   dbInstance = getFirestore(app);
 
-  // Analytics はSafariのプライベートモードなど一部環境で未サポートのため、
-  // 対応している場合のみ初期化する（未対応でもアプリ本体は問題なく動く）。
+  // Analyticsは初期表示には不要な上、Safariのプライベートモードなど一部環境で
+  // 未サポートのため、動的importで遅延読み込みし、対応している場合のみ初期化する
+  // （未対応・未使用でも初期バンドルを太らせない）。
   if (firebaseConfig.measurementId) {
-    isAnalyticsSupported()
-      .then((supported) => {
+    import("firebase/analytics")
+      .then(({ isSupported, getAnalytics }) => isSupported().then((supported) => ({ supported, getAnalytics })))
+      .then(({ supported, getAnalytics }) => {
         if (supported && app) {
           analyticsInstance = getAnalytics(app);
         }
