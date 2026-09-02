@@ -78,40 +78,41 @@ private struct MapTopLeftControls: View {
 
     var body: some View {
         Menu {
-            Section {
-                Menu {
-                    OldMapPickerMenuContent(
-                        selectedOverlay: $mapSession.selectedOverlay,
-                        isShowingAllOverlays: $mapSession.isShowingAllOverlays,
-                        onRequestSearch: {
-                            mapSession.isShowingOldMapSearch = true
-                        }
-                    )
-                } label: {
-                    Label("古地図選択", systemImage: "map")
-                }
-                Divider()
-                Button {
-                    mapSession.selectedTab = .myTimeTrip
-                } label: {
-                    Label("マイ時空旅", systemImage: "book.closed")
-                }
-                Divider()
-                Button {
-                    mapSession.selectedTab = .settings
-                } label: {
-                    Label("セットアップ", systemImage: "gearshape")
-                }
-            } header: {
-                Label {
-                    Text("Komap 古地図巡り")
-                } icon: {
-                    Image("KomapIcon")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 20, height: 20)
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                }
+            // Sectionのheaderに`Label`（画像アイコン）を渡してもメニュー上では
+            // テキストしか表示されないため、通常のメニュー項目として
+            // アプリ名の行を先頭に置く（ボタンではないのでタップしても何も起きない）。
+            Label {
+                Text("Komap 古地図巡り")
+            } icon: {
+                Image("KomapIcon")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 20, height: 20)
+                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            }
+            Divider()
+            Menu {
+                OldMapPickerMenuContent(
+                    selectedOverlay: $mapSession.selectedOverlay,
+                    isShowingAllOverlays: $mapSession.isShowingAllOverlays,
+                    onRequestSearch: {
+                        mapSession.isShowingOldMapSearch = true
+                    }
+                )
+            } label: {
+                Label("古地図選択", systemImage: "map")
+            }
+            Divider()
+            Button {
+                mapSession.selectedTab = .myTimeTrip
+            } label: {
+                Label("マイ時空旅", systemImage: "book.closed")
+            }
+            Divider()
+            Button {
+                mapSession.selectedTab = .settings
+            } label: {
+                Label("セットアップ", systemImage: "gearshape")
             }
         } label: {
             Image(systemName: "line.3.horizontal")
