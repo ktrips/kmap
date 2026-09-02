@@ -38,6 +38,9 @@ struct MapScreen: View {
     @State private var isPostingPhoto = false
     /// 写真投稿で獲得したポイントを一瞬だけ知らせるトースト表示。
     @State private var pointsToastMessage: String?
+    /// 写真投稿のクラウドアップロードに失敗した時のメッセージ。
+    /// 失敗しても端末には保存されているが、原因がわかるよう表示しておく。
+    @State private var photoSyncErrorMessage: String?
     /// Watch自身のGPSで記録中かどうか（GPSはWatch側、iPhoneはこの状態を表示するだけ）。
     @State private var isWatchTrackingActive = false
     @State private var isWatchTrackingPaused = false
@@ -168,6 +171,18 @@ struct MapScreen: View {
                     .background(Color(red: 0.72, green: 0.53, blue: 0.15), in: Capsule())
                     .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
                     .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .allowsHitTesting(false)
+            } else if let photoSyncErrorMessage {
+                Text(photoSyncErrorMessage)
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.red, in: Capsule())
+                    .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
+                    .padding(.top, 8)
+                    .multilineTextAlignment(.center)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .allowsHitTesting(false)
             }
@@ -579,6 +594,7 @@ struct MapScreen: View {
               let coordinate = locationManager.currentLocation ?? locationManager.walkPath.last ?? watchTrackedPath.last
         else { return }
 
+        photoSyncErrorMessage = nil
         let post = WalkPhotoPost(
             photoFileName: filename,
             coordinate: coordinate,
@@ -589,8 +605,15 @@ struct MapScreen: View {
 
         if let userID = authService.userID {
             Task {
-                try? await syncService.uploadPhotoPostImage(post, userID: userID)
-                try? modelContext.save()
+                do {
+                    try await syncService.uploadPhotoPostImage(post, userID: userID)
+                    try? modelContext.save()
+                } catch {
+                    // 端末には保存済みだが、Webでも見られるようにするアップロードには失敗した。
+                    withAnimation {
+                        photoSyncErrorMessage = "写真のクラウド保存に失敗しました: \(error.localizedDescription)"
+                    }
+                }
             }
         }
 
@@ -601,6 +624,12 @@ struct MapScreen: View {
             try? await Task.sleep(for: .seconds(1.6))
             withAnimation {
                 pointsToastMessage = nil
+            }
+            if photoSyncErrorMessage != nil {
+                try? await Task.sleep(for: .seconds(4))
+                withAnimation {
+                    photoSyncErrorMessage = nil
+                }
             }
         }
     }

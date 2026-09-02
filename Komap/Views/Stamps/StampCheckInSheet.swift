@@ -13,6 +13,9 @@ struct StampCheckInSheet: View {
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var isLoadingPhoto = false
     @State private var isShowingCamera = false
+    /// クラウド（Webでも見られるようにするため）へのアップロードに失敗した時のメッセージ。
+    /// 失敗しても端末には保存されているが、原因がわかるよう表示しておく。
+    @State private var photoSyncErrorMessage: String?
 
     @State private var isLoadingStory = true
     @State private var story: GeneratedStory?
@@ -54,6 +57,12 @@ struct StampCheckInSheet: View {
                         Button("写真を削除", role: .destructive) {
                             applyPhotoUpdate(nil)
                         }
+                    }
+
+                    if let photoSyncErrorMessage {
+                        Text(photoSyncErrorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
                     }
 
                     Divider()
@@ -165,11 +174,17 @@ struct StampCheckInSheet: View {
         Task { await syncService.deleteStampPhoto(previousStamp, userID: authService.userID) }
         stamp.updatePhoto(image)
         try? modelContext.save()
+        photoSyncErrorMessage = nil
 
         guard image != nil, let userID = authService.userID else { return }
         Task {
-            try? await syncService.uploadStampPhoto(stamp, userID: userID)
-            try? modelContext.save()
+            do {
+                try await syncService.uploadStampPhoto(stamp, userID: userID)
+                try? modelContext.save()
+            } catch {
+                // 端末には保存済みだが、Webでも見られるようにするアップロードには失敗した。
+                photoSyncErrorMessage = "写真をWebでも見られるようにする処理に失敗しました: \(error.localizedDescription)"
+            }
         }
     }
 
