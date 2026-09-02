@@ -164,7 +164,7 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.672, longitude: 139.740)
     )
 
-    // 以下4枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
+    // 以下3枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
     // の実画像を、地域を絞らず広域のまま使ったもの。1931年より前に発行されたためパブリックドメイン
     // （出典: Wikimedia Commons）。目黒・世田谷・豊島など東京十五区の外側にあたるエリアも含むため、
     // 他の6枚に比べて図の密度は粗く、位置合わせもより概算になる。
@@ -195,14 +195,16 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.7967)
     )
 
+    // 同じ原本のフル解像度画像から、霞ヶ関・虎ノ門エリア（外務省・海軍省・麹町区一帯）を
+    // 切り出したもの。位置合わせは上記と同じ座標系を基準にした概算。
     static let kasumigasekiToranomon = HistoricalOverlayMap(
         id: "kasumigaseki-toranomon-meiji",
         title: "霞ヶ関・虎ノ門（大名屋敷と社寺）",
         era: "明治時代（1891年・明治24年頃）",
-        summary: "桜田門から虎ノ門にかけて、大名屋敷や由緒ある社寺が並んでいたエリア。現在の官庁街・虎ノ門ヒルズ周辺に相当します。",
-        imageAssetName: "OldMap_TokyoMeiji1891",
-        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
-        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+        summary: "桜田門から虎ノ門にかけて、大名屋敷や由緒ある社寺が並んでいたエリア。現在の官庁街・虎ノ門ヒルズ周辺に相当します。地図中には当時の外務省・海軍省・麹町区の町割りが見えます。",
+        imageAssetName: "OldMap_KasumigasekiToranomon",
+        southWest: CLLocationCoordinate2D(latitude: 35.6531, longitude: 139.7071),
+        northEast: CLLocationCoordinate2D(latitude: 35.6933, longitude: 139.7496)
     )
 
     static let akasakaKioicho = HistoricalOverlayMap(
