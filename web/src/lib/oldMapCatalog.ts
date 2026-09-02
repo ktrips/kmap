@@ -71,12 +71,12 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
   {
     id: "tokaido-edo",
-    title: "東海道（日本橋〜品川宿）",
+    title: "東海道（日本橋〜京橋・新橋）",
     era: "江戸時代（五街道が整備された時期）",
   },
   {
     id: "nakasendo-edo",
-    title: "中山道（日本橋〜板橋宿）",
+    title: "中山道（本郷〜小石川・巣鴨）",
     era: "江戸時代（五街道が整備された時期）",
   },
   {

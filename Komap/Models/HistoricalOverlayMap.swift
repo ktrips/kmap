@@ -164,7 +164,7 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.672, longitude: 139.740)
     )
 
-    // 以下2枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
+    // 以下4枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
     // の実画像を、地域を絞らず広域のまま使ったもの。1931年より前に発行されたためパブリックドメイン
     // （出典: Wikimedia Commons）。目黒・世田谷・豊島など東京十五区の外側にあたるエリアも含むため、
     // 他の6枚に比べて図の密度は粗く、位置合わせもより概算になる。
@@ -179,14 +179,20 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
     )
 
+    // 以下3枚（松尾芭蕉ゆかりの地・東海道・中山道）は、上記と同じ「1891 Meiji Map of Tokyo
+    // or Edo, Japan」（Geographicus発行、Wikimedia Commonsより取得、パブリックドメイン）の
+    // フル解像度画像（3500×2610px）から、それぞれのルートに合わせてエリアを切り出したもの。
+    // 位置合わせは同梱の広域画像と同じ座標系（南西 35.615, 139.660 / 北東 35.755, 139.825が
+    // フル画像全体に対応）を基準に計算した概算で、史料的に厳密な測量座標ではない。
+
     static let bashoOkuNoHosomichi = HistoricalOverlayMap(
         id: "basho-oku-no-hosomichi-meiji",
         title: "松尾芭蕉ゆかりの地（深川〜千住）",
         era: "明治時代（1891年・明治24年頃）",
         summary: "松尾芭蕉が『おくのほそ道』へ旅立った深川の芭蕉庵から、矢立初めの地とされる千住までをたどる古地図です。",
-        imageAssetName: "OldMap_TokyoMeiji1891",
-        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
-        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+        imageAssetName: "OldMap_BashoOkuNoHosomichi",
+        southWest: CLLocationCoordinate2D(latitude: 35.6531, longitude: 139.7543),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.7967)
     )
 
     static let kasumigasekiToranomon = HistoricalOverlayMap(
@@ -211,22 +217,22 @@ enum OldMapCatalog {
 
     static let tokaido = HistoricalOverlayMap(
         id: "tokaido-edo",
-        title: "東海道（日本橋〜品川宿）",
+        title: "東海道（日本橋〜京橋・新橋）",
         era: "江戸時代（五街道が整備された時期）",
-        summary: "五街道の起点・日本橋から、京へ向かう東海道の最初の宿場町・品川宿にかけてのエリアです。",
-        imageAssetName: "OldMap_TokyoMeiji1891",
-        southWest: CLLocationCoordinate2D(latitude: 35.55, longitude: 139.660),
-        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+        summary: "五街道の起点・日本橋から、京橋・新橋・築地にかけて広がる東海道沿いの町人地エリアです。",
+        imageAssetName: "OldMap_Tokaido",
+        southWest: CLLocationCoordinate2D(latitude: 35.620, longitude: 139.720),
+        northEast: CLLocationCoordinate2D(latitude: 35.700, longitude: 139.800)
     )
 
     static let nakasendo = HistoricalOverlayMap(
         id: "nakasendo-edo",
-        title: "中山道（日本橋〜板橋宿）",
+        title: "中山道（本郷〜小石川・巣鴨）",
         era: "江戸時代（五街道が整備された時期）",
-        summary: "五街道の起点・日本橋から、内陸を経て京へ向かう中山道の最初の宿場町・板橋宿にかけてのエリアです。",
-        imageAssetName: "OldMap_TokyoMeiji1891",
-        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
-        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+        summary: "神田明神・本郷追分など、五街道のひとつ中山道が通っていた本郷・小石川・巣鴨にかけてのエリアです。",
+        imageAssetName: "OldMap_Nakasendo",
+        southWest: CLLocationCoordinate2D(latitude: 35.680, longitude: 139.700),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.790)
     )
 
     static let kudanshitaChidorigafuchi = HistoricalOverlayMap(
