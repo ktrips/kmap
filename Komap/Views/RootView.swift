@@ -51,16 +51,16 @@ private struct GoogleMapsSetupNoticeView: View {
 
 /// 画面下部のタブバーを使わず、`mapSession.selectedTab`に応じて
 /// マップ・My Trips・設定を切り替える。マップは全画面表示にし、
-/// 右上に浮かせたハンバーガーメニュー（古地図選択・マイ時空旅・セットアップ）から他画面へ移動する。
+/// 左上に浮かせたハンバーガーメニュー（古地図選択・マイ時空旅・セットアップ）から他画面へ移動する。
 private struct MainTabView: View {
     @EnvironmentObject private var mapSession: MapSessionState
 
     var body: some View {
         switch mapSession.selectedTab {
         case .map:
-            ZStack(alignment: .topTrailing) {
+            ZStack(alignment: .topLeading) {
                 MapScreen()
-                MapTopRightControls()
+                MapTopLeftControls()
             }
         case .myTimeTrip:
             MyTimeTripView()
@@ -70,10 +70,10 @@ private struct MainTabView: View {
     }
 }
 
-/// マップ画面の右上に浮かせる、ハンバーガーメニュー。
+/// マップ画面の左上に浮かせる、ハンバーガーメニュー（Komapアイコン表示）。
 /// 「古地図選択」（submenuで古地図を選ぶとその範囲でマップが表示される）・
 /// 「マイ時空旅」・「セットアップ」の3項目をまとめる。
-private struct MapTopRightControls: View {
+private struct MapTopLeftControls: View {
     @EnvironmentObject private var mapSession: MapSessionState
 
     var body: some View {
@@ -102,11 +102,15 @@ private struct MapTopRightControls: View {
                 Label("セットアップ", systemImage: "gearshape")
             }
         } label: {
-            Image(systemName: "line.3.horizontal")
-                .roundControlButtonStyle()
+            Image("KomapIcon")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
         }
         .padding(.top, 8)
-        .padding(.trailing, 16)
+        .padding(.leading, 16)
     }
 }
 
