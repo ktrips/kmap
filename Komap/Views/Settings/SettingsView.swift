@@ -86,7 +86,10 @@ struct SettingsView: View {
                     Button {
                         mapSession.selectedTab = .map
                     } label: {
-                        Label("Map", systemImage: "map")
+                        HStack(spacing: 4) {
+                            Image(systemName: "map")
+                            Text("←マップに戻る")
+                        }
                     }
                 }
             }

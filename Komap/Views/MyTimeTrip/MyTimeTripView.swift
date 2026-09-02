@@ -85,13 +85,16 @@ struct MyTimeTripView: View {
                     }
                 }
             }
-            .navigationTitle("My Trips 時空旅")
+            .navigationTitle("マイ時空旅")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         mapSession.selectedTab = .map
                     } label: {
-                        Label("Mapに戻る", systemImage: "map")
+                        HStack(spacing: 4) {
+                            Image(systemName: "map")
+                            Text("←マップに戻る")
+                        }
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {

@@ -28,6 +28,11 @@ final class MapSessionState: ObservableObject {
     @Published var overlayOpacity: Double = 0.3
     @Published var cameraMoveRequest: CameraMoveRequest?
     @Published var selectedTab: AppTab = .map
+    /// 「全ての古地図を表示」が選ばれているかどうか。右上のハンバーガーメニュー内の
+    /// 「古地図選択」と、マップ下部の`OverlayControlPanel`の両方から操作する。
+    @Published var isShowingAllOverlays: Bool = false
+    /// 「新しい古地図を登録」の検索シートを表示するかどうか。
+    @Published var isShowingOldMapSearch: Bool = false
 
     func moveCamera(to coordinate: CLLocationCoordinate2D) {
         cameraMoveRequest = CameraMoveRequest(coordinate)
@@ -35,6 +40,7 @@ final class MapSessionState: ObservableObject {
 
     /// 「My TimeTrip」の記録から、その時の古地図・不透明度・位置を復元してマップタブへ移動する。
     func resume(overlayMapID: String?, overlayOpacity: Double, cameraTarget: CLLocationCoordinate2D?) {
+        isShowingAllOverlays = false
         selectedOverlay = overlayMapID.flatMap { id in OldMapCatalog.allIncludingCustom.first { $0.id == id } }
         self.overlayOpacity = overlayOpacity
         if let cameraTarget {

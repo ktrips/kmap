@@ -51,7 +51,7 @@ private struct GoogleMapsSetupNoticeView: View {
 
 /// 画面下部のタブバーを使わず、`mapSession.selectedTab`に応じて
 /// マップ・My Trips・設定を切り替える。マップは全画面表示にし、
-/// 右上に浮かせたハンバーガーメニュー（Setup）とMy Tripsボタンから他画面へ移動する。
+/// 右上に浮かせたハンバーガーメニュー（古地図選択・マイ時空旅・セットアップ）から他画面へ移動する。
 private struct MainTabView: View {
     @EnvironmentObject private var mapSession: MapSessionState
 
@@ -70,29 +70,40 @@ private struct MainTabView: View {
     }
 }
 
-/// マップ画面の右上に浮かせる、ハンバーガーメニュー（Setup）とMy Tripsボタン。
+/// マップ画面の右上に浮かせる、ハンバーガーメニュー。
+/// 「古地図選択」（submenuで古地図を選ぶとその範囲でマップが表示される）・
+/// 「マイ時空旅」・「セットアップ」の3項目をまとめる。
 private struct MapTopRightControls: View {
     @EnvironmentObject private var mapSession: MapSessionState
 
     var body: some View {
-        VStack(spacing: 12) {
+        Menu {
             Menu {
-                Button {
-                    mapSession.selectedTab = .settings
-                } label: {
-                    Label("Setup", systemImage: "gearshape")
-                }
+                OldMapPickerMenuContent(
+                    selectedOverlay: $mapSession.selectedOverlay,
+                    isShowingAllOverlays: $mapSession.isShowingAllOverlays,
+                    onRequestSearch: {
+                        mapSession.isShowingOldMapSearch = true
+                    }
+                )
             } label: {
-                Image(systemName: "line.3.horizontal")
-                    .roundControlButtonStyle()
+                Label("古地図選択", systemImage: "map")
             }
-
+            Divider()
             Button {
                 mapSession.selectedTab = .myTimeTrip
             } label: {
-                Image(systemName: "book.closed")
-                    .roundControlButtonStyle()
+                Label("マイ時空旅", systemImage: "book.closed")
             }
+            Divider()
+            Button {
+                mapSession.selectedTab = .settings
+            } label: {
+                Label("セットアップ", systemImage: "gearshape")
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal")
+                .roundControlButtonStyle()
         }
         .padding(.top, 8)
         .padding(.trailing, 16)

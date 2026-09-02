@@ -34,8 +34,6 @@ struct MapScreen: View {
     @State private var isPostingPhoto = false
     /// 写真投稿で獲得したポイントを一瞬だけ知らせるトースト表示。
     @State private var pointsToastMessage: String?
-    /// 「新しい古地図を登録」から開く検索シートの表示状態。
-    @State private var isShowingOldMapSearch = false
     /// Watch自身のGPSで記録中かどうか（GPSはWatch側、iPhoneはこの状態を表示するだけ）。
     @State private var isWatchTrackingActive = false
     @State private var isWatchTrackingPaused = false
@@ -47,8 +45,6 @@ struct MapScreen: View {
     @State private var watchTrackedPath: [CLLocationCoordinate2D] = []
     /// カメラで写真を撮って投稿するためのシート表示状態。
     @State private var isShowingPhotoPostCamera = false
-    /// 「全ての古地図を表示」が選ばれているかどうか。
-    @State private var isShowingAllOverlays = false
 
     private let syncService = SyncService()
     private let stepCounter = StepCounter()
@@ -71,7 +67,7 @@ struct MapScreen: View {
     /// 登録されている場合、マーカーが同じ座標に重なって表示がおかしくなるため、
     /// 座標が同じチェックポイントは1つにまとめる。
     private var activeCheckpoints: [HistoricSite] {
-        if isShowingAllOverlays {
+        if mapSession.isShowingAllOverlays {
             var seenCoordinateKeys = Set<String>()
             return HistoricSiteCatalog.all.filter { site in
                 let key = "\((site.coordinate.latitude * 100_000).rounded()),\((site.coordinate.longitude * 100_000).rounded())"
@@ -111,7 +107,7 @@ struct MapScreen: View {
             GoogleMapRepresentable(
                 overlayMap: mapSession.selectedOverlay,
                 overlayOpacity: Float(mapSession.overlayOpacity),
-                showAllOverlays: isShowingAllOverlays,
+                showAllOverlays: mapSession.isShowingAllOverlays,
                 moveCameraRequest: mapSession.cameraMoveRequest,
                 bottomInset: bottomPanelHeight,
                 savedWalkPaths: savedRoutes.map(\.coordinates),
@@ -123,10 +119,10 @@ struct MapScreen: View {
                     tappedPoint = TappedPoint(coordinate: coordinate)
                 },
                 onCheckpointTap: { site in
-                    if isShowingAllOverlays {
+                    if mapSession.isShowingAllOverlays {
                         // 「全ての古地図を表示」中にチェックポイントを押したら、
                         // その古地図単体の表示に切り替える。
-                        isShowingAllOverlays = false
+                        mapSession.isShowingAllOverlays = false
                         mapSession.selectedOverlay = OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
                     } else {
                         tappedCheckpoint = site
@@ -143,13 +139,13 @@ struct MapScreen: View {
                 OverlayControlPanel(
                     selectedOverlay: $mapSession.selectedOverlay,
                     overlayOpacity: $mapSession.overlayOpacity,
-                    isShowingAllOverlays: $isShowingAllOverlays,
+                    isShowingAllOverlays: $mapSession.isShowingAllOverlays,
                     onSelect: { _ in
                         // カメラ移動は`GoogleMapRepresentable`側で、古地図の範囲と
                         // チェックポイントが収まるよう自動的に行う。
                     },
                     onRequestSearch: {
-                        isShowingOldMapSearch = true
+                        mapSession.isShowingOldMapSearch = true
                     }
                 )
             }
@@ -169,7 +165,7 @@ struct MapScreen: View {
                     .allowsHitTesting(false)
             }
         }
-        .sheet(isPresented: $isShowingOldMapSearch) {
+        .sheet(isPresented: $mapSession.isShowingOldMapSearch) {
             OldMapSearchView(onAdd: { overlay in
                 mapSession.selectedOverlay = overlay
             })

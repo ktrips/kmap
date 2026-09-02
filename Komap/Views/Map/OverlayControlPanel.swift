@@ -18,44 +18,13 @@ struct OverlayControlPanel: View {
     var body: some View {
         VStack(spacing: 14) {
             Menu {
-                Button {
-                    isShowingAllOverlays = true
-                    onSelectAll()
-                } label: {
-                    if isShowingAllOverlays {
-                        Label("全ての古地図を表示", systemImage: "checkmark")
-                    } else {
-                        Text("全ての古地図を表示")
-                    }
-                }
-                Divider()
-                Button("古地図を表示しない") {
-                    isShowingAllOverlays = false
-                    selectedOverlay = nil
-                    onSelect(nil)
-                }
-                Divider()
-                ForEach(OldMapCatalog.allIncludingCustom) { overlay in
-                    Button {
-                        isShowingAllOverlays = false
-                        selectedOverlay = overlay
-                        onSelect(overlay)
-                    } label: {
-                        if !isShowingAllOverlays && overlay.id == selectedOverlay?.id {
-                            Label(menuTitle(for: overlay), systemImage: "checkmark")
-                        } else {
-                            Text(menuTitle(for: overlay))
-                        }
-                    }
-                }
-                if SecretsConfig.isOldMapSearchConfigured {
-                    Divider()
-                    Button {
-                        onRequestSearch()
-                    } label: {
-                        Label("新しい古地図を登録", systemImage: "plus.circle")
-                    }
-                }
+                OldMapPickerMenuContent(
+                    selectedOverlay: $selectedOverlay,
+                    isShowingAllOverlays: $isShowingAllOverlays,
+                    onSelect: onSelect,
+                    onSelectAll: onSelectAll,
+                    onRequestSearch: onRequestSearch
+                )
             } label: {
                 HStack {
                     Image(systemName: "map.fill")
@@ -85,6 +54,60 @@ struct OverlayControlPanel: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
         .padding(.horizontal)
+    }
+}
+
+/// 古地図選択メニューの中身（「全ての古地図を表示」「古地図を表示しない」古地図一覧・新規登録）。
+/// 画面下部の`OverlayControlPanel`と、右上のハンバーガーメニュー内の「古地図選択」submenu、
+/// 両方から使う。
+struct OldMapPickerMenuContent: View {
+    @Binding var selectedOverlay: HistoricalOverlayMap?
+    @Binding var isShowingAllOverlays: Bool
+    var onSelect: (HistoricalOverlayMap?) -> Void = { _ in }
+    var onSelectAll: () -> Void = {}
+    var onRequestSearch: () -> Void = {}
+
+    var body: some View {
+        Group {
+            Button {
+                isShowingAllOverlays = true
+                onSelectAll()
+            } label: {
+                if isShowingAllOverlays {
+                    Label("全ての古地図を表示", systemImage: "checkmark")
+                } else {
+                    Text("全ての古地図を表示")
+                }
+            }
+            Divider()
+            Button("古地図を表示しない") {
+                isShowingAllOverlays = false
+                selectedOverlay = nil
+                onSelect(nil)
+            }
+            Divider()
+            ForEach(OldMapCatalog.allIncludingCustom) { overlay in
+                Button {
+                    isShowingAllOverlays = false
+                    selectedOverlay = overlay
+                    onSelect(overlay)
+                } label: {
+                    if !isShowingAllOverlays && overlay.id == selectedOverlay?.id {
+                        Label(menuTitle(for: overlay), systemImage: "checkmark")
+                    } else {
+                        Text(menuTitle(for: overlay))
+                    }
+                }
+            }
+            if SecretsConfig.isOldMapSearchConfigured {
+                Divider()
+                Button {
+                    onRequestSearch()
+                } label: {
+                    Label("新しい古地図を登録", systemImage: "plus.circle")
+                }
+            }
+        }
     }
 
     /// メニュー一覧だけで使う、少し短くした古地図名。選択後に表示される名称（`title`そのもの）は変えない。
