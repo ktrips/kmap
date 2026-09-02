@@ -136,7 +136,7 @@ struct MapScreen: View {
                     tappedPhotoPost = post
                 }
             )
-            .ignoresSafeArea(edges: .top)
+            .ignoresSafeArea()
 
             VStack(spacing: 12) {
                 actionButtonsRow
