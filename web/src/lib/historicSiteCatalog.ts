@@ -86,6 +86,23 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "kudanshita-tayasumon", name: "田安門" },
   { id: "kudanshita-shimizumon", name: "清水門" },
   { id: "kudanshita-kudanzaka", name: "九段坂" },
+  { id: "roppongi-hills-mori-garden", name: "六本木ヒルズ（毛利庭園）" },
+  { id: "roppongi-nogi-shrine", name: "乃木神社" },
+  { id: "roppongi-azabudai", name: "麻布台（大名屋敷跡）" },
+  { id: "roppongi-azabujuban", name: "麻布十番" },
+  { id: "roppongi-arisugawa-park", name: "有栖川宮記念公園" },
+  { id: "meijijingu-shrine", name: "明治神宮" },
+  { id: "meijijingu-harajuku-station", name: "原宿駅" },
+  { id: "meijijingu-omotesando-hills", name: "表参道ヒルズ" },
+  { id: "meijijingu-gaien-ginkgo", name: "神宮外苑いちょう並木" },
+  { id: "meijijingu-gaien-gallery", name: "聖徳記念絵画館" },
+  { id: "oyamakaido-akasaka", name: "赤坂見附" },
+  { id: "oyamakaido-aoyama", name: "青山（青山通り）" },
+  { id: "oyamakaido-shibuya-dogenzaka", name: "渋谷・道玄坂" },
+  { id: "oyamakaido-sangenjaya", name: "三軒茶屋（大山道の追分）" },
+  { id: "oyamakaido-komazawa", name: "駒沢" },
+  { id: "oyamakaido-youga", name: "用賀" },
+  { id: "oyamakaido-futakotamagawa", name: "二子玉川（多摩川の渡し）" },
 ];
 
 export function findHistoricSite(id: string | null): HistoricSiteEntry | undefined {

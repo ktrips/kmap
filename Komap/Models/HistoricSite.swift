@@ -604,6 +604,131 @@ enum HistoricSiteCatalog {
             summary: "江戸時代、坂に沿って九段の石段状の武家屋敷が並んでいたことが地名の由来とされる坂。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6942, longitude: 139.7492)
         ),
+
+        // 麻布・六本木周辺
+        HistoricSite(
+            id: "roppongi-hills-mori-garden",
+            overlayMapID: OldMapCatalog.roppongi.id,
+            name: "六本木ヒルズ（毛利庭園）",
+            summary: "長州藩毛利家の下屋敷があった地。当時の庭園の一部が現在も毛利庭園として残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6604, longitude: 139.7292)
+        ),
+        HistoricSite(
+            id: "roppongi-nogi-shrine",
+            overlayMapID: OldMapCatalog.roppongi.id,
+            name: "乃木神社",
+            summary: "乃木希典・静子夫妻を祀る神社。乃木邸跡に隣接する。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6667, longitude: 139.7268)
+        ),
+        HistoricSite(
+            id: "roppongi-azabudai",
+            overlayMapID: OldMapCatalog.roppongi.id,
+            name: "麻布台（大名屋敷跡）",
+            summary: "複数の大名屋敷が置かれていた高台。現在の麻布台ヒルズ周辺にあたる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6631, longitude: 139.7395)
+        ),
+        HistoricSite(
+            id: "roppongi-azabujuban",
+            overlayMapID: OldMapCatalog.roppongi.id,
+            name: "麻布十番",
+            summary: "江戸時代から続く商店街。かつての古川沿いの町人地で、今も昔ながらの賑わいが残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6558, longitude: 139.7350)
+        ),
+        HistoricSite(
+            id: "roppongi-arisugawa-park",
+            overlayMapID: OldMapCatalog.roppongi.id,
+            name: "有栖川宮記念公園",
+            summary: "盛岡藩南部家の下屋敷、後に有栖川宮家の御用地となった地。起伏に富んだ地形が名残を伝える。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6553, longitude: 139.7236)
+        ),
+
+        // 明治神宮・表参道・神宮外苑
+        HistoricSite(
+            id: "meijijingu-shrine",
+            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
+            name: "明治神宮",
+            summary: "明治天皇と昭憲皇太后を祀る神社。1920年（大正9年）創建。代々木の森は創建にあわせて全国から献木された人工林。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6764, longitude: 139.6993)
+        ),
+        HistoricSite(
+            id: "meijijingu-harajuku-station",
+            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
+            name: "原宿駅",
+            summary: "明治神宮の最寄駅として1906年開業。この地図が描かれた1891年時点では、まだ原宿村ののどかな風景が広がっていた。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6702, longitude: 139.7027)
+        ),
+        HistoricSite(
+            id: "meijijingu-omotesando-hills",
+            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
+            name: "表参道ヒルズ",
+            summary: "明治神宮の参道として整備された表参道沿い。ケヤキ並木は神宮創建にあわせて植えられた。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6672, longitude: 139.7106)
+        ),
+        HistoricSite(
+            id: "meijijingu-gaien-ginkgo",
+            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
+            name: "神宮外苑いちょう並木",
+            summary: "かつて青山練兵場（陸軍の閲兵式場）があった地。明治神宮外苑として整備され、いちょう並木が名所となった。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6751, longitude: 139.7168)
+        ),
+        HistoricSite(
+            id: "meijijingu-gaien-gallery",
+            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
+            name: "聖徳記念絵画館",
+            summary: "明治天皇の事績を描いた絵画を収める、神宮外苑のシンボル的建物。1926年竣工。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6772, longitude: 139.7193)
+        ),
+
+        // 大山街道（赤坂〜二子玉川）
+        HistoricSite(
+            id: "oyamakaido-akasaka",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "赤坂見附",
+            summary: "大山街道（矢倉沢往還）の江戸側の起点付近。江戸城の外堀に設けられた見附（門）のひとつがあった。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6775, longitude: 139.7370)
+        ),
+        HistoricSite(
+            id: "oyamakaido-aoyama",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "青山（青山通り）",
+            summary: "大山街道の道筋がそのまま現在の青山通り（国道246号）として残るエリア。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6725, longitude: 139.7256)
+        ),
+        HistoricSite(
+            id: "oyamakaido-shibuya-dogenzaka",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "渋谷・道玄坂",
+            summary: "大山街道が渋谷の谷を上る坂道。旅人相手の茶屋が並んでいたとされる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6580, longitude: 139.6975)
+        ),
+        HistoricSite(
+            id: "oyamakaido-sangenjaya",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "三軒茶屋（大山道の追分）",
+            summary: "大山道と登戸道（世田谷通り）が分岐した地点。3軒の茶屋があったことが地名の由来とされる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6438, longitude: 139.6708)
+        ),
+        HistoricSite(
+            id: "oyamakaido-komazawa",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "駒沢",
+            summary: "大山街道沿いの村。現在の駒沢オリンピック公園周辺にあたる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6252, longitude: 139.6553)
+        ),
+        HistoricSite(
+            id: "oyamakaido-youga",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "用賀",
+            summary: "大山街道の宿駅的な役割を担った村。旧道の道筋が今も一部残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6229, longitude: 139.6321)
+        ),
+        HistoricSite(
+            id: "oyamakaido-futakotamagawa",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "二子玉川（多摩川の渡し）",
+            summary: "大山街道が多摩川を渡った地点。江戸時代は「二子の渡し」と呼ばれる渡し船が使われていた。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6099, longitude: 139.6262)
+        ),
     ]
 
     static func site(withID id: String) -> HistoricSite? {

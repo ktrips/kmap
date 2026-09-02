@@ -252,11 +252,39 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
     )
 
+    // 同じ「1891 Meiji Map of Tokyo or Edo, Japan」のフル解像度画像から、原宿・代々木周辺
+    // （明治神宮・神宮外苑は当時まだ存在しないため、その前身にあたる代々木御料地・青山練兵場
+    // 一帯の町割り）を切り出したもの。位置合わせは地図上の「原宿」等の地名表記を基準にした概算。
+    static let meijiJinguOmotesando = HistoricalOverlayMap(
+        id: "meiji-jingu-omotesando-meiji",
+        title: "明治神宮・表参道・神宮外苑",
+        era: "明治時代（1891年・明治24年頃、社殿創建前の代々木御料地一帯）",
+        summary: "後に明治神宮・表参道・神宮外苑となる、代々木・原宿・青山練兵場一帯の古地図です。神宮の鎮座は1920年（大正9年）のため、この地図の時点ではまだ深い森と御料地・練兵場が広がっています。",
+        imageAssetName: "OldMap_MeijiJinguOmotesando",
+        southWest: CLLocationCoordinate2D(latitude: 35.65776, longitude: 139.69495),
+        northEast: CLLocationCoordinate2D(latitude: 35.68296, longitude: 139.73031)
+    )
+
+    // 現在の地図（OpenStreetMap）から、赤坂〜二子玉川間の大山街道沿いを取得し、
+    // セピア調フィルターをかけて古地図風に加工した画像。実際の歴史史料ではない
+    // （`roppongi`/`akasakaKioicho`と同じ「現在の地図から加工した古地図風画像」の扱い）。
+    // ピンアイコン等が写り込んでいない素の地図から作成したため、inpaintによる除去は行っていない。
+    static let oyamaKaido = HistoricalOverlayMap(
+        id: "oyama-kaido",
+        title: "大山街道（赤坂〜二子玉川）",
+        era: "古地図風（現在の地図をもとに加工）",
+        summary: "江戸時代の大山詣でで賑わった大山街道（矢倉沢往還）のうち、赤坂から青山・渋谷・三軒茶屋・用賀を経て、多摩川の渡し場があった二子玉川までをたどる、現在の地図をもとにした古地図風の画像です。",
+        imageAssetName: "OldMap_OyamaKaido",
+        southWest: CLLocationCoordinate2D(latitude: 35.585851593232356, longitude: 139.6142578125),
+        northEast: CLLocationCoordinate2D(latitude: 35.6929946320988, longitude: 139.74609375)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, ueno, nihonbashi, shiba, kanda, roppongi,
         goshikiFudo, bashoOkuNoHosomichi, kasumigasekiToranomon, akasakaKioicho,
         tokaido, nakasendo, kudanshitaChidorigafuchi,
+        meijiJinguOmotesando, oyamaKaido,
     ]
 
     /// 同梱の古地図 + ユーザーが検索して追加した古地図。

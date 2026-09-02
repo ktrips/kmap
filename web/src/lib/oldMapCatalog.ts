@@ -84,6 +84,16 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     title: "九段下・千鳥ヶ淵（靖国神社周辺）",
     era: "明治時代（1891年・明治24年頃）",
   },
+  {
+    id: "meiji-jingu-omotesando-meiji",
+    title: "明治神宮・表参道・神宮外苑",
+    era: "明治時代（1891年・明治24年頃、社殿創建前の代々木御料地一帯）",
+  },
+  {
+    id: "oyama-kaido",
+    title: "大山街道（赤坂〜二子玉川）",
+    era: "古地図風（現在の地図をもとに加工）",
+  },
 ];
 
 export function findOldMap(id: string | null): OldMapEntry | undefined {

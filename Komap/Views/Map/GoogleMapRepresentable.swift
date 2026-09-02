@@ -110,6 +110,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var currentOverlayID: String?
         /// 「全ての古地図を表示」中に、同梱・登録済みの古地図それぞれに対応するグラウンドオーバーレイ。
         private var allOverlays: [GMSGroundOverlay] = []
+        /// `allOverlays`の各要素がどの古地図（画像・範囲のキー）に対応するかを保持する。
+        /// `applyAllOverlays`が同じ内容で再度呼ばれた時に無駄な作り直しをスキップしつつ、
+        /// 一覧の中身が実際に変わった時（古地図が追加された等）は正しく再構築するために使う
+        /// （件数だけの比較だと、件数がたまたま同じ時に変更が反映されないことがあった）。
+        private var allOverlayKeys: [String] = []
         /// `applyAllOverlays`が呼ばれるたびに増やす世代番号。画像デコードが終わる前に
         /// 表示が切り替わった場合、古い世代の結果を`allOverlays`へ書き込まないようにする。
         private var allOverlaysGeneration = 0
@@ -177,13 +182,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             // テクスチャアトラス上限（"Reached the max number of texture atlases"）に
             // 達して古地図が一切描画されなくなることがある。画像・範囲が同じものは
             // 1枚にまとめてから重ねる。
-            var seenKeys = Set<String>()
-            let uniqueMaps = overlays.filter { overlayMap in
-                let key = "\(overlayMap.imageAssetName ?? overlayMap.imageFileName ?? "")|\(overlayMap.southWest.latitude)|\(overlayMap.southWest.longitude)|\(overlayMap.northEast.latitude)|\(overlayMap.northEast.longitude)"
-                return seenKeys.insert(key).inserted
+            func key(for overlayMap: HistoricalOverlayMap) -> String {
+                "\(overlayMap.imageAssetName ?? overlayMap.imageFileName ?? "")|\(overlayMap.southWest.latitude)|\(overlayMap.southWest.longitude)|\(overlayMap.northEast.latitude)|\(overlayMap.northEast.longitude)"
             }
+            var seenKeys = Set<String>()
+            let uniqueMaps = overlays.filter { seenKeys.insert(key(for: $0)).inserted }
+            let newKeys = uniqueMaps.map(key(for:))
 
-            guard allOverlays.count != uniqueMaps.count else { return }
+            guard allOverlayKeys != newKeys else { return }
+            allOverlayKeys = newKeys
             allOverlays.forEach { $0.map = nil }
             allOverlaysGeneration += 1
 
@@ -204,11 +211,23 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             let generation = allOverlaysGeneration
             for (index, overlayMap) in uniqueMaps.enumerated() {
                 let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+                let cacheKey = newKeys[index]
+                if let cached = Self.downsampledImageCache[cacheKey] {
+                    allOverlays[index].map = nil
+                    let replacement = GMSGroundOverlay(bounds: bounds, icon: cached)
+                    replacement.opacity = 0.75
+                    replacement.map = mapView
+                    allOverlays[index] = replacement
+                    continue
+                }
                 // `UIImage(named:)`（`overlayMap.image`）はメインスレッドで読み込み、
                 // 重いリサイズ処理だけバックグラウンドで行う。
                 let sourceImage = overlayMap.image
                 DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                     let image = Self.downsampledForAllOverlays(sourceImage)
+                    if let image {
+                        Self.downsampledImageCache[cacheKey] = image
+                    }
                     DispatchQueue.main.async {
                         guard let self,
                               self.allOverlaysGeneration == generation,
@@ -245,6 +264,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             guard !allOverlays.isEmpty else { return }
             allOverlays.forEach { $0.map = nil }
             allOverlays = []
+            allOverlayKeys = []
             allOverlaysGeneration += 1
         }
 
@@ -460,6 +480,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 10枚重ねてもほとんど見分けがつかない。GPUの合成負荷を減らすため、
         /// この表示専用にあらかじめ縮小しておく。
         private static let allOverlaysMaxDimension: CGFloat = 480
+
+        /// `downsampledForAllOverlays`の結果をキー（画像名+範囲）ごとに使い回すキャッシュ。
+        /// 同梱画像はアプリ起動中に内容が変わらないため、「全ての古地図を表示」を
+        /// 何度も開き直しても、2回目以降は重いデコード・縮小処理をスキップできる。
+        private static var downsampledImageCache: [String: UIImage] = [:]
 
         /// 古地図選択時にチェックポイントへカメラフィットする際の、これ以上は
         /// ズームしない上限。広域画像を使い回している古地図でチェックポイントが
