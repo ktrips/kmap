@@ -29,8 +29,12 @@
   保存した物語もまとめて見返せる
 
 ### クラウド連携
-- Googleでサインインすると、保存した地点・御朱印・時間旅（歩いたルート）がクラウド
+- Googleでサインインすると、保存した地点・御朱印・時間旅（歩いたルート）・投稿写真がクラウド
   （Firestore）に同期され、Webアプリからも同じ記録を閲覧できる
+- 御朱印・投稿写真の画像本体はFirebase Storageへ自動アップロードされ、Web側やシェア時にも
+  画像そのものを見られる
+- Webアプリの「時空旅」タブでは、自分の記録（My Trips）に加えて他ユーザーが共有した
+  時間旅（sharedTrips）も選択して、地図・写真・御朱印を表示できる
 
 ## 技術構成
 
@@ -42,7 +46,7 @@
 | Watch連携 | Apple Watch単体アプリ（WatchOS）+ WatchConnectivity |
 | ローカル保存 | SwiftData（保存した地点・物語・時間旅・御朱印・投稿写真） |
 | AI | OpenAI Chat Completions API（`gpt-4o-mini`） |
-| クラウド同期 | Firebase Authentication（Googleサインイン） + Cloud Firestore |
+| クラウド同期 | Firebase Authentication（Googleサインイン） + Cloud Firestore + Firebase Storage（画像） |
 | Webアプリ | Vite + React + TypeScript、Firebase JS SDK、Google Maps JavaScript API |
 | iOSプロジェクト管理 | [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`project.yml` から `.xcodeproj` を生成） |
 | CI/CD | GitHub Actions（`main`へのpushでWebアプリをFirebase Hostingへ自動デプロイ） |
@@ -59,8 +63,9 @@ Komap Watch App/             # Apple Watch単体アプリ（スタート/一時�
 firebase.json               # Firebase Hosting / Firestore の設定
 .firebaserc                 # Firebaseプロジェクトのエイリアス（要編集）
 firebase/
-  firestore.rules            # Firestoreセキュリティルール（本人のplaces/stamps/walkRoutesのみ読み書き可）
+  firestore.rules            # Firestoreセキュリティルール（本人のplaces/stamps/walkRoutes/photoPostsのみ読み書き可、sharedTripsは閲覧のみ全員可）
   firestore.indexes.json
+  storage.rules               # Firebase Storageセキュリティルール（御朱印・投稿写真の画像本体）
 web/                         # Webアプリ本体（Vite + React）
 .github/workflows/
   deploy-web.yml              # main へのpushでWebアプリをFirebase Hostingへ自動デプロイ
@@ -138,12 +143,13 @@ Web（`map.ktrips.net`）で「自分のマップ」を見られるようにす�
 npm install -g firebase-tools
 firebase login
 # .firebaserc の "YOUR_FIREBASE_PROJECT_ID" を実際のプロジェクトIDに書き換えてから:
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules,storage:rules
 ```
 
-> `firebase/firestore.rules` は「自分の `users/{uid}/places/**` のみ読み書き可能」という
-> シンプルなルールです。iOSアプリ・Webアプリはどちらもこのルールの下で、
-> 同じFirebase Authenticationの `uid` を使ってアクセスします。
+> `firebase/firestore.rules` は「自分の `users/{uid}/places` `stamps` `walkRoutes`
+> `photoPosts` 配下のみ読み書き可能、`sharedTrips`（みんなの時空旅）はサインインしていれば
+> 誰でも閲覧可・書き込みは本人のみ」というルールです。iOSアプリ・Webアプリはどちらも
+> このルールの下で、同じFirebase Authenticationの `uid` を使ってアクセスします。
 
 ### 1-4-1. iOSでGoogleサインインを使うための追加設定
 
@@ -358,7 +364,7 @@ Komap Watch App/
 - Firebase未設定のままでもiOSアプリは起動できますが、クラウド同期・Web連携・
   Googleサインインは利用できません（設定タブにその旨のメッセージが表示されます）。
 - Sign in with Appleは未対応です（無料のApple IDでは使えないため。上記1-4の注記を参照）。
-- Webアプリの「My Trips」は、古地図ごとにまとめた時間旅の一覧・詳細（距離・時間・歩数など）
-  が中心で、iOS版のように歩いたルートを地図上にポリライン表示する機能は現時点では未対応です。
+- Webアプリの「時空旅」タブは、古地図ごとにまとめた時間旅の一覧・詳細（距離・時間・歩数など）
+  に加え、選択した時間旅の地図（軌跡）・投稿写真・御朱印も表示できます。
 - `OldMapCatalog` にエントリを追加するだけで、選べる古地図を拡張できます
   （Web側でも表示したい場合は `web/src/lib/oldMapCatalog.ts` にも同じ `id` で追加）。
