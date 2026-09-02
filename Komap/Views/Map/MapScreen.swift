@@ -49,6 +49,10 @@ struct MapScreen: View {
     @State private var watchTrackedPath: [CLLocationCoordinate2D] = []
     /// カメラで写真を撮って投稿するためのシート表示状態。
     @State private var isShowingPhotoPostCamera = false
+    /// 現在地にカメラを追従させ続けるかどうか。基本は現在地中心のままにし、
+    /// ユーザーが指で地図をドラッグ・ピンチ操作したら追従をやめる
+    /// （現在地ボタンを押す・「スタート」を押すと再び追従を始める）。
+    @State private var isFollowingCurrentLocation = true
 
     private let syncService = SyncService()
     private let stepCounter = StepCounter()
@@ -130,6 +134,9 @@ struct MapScreen: View {
                 },
                 onPhotoPostTap: { post in
                     tappedPhotoPost = post
+                },
+                onUserPanned: {
+                    isFollowingCurrentLocation = false
                 }
             )
             .ignoresSafeArea()
@@ -213,6 +220,10 @@ struct MapScreen: View {
             guard let latest = locationManager.walkPath.last else { return }
             checkForNewStamps(near: latest)
         }
+        .onChange(of: locationManager.locationUpdateTick) { _, _ in
+            guard isFollowingCurrentLocation, let coordinate = locationManager.currentLocation else { return }
+            mapSession.moveCamera(to: coordinate)
+        }
         .onChange(of: photoPostPickerItem) { _, newItem in
             loadAndPostPhoto(newItem)
         }
@@ -258,6 +269,7 @@ struct MapScreen: View {
     /// トレイリング側に置く。
     private var currentLocationButton: some View {
         Button {
+            isFollowingCurrentLocation = true
             if let coordinate = locationManager.currentLocation {
                 mapSession.moveCamera(to: coordinate)
             }
@@ -399,6 +411,10 @@ struct MapScreen: View {
         activeWalkStartedAt = Date()
         stepCounter.start()
         locationManager.startRecordingWalk()
+        isFollowingCurrentLocation = true
+        if let coordinate = locationManager.currentLocation {
+            mapSession.moveCamera(to: coordinate)
+        }
     }
 
     /// 記録を終える。`autoSave`が`true`の時（Apple Watchからの「終了」など、

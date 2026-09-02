@@ -35,6 +35,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     var onCheckpointTap: (HistoricSite) -> Void = { _ in }
     /// 投稿写真のピンがタップされた時に呼ばれる。
     var onPhotoPostTap: (WalkPhotoPost) -> Void = { _ in }
+    /// ユーザーが指でマップをドラッグ・ピンチ操作した時に呼ばれる。
+    /// 現在地追従中はこれをきっかけに追従をやめる（プログラムによるカメラ移動では呼ばれない）。
+    var onUserPanned: () -> Void = {}
 
     func makeUIView(context: Context) -> GMSMapView {
         let initialCamera = GMSCameraPosition.camera(
@@ -67,6 +70,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         context.coordinator.onTap = onTap
         context.coordinator.onCheckpointTap = onCheckpointTap
         context.coordinator.onPhotoPostTap = onPhotoPostTap
+        context.coordinator.onUserPanned = onUserPanned
         if showAllOverlays {
             context.coordinator.applyAllOverlays(OldMapCatalog.allIncludingCustom, checkpoints: checkpoints, to: mapView)
         } else {
@@ -92,6 +96,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         var onTap: (CLLocationCoordinate2D) -> Void
         var onCheckpointTap: (HistoricSite) -> Void = { _ in }
         var onPhotoPostTap: (WalkPhotoPost) -> Void = { _ in }
+        var onUserPanned: () -> Void = {}
         var lastHandledMoveRequestID: UUID?
 
         private var currentOverlay: GMSGroundOverlay?
@@ -121,12 +126,16 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
+        /// 記録中、「まだ通っていない場所」の不透明度の下限。スライダーがこれより低くても、
+        /// 宝探し演出（通った道だけくっきり）を保ったまま、歩いている間は古地図全体が
+        /// ある程度見えるようにする。
+        private static let minimumUnrevealedAlpha: CGFloat = 0.6
         /// 歩いた道の縁取りの太さ（画面上のポイント数）。中の透かし塗りよりわずかに太いだけの、
         /// 細く濃い縁として見せる。
-        private let walkedTrailBorderWidth: CGFloat = 9
+        private let walkedTrailBorderWidth: CGFloat = 18
         /// 歩いた道の中を薄く塗る太さ。縁取りより一回り細くすることで、縁だけが濃い線として残り、
         /// 中央は明るい色が重なって薄く見える。
-        private let walkedTrailFillWidth: CGFloat = 6
+        private let walkedTrailFillWidth: CGFloat = 12
 
         /// 縁取り（細い線）と内側の透かし塗りの2本を重ねて、1本の「通った道」を表す組。
         private struct TrailPolylinePair {
@@ -309,7 +318,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     let southWest = overlayMap.southWest
                     let northEast = overlayMap.northEast
                     let corridorMeters = revealCorridorMeters
-                    let faintAlpha = CGFloat(opacity)
+                    // スライダーの不透明度が低いままだと「まだ通っていない場所」がほぼ見えなくなり、
+                    // 歩いている間ずっと古地図が表示されていないように感じてしまうため、
+                    // 宝探し演出（通った道だけくっきり）は保ちつつ、下限の見えやすさを確保する。
+                    let faintAlpha = max(CGFloat(opacity), Self.minimumUnrevealedAlpha)
                     let blurredBase = currentBlurredImage ?? baseImage
                     let overlayRef = currentOverlay
                     DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -437,6 +449,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
             onTap(coordinate)
+        }
+
+        /// カメラが動き始めた時に呼ばれる。`gesture`が`true`の時だけ、指でのドラッグ・ピンチ操作
+        /// （＝現在地追従を続けたくない操作）だと判断する。`mapView.animate(to:)`による
+        /// プログラムからの移動では`false`になるため、現在地追従はここでは止まらない。
+        func mapView(_ mapView: GMSMapView, willMove gesture: Bool) {
+            if gesture {
+                onUserPanned()
+            }
         }
 
         /// チェックポイントのマーカーをタップした時に出す情報ウィンドウを、

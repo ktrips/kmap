@@ -9,6 +9,9 @@ import Foundation
 @MainActor
 final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var currentLocation: CLLocationCoordinate2D?
+    /// 現在地が更新されるたびに増える値。`CLLocationCoordinate2D`は`Equatable`ではないため、
+    /// `.onChange`で現在地の更新（＝カメラ追従のタイミング）を検知するためのカウンタとして使う。
+    @Published private(set) var locationUpdateTick = 0
     @Published private(set) var authorizationStatus: CLAuthorizationStatus
     /// 「スタート」ボタンでの記録中かどうか。
     @Published private(set) var isRecordingWalk = false
@@ -90,6 +93,7 @@ extension LocationManager: CLLocationManagerDelegate {
         guard let coordinate = locations.last?.coordinate else { return }
         Task { @MainActor in
             self.currentLocation = coordinate
+            self.locationUpdateTick += 1
             if self.isRecordingWalk && !self.isWalkPaused {
                 self.walkPath.append(coordinate)
             }
