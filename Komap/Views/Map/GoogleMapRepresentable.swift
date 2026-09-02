@@ -98,6 +98,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var currentOverlayID: String?
         /// 「全ての古地図を表示」中に、同梱・登録済みの古地図それぞれに対応するグラウンドオーバーレイ。
         private var allOverlays: [GMSGroundOverlay] = []
+        /// `applyAllOverlays`が呼ばれるたびに増やす世代番号。画像デコードが終わる前に
+        /// 表示が切り替わった場合、古い世代の結果を`allOverlays`へ書き込まないようにする。
+        private var allOverlaysGeneration = 0
         private var currentBaseImage: UIImage?
         /// まだ通っていない場所用に、あらかじめぼかしておいた画像（古地図が変わる度に作り直す）。
         private var currentBlurredImage: UIImage?
@@ -152,14 +155,29 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             currentOverlay = nil
             currentOverlayID = nil
 
-            guard allOverlays.count != overlays.count else { return }
+            // 「五色不動めぐり」「松尾芭蕉ゆかりの地」など、同じ広域画像・同じ範囲を
+            // 使い回しているだけの古地図が複数あると、見た目は完全に重なって
+            // 変わらないのに同じテクスチャを何度も読み込むことになり、Google Maps SDKの
+            // テクスチャアトラス上限（"Reached the max number of texture atlases"）に
+            // 達して古地図が一切描画されなくなることがある。画像・範囲が同じものは
+            // 1枚にまとめてから重ねる。
+            var seenKeys = Set<String>()
+            let uniqueMaps = overlays.filter { overlayMap in
+                let key = "\(overlayMap.imageAssetName ?? overlayMap.imageFileName ?? "")|\(overlayMap.southWest.latitude)|\(overlayMap.southWest.longitude)|\(overlayMap.northEast.latitude)|\(overlayMap.northEast.longitude)"
+                return seenKeys.insert(key).inserted
+            }
+
+            guard allOverlays.count != uniqueMaps.count else { return }
             allOverlays.forEach { $0.map = nil }
+            allOverlaysGeneration += 1
 
             // 画像の読み込み・デコードは重いので、まず枠だけ（画像なし）のオーバーレイを
             // メインスレッドで即座に置いてから、それぞれの画像をバックグラウンドで
-            // デコードして後から差し込む。10枚分をまとめて同期デコードすると
-            // メインスレッドが固まって表示がもたつくため。
-            allOverlays = overlays.map { overlayMap in
+            // デコードする。まとめて同期デコードするとメインスレッドが固まって
+            // 表示がもたつくため。
+            // 既存のオーバーレイに後から`.icon`だけ差し替えると描画に反映されない
+            // ことがあるため、画像が用意できたらオーバーレイ自体を作り直す。
+            allOverlays = uniqueMaps.map { overlayMap in
                 let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
                 let overlay = GMSGroundOverlay(bounds: bounds, icon: nil)
                 overlay.opacity = 0.75
@@ -167,11 +185,24 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 return overlay
             }
 
-            for (overlay, overlayMap) in zip(allOverlays, overlays) {
-                DispatchQueue.global(qos: .userInitiated).async { [weak overlay] in
-                    let image = overlayMap.image
+            let generation = allOverlaysGeneration
+            for (index, overlayMap) in uniqueMaps.enumerated() {
+                let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+                // `UIImage(named:)`（`overlayMap.image`）はメインスレッドで読み込み、
+                // 重いリサイズ処理だけバックグラウンドで行う。
+                let sourceImage = overlayMap.image
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    let image = Self.downsampledForAllOverlays(sourceImage)
                     DispatchQueue.main.async {
-                        overlay?.icon = image
+                        guard let self,
+                              self.allOverlaysGeneration == generation,
+                              self.allOverlays.indices.contains(index)
+                        else { return }
+                        self.allOverlays[index].map = nil
+                        let replacement = GMSGroundOverlay(bounds: bounds, icon: image)
+                        replacement.opacity = 0.75
+                        replacement.map = mapView
+                        self.allOverlays[index] = replacement
                     }
                 }
             }
@@ -198,6 +229,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             guard !allOverlays.isEmpty else { return }
             allOverlays.forEach { $0.map = nil }
             allOverlays = []
+            allOverlaysGeneration += 1
         }
 
         /// 古地図を貼り替える。記録中の軌跡（`livePath`）が2点以上あれば、
@@ -377,6 +409,24 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             guard let output = filter.outputImage?.cropped(to: ciImage.extent) else { return nil }
             guard let cgImage = sharedCIContext.createCGImage(output, from: output.extent) else { return nil }
             return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+        }
+
+        /// 「全ての古地図を表示」はズームアウトして見るため、フル解像度の画像を
+        /// 10枚重ねてもほとんど見分けがつかない。GPUの合成負荷を減らすため、
+        /// この表示専用にあらかじめ縮小しておく。
+        private static let allOverlaysMaxDimension: CGFloat = 480
+
+        private static func downsampledForAllOverlays(_ image: UIImage?) -> UIImage? {
+            guard let image else { return nil }
+            let longestSide = max(image.size.width, image.size.height)
+            guard longestSide > allOverlaysMaxDimension else { return image }
+
+            let scale = allOverlaysMaxDimension / longestSide
+            let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+            let renderer = UIGraphicsImageRenderer(size: newSize)
+            return renderer.image { _ in
+                image.draw(in: CGRect(origin: .zero, size: newSize))
+            }
         }
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
