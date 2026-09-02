@@ -228,6 +228,22 @@ code {
   min-width: 0;
 }
 
+.sidebar-menu-button {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 0 24px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-card);
+  color: var(--color-brown-deep);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* ---------- Sidebar tabs ---------- */
 
 .sidebar-tabs {

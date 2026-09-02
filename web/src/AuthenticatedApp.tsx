@@ -36,6 +36,9 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [tab, setTab] = useState<SidebarTab>("trips");
+  // 旅の詳細を表示すると左のメニュー（一覧）は収納し、画面を広く使えるようにする。
+  // メニューボタンを押すか、タブを切り替えると再び開く。
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // 自分の時空旅を優先し、同じidが「みんなの時空旅」側にも重複していれば除く
   // （自分が公開した時空旅は、自分のリストにだけ実際の御朱印数・写真つきで出す）。
@@ -55,33 +58,51 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
 
   const handleSelectTrip = (trip: UnifiedTrip) => {
     setSelectedTripId(trip.id);
+    setIsSidebarOpen(false);
+  };
+
+  const handleTabChange = (nextTab: SidebarTab) => {
+    setTab(nextTab);
+    setIsSidebarOpen(true);
   };
 
   return (
     <div className="app-shell">
       <Header user={user} placeCount={places.length} onSignOut={onSignOut} />
       <div className="app-body">
-        <aside className="app-sidebar">
-          <div className="sidebar-tabs">
-            <button
-              className={`sidebar-tab ${tab === "places" ? "is-active" : ""}`}
-              onClick={() => setTab("places")}
-            >
-              保存した物語
-            </button>
-            <button
-              className={`sidebar-tab ${tab === "trips" ? "is-active" : ""}`}
-              onClick={() => setTab("trips")}
-            >
-              時空旅
-            </button>
-          </div>
-          {tab === "places" && <PlaceList places={places} selectedId={selectedId} onSelect={handleSelect} />}
-          {tab === "trips" && (
-            <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
-          )}
-        </aside>
+        {isSidebarOpen && (
+          <aside className="app-sidebar">
+            <div className="sidebar-tabs">
+              <button
+                className={`sidebar-tab ${tab === "places" ? "is-active" : ""}`}
+                onClick={() => handleTabChange("places")}
+              >
+                保存した物語
+              </button>
+              <button
+                className={`sidebar-tab ${tab === "trips" ? "is-active" : ""}`}
+                onClick={() => handleTabChange("trips")}
+              >
+                時空旅
+              </button>
+            </div>
+            {tab === "places" && <PlaceList places={places} selectedId={selectedId} onSelect={handleSelect} />}
+            {tab === "trips" && (
+              <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
+            )}
+          </aside>
+        )}
         <main className="app-main">
+          {!isSidebarOpen && (
+            <button
+              type="button"
+              className="sidebar-menu-button"
+              onClick={() => setIsSidebarOpen(true)}
+              aria-label="一覧を表示"
+            >
+              <span aria-hidden="true">☰</span> 一覧
+            </button>
+          )}
           {tab === "places" && (
             <>
               <MapView places={places} selectedId={selectedId} onSelect={handleSelect} />
