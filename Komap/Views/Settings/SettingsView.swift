@@ -4,6 +4,7 @@ import SwiftUI
 /// OpenAIのAPIキー入力・Googleサインイン・古地図データなど、アプリの設定を行う画面。
 struct SettingsView: View {
     @EnvironmentObject private var authService: AuthService
+    @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
 
     @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
@@ -80,6 +81,15 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("設定")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        mapSession.selectedTab = .map
+                    } label: {
+                        Label("Map", systemImage: "map")
+                    }
+                }
+            }
             .onChange(of: authService.isSignedIn) { _, isSignedIn in
                 if isSignedIn {
                     Task { await pullFromCloud() }

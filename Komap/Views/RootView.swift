@@ -49,29 +49,65 @@ private struct GoogleMapsSetupNoticeView: View {
     }
 }
 
+/// 画面下部のタブバーを使わず、`mapSession.selectedTab`に応じて
+/// マップ・My Trips・設定を切り替える。マップは全画面表示にし、
+/// 右上に浮かせたハンバーガーメニュー（Setup）とMy Tripsボタンから他画面へ移動する。
 private struct MainTabView: View {
     @EnvironmentObject private var mapSession: MapSessionState
 
     var body: some View {
-        TabView(selection: $mapSession.selectedTab) {
-            MapScreen()
-                .tabItem {
-                    Label("Map", systemImage: "map")
-                }
-                .tag(AppTab.map)
-
+        switch mapSession.selectedTab {
+        case .map:
+            ZStack(alignment: .topTrailing) {
+                MapScreen()
+                MapTopRightControls()
+            }
+        case .myTimeTrip:
             MyTimeTripView()
-                .tabItem {
-                    Label("My Trips", systemImage: "book.closed")
-                }
-                .tag(AppTab.myTimeTrip)
-
+        case .settings:
             SettingsView()
-                .tabItem {
+        }
+    }
+}
+
+/// マップ画面の右上に浮かせる、ハンバーガーメニュー（Setup）とMy Tripsボタン。
+private struct MapTopRightControls: View {
+    @EnvironmentObject private var mapSession: MapSessionState
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Menu {
+                Button {
+                    mapSession.selectedTab = .settings
+                } label: {
                     Label("Setup", systemImage: "gearshape")
                 }
-                .tag(AppTab.settings)
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    .roundControlButtonStyle()
+            }
+
+            Button {
+                mapSession.selectedTab = .myTimeTrip
+            } label: {
+                Image(systemName: "book.closed")
+                    .roundControlButtonStyle()
+            }
         }
+        .padding(.top, 8)
+        .padding(.trailing, 16)
+    }
+}
+
+private extension Image {
+    /// 地図の上に浮かせるボタンの共通の見た目（丸背景つきのアイコン）。
+    func roundControlButtonStyle() -> some View {
+        self
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(.primary)
+            .frame(width: 44, height: 44)
+            .background(.regularMaterial, in: Circle())
+            .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
     }
 }
 
