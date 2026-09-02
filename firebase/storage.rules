@@ -1,5 +1,7 @@
 rules_version = '2';
 
+// Storageバケット（gs://komapprj.firebasestorage.app、リージョン: asia-northeast1）は
+// Firebase Consoleで作成済み。`firebase deploy --only storage`でこのルールをデプロイできる。
 // 各ユーザーは自分の users/{uid}/** 配下の画像のみ読み書きできる。
 // 「みんなの時空旅」として公開したものは、Cloud Functions等は使わず、
 // アップロード時にオーナー自身が sharedPhotos/{tripId}/** にも同じ画像を書き込む方式にする
