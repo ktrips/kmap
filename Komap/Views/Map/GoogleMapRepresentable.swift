@@ -268,12 +268,18 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentOverlay = overlay
                 currentOverlayID = overlayMap.id
 
-                // 古地図の範囲だけでなく、その古地図のチェックポイントも収まるようカメラを合わせる
-                // （古地図の位置合わせが実際の座標と少しずれていても、チェックポイントが画面外に
-                // 出てしまわないようにする）。
-                var fitBounds = bounds
-                for checkpoint in checkpoints where checkpoint.overlayMapID == overlayMap.id {
-                    fitBounds = fitBounds.includingCoordinate(checkpoint.coordinate)
+                // 古地図全体（かなり広いことがある）に合わせるのではなく、その古地図の
+                // チェックポイントが収まる範囲にカメラを合わせる（その方が見やすくズームできる）。
+                // チェックポイントが1つも無い古地図では、代わりに古地図全体を表示する。
+                let ownCheckpoints = checkpoints.filter { $0.overlayMapID == overlayMap.id }
+                var fitBounds: GMSCoordinateBounds
+                if let first = ownCheckpoints.first {
+                    fitBounds = GMSCoordinateBounds(coordinate: first.coordinate, coordinate: first.coordinate)
+                    for checkpoint in ownCheckpoints.dropFirst() {
+                        fitBounds = fitBounds.includingCoordinate(checkpoint.coordinate)
+                    }
+                } else {
+                    fitBounds = bounds
                 }
                 mapView.moveCamera(GMSCameraUpdate.fit(fitBounds, withPadding: 24))
 

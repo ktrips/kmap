@@ -15,6 +15,10 @@ struct MapScreen: View {
     @Query private var photoPosts: [WalkPhotoPost]
 
     @State private var tappedPoint: TappedPoint?
+    /// マップをタップした直後、「新しいポイントを追加しますか？」の確認待ちの座標。
+    /// ここで確認してからAIへ問い合わせることで、探索中の何気ないタップで
+    /// AI（課金対象）を無駄に呼び出さないようにする。
+    @State private var pendingTapPoint: TappedPoint?
     /// チェックポイントのマーカー上の小さなアイコンボタンがタップされた時に表示する史跡。
     @State private var tappedCheckpoint: HistoricSite?
     /// 地図上の写真ピンがタップされた時に表示する投稿。
@@ -116,17 +120,13 @@ struct MapScreen: View {
                 collectedSiteIDs: collectedSiteIDs,
                 photoPosts: photoPosts,
                 onTap: { coordinate in
-                    tappedPoint = TappedPoint(coordinate: coordinate)
+                    pendingTapPoint = TappedPoint(coordinate: coordinate)
                 },
                 onCheckpointTap: { site in
-                    if mapSession.isShowingAllOverlays {
-                        // 「全ての古地図を表示」中にチェックポイントを押したら、
-                        // その古地図単体の表示に切り替える。
-                        mapSession.isShowingAllOverlays = false
-                        mapSession.selectedOverlay = OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
-                    } else {
-                        tappedCheckpoint = site
-                    }
+                    // 「全ての古地図を表示」中でも、チェックポイントの名称を押した時は
+                    // 単体表示に切り替えず（他のマーカーが消えてしまうため）、
+                    // そのまま詳細シートを開く。
+                    tappedCheckpoint = site
                 },
                 onPhotoPostTap: { post in
                     tappedPhotoPost = post
@@ -151,9 +151,6 @@ struct MapScreen: View {
             }
             .padding(.bottom, 12)
         }
-        .overlay(alignment: .bottomTrailing) {
-            currentLocationButton
-        }
         .overlay(alignment: .top) {
             if let pointsToastMessage {
                 Text(pointsToastMessage)
@@ -173,11 +170,32 @@ struct MapScreen: View {
                 mapSession.selectedOverlay = overlay
             })
         }
+        .alert(
+            "新しいポイントを追加しますか？",
+            isPresented: Binding(
+                get: { pendingTapPoint != nil },
+                set: { isPresented in if !isPresented { pendingTapPoint = nil } }
+            ),
+            presenting: pendingTapPoint
+        ) { point in
+            Button("追加する") {
+                tappedPoint = point
+                pendingTapPoint = nil
+            }
+            Button("キャンセル", role: .cancel) {
+                pendingTapPoint = nil
+            }
+        } message: { _ in
+            Text("この場所の昔の物語をAIが生成します。")
+        }
         .sheet(item: $tappedPoint) { point in
             StorySheetView(point: point, overlayMap: mapSession.selectedOverlay)
         }
         .sheet(item: $tappedCheckpoint) { site in
-            CheckpointInfoSheet(site: site, overlayMap: mapSession.selectedOverlay)
+            CheckpointInfoSheet(
+                site: site,
+                overlayMap: OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
+            )
         }
         .sheet(item: $tappedPhotoPost) { post in
             PhotoPostPreviewSheet(post: post)
@@ -234,8 +252,10 @@ struct MapScreen: View {
         )
     }
 
-    /// Google純正の現在地ボタンより小さく・低い位置に置く、自前の現在地ボタン。
+    /// Google純正の現在地ボタンより小さい、自前の現在地ボタン。
     /// 押すと現在地へカメラを移動する（現在地の「青い点」自体は`GMSMapView`側のまま）。
+    /// 「スタート」など他のアクションボタンと横一線に並ぶよう、`actionButtonsRow`の
+    /// トレイリング側に置く。
     private var currentLocationButton: some View {
         Button {
             if let coordinate = locationManager.currentLocation {
@@ -250,8 +270,6 @@ struct MapScreen: View {
                 .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
         }
         .disabled(locationManager.currentLocation == nil)
-        .padding(.trailing, 16)
-        .padding(.bottom, bottomPanelHeight - 12)
     }
 
     private var actionButtonsRow: some View {
@@ -268,6 +286,7 @@ struct MapScreen: View {
                 walkRecordButton
             }
             Spacer()
+            currentLocationButton
         }
     }
 

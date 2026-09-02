@@ -78,7 +78,7 @@ private struct MapTopLeftControls: View {
 
     var body: some View {
         Menu {
-            Section("Komap 古地図巡り") {
+            Section {
                 Menu {
                     OldMapPickerMenuContent(
                         selectedOverlay: $mapSession.selectedOverlay,
@@ -101,6 +101,16 @@ private struct MapTopLeftControls: View {
                     mapSession.selectedTab = .settings
                 } label: {
                     Label("セットアップ", systemImage: "gearshape")
+                }
+            } header: {
+                Label {
+                    Text("Komap 古地図巡り")
+                } icon: {
+                    Image("KomapIcon")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 20, height: 20)
+                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 }
             }
         } label: {
