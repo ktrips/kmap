@@ -310,7 +310,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             if livePath.count >= 2 {
                 // 記録中はスライダーの不透明度を「まだ通っていない場所」の薄さとして使い、
-                // 通った場所だけくっきり見えるように画像を合成し直す。
+                // 通った場所だけくっきり見えるように画像を合成し直す。この不透明度は
+                // 合成画像のピクセルに直接焼き込むため、オーバーレイ自体の`opacity`は
+                // 常に1にしておく（記録開始前にスライダーで下げていた値が残っていると、
+                // 二重に暗くなり古地図がほとんど見えなくなってしまうため）。
+                currentOverlay.opacity = 1
                 // 合成処理は重いのでメインスレッドをブロックしないようバックグラウンドで行う。
                 if !isComposingRevealedImage && (isNewOverlay || livePath.count != lastRevealedPointCount) {
                     lastRevealedPointCount = livePath.count
