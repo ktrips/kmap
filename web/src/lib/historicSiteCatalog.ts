@@ -1,0 +1,79 @@
+/**
+ * iOS側の `Komap/Models/HistoricSite.swift` と対になる史跡チェックポイントの名称一覧。
+ * Web側では御朱印（siteID）に紐づく史跡名をラベル表示するために使う。
+ */
+export interface HistoricSiteEntry {
+  id: string;
+  name: string;
+}
+
+export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
+  { id: "edo-castle-sakuradamon", name: "桜田門" },
+  { id: "edo-castle-wadakuramon", name: "和田倉門" },
+  { id: "edo-castle-nijubashi", name: "二重橋" },
+  { id: "edo-castle-kitanomaru", name: "北の丸" },
+  { id: "edo-castle-otemon", name: "大手門" },
+  { id: "asakusa-kaminarimon", name: "雷門" },
+  { id: "asakusa-nakamise", name: "仲見世通り" },
+  { id: "asakusa-sensoji", name: "浅草寺本堂" },
+  { id: "asakusa-gojunoto", name: "五重塔" },
+  { id: "asakusa-hanayashiki", name: "花やしき" },
+  { id: "writers-ogai", name: "森鴎外の家（観潮楼跡）" },
+  { id: "writers-soseki", name: "夏目漱石旧居跡（猫の家）" },
+  { id: "writers-ichiyo", name: "樋口一葉旧居跡" },
+  { id: "writers-takuboku", name: "石川啄木の旧居" },
+  { id: "writers-koishikawa-garden", name: "小石川植物園" },
+  { id: "ueno-kaneiji", name: "寛永寺根本中堂" },
+  { id: "ueno-bentendo", name: "不忍池辯天堂" },
+  { id: "ueno-toshogu", name: "上野東照宮" },
+  { id: "ueno-kiyomizu", name: "清水観音堂" },
+  { id: "ueno-gojoten", name: "五条天神社" },
+  { id: "nihonbashi-bridge", name: "日本橋" },
+  { id: "nihonbashi-mitsukoshi", name: "三越日本橋本店" },
+  { id: "nihonbashi-uoichiba", name: "日本橋魚市場発祥の地" },
+  { id: "nihonbashi-boj", name: "日本銀行本店" },
+  { id: "nihonbashi-edobashi", name: "江戸橋" },
+  { id: "shiba-zojoji", name: "増上寺大殿" },
+  { id: "shiba-sangedatsumon", name: "三解脱門" },
+  { id: "shiba-toshogu", name: "芝東照宮" },
+  { id: "shiba-maruyama-kofun", name: "芝丸山古墳" },
+  { id: "shiba-tokyo-tower", name: "東京タワー" },
+  { id: "kanda-myojin-checkpoint", name: "神田明神" },
+  { id: "kanda-seido", name: "湯島聖堂" },
+  { id: "kanda-nikolai-do", name: "ニコライ堂" },
+  { id: "kanda-jimbocho", name: "神保町古書店街" },
+  { id: "kanda-shohei-bridge", name: "昌平橋" },
+  { id: "yanaka7-tokakuji", name: "東覚寺（福禄寿）" },
+  { id: "yanaka7-seiunji", name: "青雲寺（恵比寿）" },
+  { id: "yanaka7-shushoin", name: "修性院（布袋尊）" },
+  { id: "yanaka7-choanji", name: "長安寺（寿老人）" },
+  { id: "yanaka7-tennoji", name: "天王寺（毘沙門天）" },
+  { id: "yanaka7-gokokuin", name: "護国院（大黒天）" },
+  { id: "yanaka7-bentendo", name: "不忍池辯天堂（弁才天）" },
+  { id: "goshiki-meguro", name: "目黒不動（瀧泉寺）" },
+  { id: "goshiki-mejiro", name: "目白不動（金乗院）" },
+  { id: "goshiki-meaka", name: "目赤不動（南谷寺）" },
+  { id: "goshiki-meao", name: "目青不動（教学院）" },
+  { id: "goshiki-meki", name: "目黄不動（永久寺）" },
+  { id: "basho-fukagawa-an", name: "深川芭蕉庵跡" },
+  { id: "basho-kinenkan", name: "江東区芭蕉記念館" },
+  { id: "basho-saian", name: "采茶庵跡" },
+  { id: "basho-senju-ohashi", name: "千住大橋" },
+  { id: "basho-yatate-hajime", name: "矢立初めの地" },
+  { id: "basho-susanoo-shrine", name: "素盞雄神社" },
+  { id: "kasumigaseki-sakuradamon", name: "桜田門" },
+  { id: "kasumigaseki-hibiya-park", name: "日比谷公園" },
+  { id: "kasumigaseki-atago-shrine", name: "愛宕神社" },
+  { id: "kasumigaseki-toranomon-kotohira", name: "虎ノ門金刀比羅宮" },
+  { id: "kasumigaseki-tameike", name: "溜池跡" },
+  { id: "akasaka-hikawa-shrine", name: "赤坂氷川神社" },
+  { id: "akasaka-hie-shrine", name: "日枝神社" },
+  { id: "kioicho-geihinkan", name: "迎賓館赤坂離宮（紀州藩邸跡）" },
+  { id: "kioicho-sophia-univ", name: "上智大学（尾張藩邸跡）" },
+  { id: "kioicho-new-otani", name: "ホテルニューオータニ（彦根藩井伊家邸跡）" },
+];
+
+export function findHistoricSite(id: string | null): HistoricSiteEntry | undefined {
+  if (!id) return undefined;
+  return HISTORIC_SITE_CATALOG.find((entry) => entry.id === id);
+}

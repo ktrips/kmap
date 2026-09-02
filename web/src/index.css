@@ -290,11 +290,34 @@ code {
 
 /* ---------- Shared trip photos ---------- */
 
+.shared-trip-photo-section {
+  margin-top: 20px;
+}
+
+.shared-trip-photo-section-title {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-brown);
+}
+
 .shared-trip-photos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 8px;
-  margin-top: 16px;
+}
+
+.shared-trip-photo-item {
+  margin: 0;
+}
+
+.shared-trip-photo-item figcaption {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #5b5044;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shared-trip-photo {

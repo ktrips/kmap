@@ -1,7 +1,20 @@
 import { collection, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
-import type { SharedTrip } from "../types/sharedTrip";
+import type { SharedPhoto, SharedTrip } from "../types/sharedTrip";
+
+function parsePhotos(value: unknown): SharedPhoto[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const url = (entry as Record<string, unknown>).url;
+      const label = (entry as Record<string, unknown>).siteName ?? (entry as Record<string, unknown>).placeName;
+      if (typeof url !== "string") return null;
+      return { url, label: typeof label === "string" ? label : "" };
+    })
+    .filter((photo): photo is SharedPhoto => photo !== null);
+}
 
 /**
  * 全ユーザーが公開している「みんなの時空旅」（`sharedTrips`）をリアルタイムに監視する。
@@ -43,7 +56,8 @@ export function useSharedTrips() {
             stepCount: typeof data.stepCount === "number" ? data.stepCount : null,
             overlayMapID: data.overlayMapID ?? null,
             totalDistanceMeters: typeof data.totalDistanceMeters === "number" ? data.totalDistanceMeters : 0,
-            photoURLs: Array.isArray(data.photoURLs) ? data.photoURLs : [],
+            stampPhotos: parsePhotos(data.stampPhotos),
+            postPhotos: parsePhotos(data.postPhotos),
           };
         });
         setTrips(next);

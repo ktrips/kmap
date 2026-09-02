@@ -53,11 +53,31 @@ export function TripDetail({ trip }: Props) {
         {trip.stampCount !== null ? ` ・ 御朱印 ${trip.stampCount}件` : ""}
       </p>
 
-      {trip.photoURLs.length > 0 && (
-        <div className="shared-trip-photos">
-          {trip.photoURLs.map((url) => (
-            <img key={url} src={url} alt="" className="shared-trip-photo" loading="lazy" />
-          ))}
+      {trip.stampPhotos.length > 0 && (
+        <div className="shared-trip-photo-section">
+          <p className="shared-trip-photo-section-title">御朱印</p>
+          <div className="shared-trip-photos">
+            {trip.stampPhotos.map((photo) => (
+              <figure key={photo.url} className="shared-trip-photo-item">
+                <img src={photo.url} alt={photo.label} className="shared-trip-photo" loading="lazy" />
+                <figcaption>{photo.label}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {trip.postPhotos.length > 0 && (
+        <div className="shared-trip-photo-section">
+          <p className="shared-trip-photo-section-title">投稿写真</p>
+          <div className="shared-trip-photos">
+            {trip.postPhotos.map((photo) => (
+              <figure key={photo.url} className="shared-trip-photo-item">
+                <img src={photo.url} alt={photo.label} className="shared-trip-photo" loading="lazy" />
+                {photo.label && <figcaption>{photo.label}</figcaption>}
+              </figure>
+            ))}
+          </div>
         </div>
       )}
     </div>

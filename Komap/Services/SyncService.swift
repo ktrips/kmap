@@ -227,19 +227,23 @@ struct SyncService {
         guard let userID else { throw SyncError.notSignedIn }
 
         if isShared {
-            var photoURLs: [String] = []
+            // 御朱印（史跡チェックポイント）の写真と、自由投稿の写真は、Web側でも
+            // 分けて表示できるよう、それぞれ紐づく史跡名・地点名を添えて公開する。
+            var stampPhotos: [[String: Any]] = []
             for stamp in stamps where stamp.photo != nil {
                 let sourcePath = stampPhotoStoragePath(userID: userID, stampID: stamp.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: stamp.id)
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
-                    photoURLs.append(url.absoluteString)
+                    let siteName = HistoricSiteCatalog.site(withID: stamp.siteID)?.name ?? "御朱印"
+                    stampPhotos.append(["url": url.absoluteString, "siteName": siteName])
                 }
             }
+            var postPhotos: [[String: Any]] = []
             for post in photoPosts where post.photo != nil {
                 let sourcePath = photoPostStoragePath(userID: userID, postID: post.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: post.id)
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
-                    photoURLs.append(url.absoluteString)
+                    postPhotos.append(["url": url.absoluteString, "placeName": post.placeName ?? ""])
                 }
             }
 
@@ -257,7 +261,8 @@ struct SyncService {
                 "stepCount": route.stepCount as Any? ?? NSNull(),
                 "overlayMapID": route.overlayMapID as Any? ?? NSNull(),
                 "totalDistanceMeters": route.totalDistanceMeters,
-                "photoURLs": photoURLs,
+                "stampPhotos": stampPhotos,
+                "postPhotos": postPhotos,
             ]
             try await sharedTripsCollection.document(route.id.uuidString).setData(data, merge: true)
         } else {
@@ -325,6 +330,12 @@ struct RemoteStamp {
     }
 }
 
+/// 「みんなの時空旅」の御朱印・投稿写真1枚分（URLと、史跡名／地点名のラベル）。
+struct RemoteSharedPhoto {
+    let url: String
+    let label: String
+}
+
 /// 「みんなの時空旅」（`sharedTrips/{id}`）から読み取った、他ユーザーを含む時空旅1件分のデータ。
 struct RemoteSharedTrip: Identifiable {
     let id: String
@@ -338,7 +349,8 @@ struct RemoteSharedTrip: Identifiable {
     let stepCount: Int?
     let overlayMapID: String?
     let totalDistanceMeters: Double
-    let photoURLs: [String]
+    let stampPhotos: [RemoteSharedPhoto]
+    let postPhotos: [RemoteSharedPhoto]
 
     init?(id: String, data: [String: Any]) {
         guard let ownerUserID = data["ownerUserID"] as? String else { return nil }
@@ -353,6 +365,13 @@ struct RemoteSharedTrip: Identifiable {
         self.stepCount = data["stepCount"] as? Int
         self.overlayMapID = data["overlayMapID"] as? String
         self.totalDistanceMeters = data["totalDistanceMeters"] as? Double ?? 0
-        self.photoURLs = data["photoURLs"] as? [String] ?? []
+        self.stampPhotos = (data["stampPhotos"] as? [[String: Any]] ?? []).compactMap { dict in
+            guard let url = dict["url"] as? String else { return nil }
+            return RemoteSharedPhoto(url: url, label: dict["siteName"] as? String ?? "")
+        }
+        self.postPhotos = (data["postPhotos"] as? [[String: Any]] ?? []).compactMap { dict in
+            guard let url = dict["url"] as? String else { return nil }
+            return RemoteSharedPhoto(url: url, label: dict["placeName"] as? String ?? "")
+        }
     }
 }
