@@ -17,8 +17,12 @@ Komap Watch App/KomapWatchApp.entitlements
 
 # Firebase設定（各自のFirebaseプロジェクトのものを配置し、公開リポジトリにはコミットしない）
 Komap/Resources/GoogleService-Info.plist
+Komap/Resources/GoogleService-Info_old.plist
 web/.env
 web/.env.local
+
+# Firebase CLIのローカルキャッシュ
+.firebase/
 
 # APIキーなどの秘密情報(各自ローカルで設定し、コミットしない)
 Config/Secrets.xcconfig
