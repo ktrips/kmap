@@ -493,6 +493,11 @@ private struct TripRow: View {
                             .font(.caption2.bold())
                             .foregroundStyle(.blue)
                             .labelStyle(.titleAndIcon)
+                    } else if route.isHiddenOnMap {
+                        Label("マップ非表示", systemImage: "eye.slash.fill")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.secondary)
+                            .labelStyle(.titleAndIcon)
                     }
                 }
 

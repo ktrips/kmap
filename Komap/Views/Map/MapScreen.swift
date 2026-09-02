@@ -121,7 +121,7 @@ struct MapScreen: View {
                 showAllOverlays: mapSession.isShowingAllOverlays,
                 moveCameraRequest: mapSession.cameraMoveRequest,
                 bottomInset: bottomPanelHeight,
-                savedWalkPaths: savedRoutes.map(\.coordinates),
+                savedWalkPaths: savedRoutes.filter { !$0.isHiddenOnMap }.map(\.coordinates),
                 liveWalkPath: displayedLiveWalkPath,
                 checkpoints: activeCheckpoints,
                 collectedSiteIDs: collectedSiteIDs,
@@ -236,7 +236,13 @@ struct MapScreen: View {
             checkForNewStamps(near: latest)
         }
         .onChange(of: locationManager.locationUpdateTick) { _, _ in
-            guard isFollowingCurrentLocation, let coordinate = locationManager.currentLocation else { return }
+            // 記録中でない時（古地図を切り替えて眺めているだけの時など）まで追従すると、
+            // チェックポイントに合わせたカメラフィットを現在地追従が直後に上書きしてしまい、
+            // マーカーが画面外へ出て「消えた」ように見えてしまう。歩行記録中だけ追従する。
+            guard isFollowingCurrentLocation,
+                  locationManager.isRecordingWalk || isWatchTrackingActive,
+                  let coordinate = locationManager.currentLocation
+            else { return }
             mapSession.moveCamera(to: coordinate)
         }
         .onChange(of: photoPostPickerItem) { _, newItem in
@@ -751,16 +757,16 @@ private struct WalkSaveDecisionSheet: View {
             if isConfirmingDiscard {
                 VStack(spacing: 6) {
                     Text("本当に破棄しますか？")
-                        .font(.caption2)
+                        .font(.system(size: 12)) // .caption2相当
                         .foregroundStyle(.secondary)
                     HStack(spacing: 16) {
                         Button("キャンセル") { isConfirmingDiscard = false }
-                            .font(.caption)
+                            .font(.system(size: 14.4)) // .caption(12pt)の20%増し
                         Button("破棄する", role: .destructive) {
                             onDiscard()
                             dismiss()
                         }
-                        .font(.caption.bold())
+                        .font(.system(size: 14.4, weight: .bold)) // .caption.bold()の20%増し
                         .foregroundStyle(.red)
                     }
                     .buttonStyle(.plain)
@@ -770,7 +776,7 @@ private struct WalkSaveDecisionSheet: View {
                     isConfirmingDiscard = true
                 } label: {
                     Text("破棄")
-                        .font(.footnote)
+                        .font(.system(size: 15.6)) // .footnote(13pt)の20%増し
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.red)

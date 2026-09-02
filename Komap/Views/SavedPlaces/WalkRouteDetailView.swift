@@ -3,6 +3,41 @@ import GoogleMaps
 import SwiftData
 import SwiftUI
 
+/// 時間旅の公開範囲。「公開」は誰でも見られる「みんなの時空旅」に出る状態、
+/// 「自分だけ」は自分の「My Trips」とマップ上の軌跡表示の両方に出る状態、
+/// 「非表示」は「My Trips」一覧には出るがマップ上の軌跡表示からは外れる状態。
+enum TripVisibility: String, CaseIterable, Identifiable {
+    case publicShared
+    case onlyMe
+    case hidden
+
+    var id: String { rawValue }
+
+    var menuTitle: String {
+        switch self {
+        case .publicShared: return "公開（みんなの時空旅に表示）"
+        case .onlyMe: return "自分だけ（マップ上にも表示）"
+        case .hidden: return "非表示（マップ上には表示しない）"
+        }
+    }
+
+    var statusText: String {
+        switch self {
+        case .publicShared: return "みんなの時空旅に公開中"
+        case .onlyMe: return "自分だけに表示"
+        case .hidden: return "マップには非表示"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .publicShared: return "person.2.fill"
+        case .onlyMe: return "lock.fill"
+        case .hidden: return "eye.slash.fill"
+        }
+    }
+}
+
 /// 保存した1回分の時間旅行（ウォーキング記録）の詳細。
 /// 使っていた古地図・歩いたルート（塗りつぶした地図）・通ったチェックポイントと御朱印・
 /// アップした写真をまとめて表示する。
@@ -77,14 +112,20 @@ struct WalkRouteDetailView: View {
                     } label: {
                         Label("名前を変更", systemImage: "pencil")
                     }
-                    Button {
-                        Task { await togglePublicSharing() }
-                    } label: {
-                        if route.isSharedPublicly {
-                            Label("「みんなの時空旅」への公開をやめる", systemImage: "person.2.slash")
-                        } else {
-                            Label("「みんなの時空旅」に公開する", systemImage: "person.2.fill")
+                    Menu {
+                        ForEach(TripVisibility.allCases) { visibility in
+                            Button {
+                                Task { await setVisibility(visibility) }
+                            } label: {
+                                if visibility == currentVisibility {
+                                    Label(visibility.menuTitle, systemImage: "checkmark")
+                                } else {
+                                    Text(visibility.menuTitle)
+                                }
+                            }
                         }
+                    } label: {
+                        Label("公開設定: \(currentVisibility.menuTitle)", systemImage: currentVisibility.systemImage)
                     }
                     .disabled(isUpdatingShare)
                     Button(role: .destructive) {
@@ -145,10 +186,10 @@ struct WalkRouteDetailView: View {
                 .font(.subheadline.bold())
                 .foregroundStyle(.brown)
 
-            if route.isSharedPublicly {
-                Label("みんなの時空旅に公開中", systemImage: "person.2.fill")
+            if currentVisibility != .onlyMe {
+                Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
                     .font(.caption.bold())
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
             }
 
             if let shareErrorMessage {
@@ -220,25 +261,40 @@ struct WalkRouteDetailView: View {
         }
     }
 
-    /// 「みんなの時空旅」への公開・非公開を切り替える。
-    private func togglePublicSharing() async {
+    /// 現在の公開状態（公開・自分だけ・非表示の3段階）。
+    private var currentVisibility: TripVisibility {
+        if route.isSharedPublicly { return .publicShared }
+        return route.isHiddenOnMap ? .hidden : .onlyMe
+    }
+
+    /// 公開状態を切り替える。「公開」⇔他の状態の間ではFirestoreへの
+    /// 公開・非公開の同期が必要なため、それ以外（自分だけ⇔非表示）より時間がかかる。
+    private func setVisibility(_ visibility: TripVisibility) async {
+        guard visibility != currentVisibility else { return }
         isUpdatingShare = true
         shareErrorMessage = nil
-        let newValue = !route.isSharedPublicly
-        do {
-            try await syncService.setPubliclyShared(
-                route,
-                isShared: newValue,
-                userID: authService.userID,
-                ownerDisplayName: authService.displayName,
-                stamps: stampsForRoute,
-                photoPosts: photoPostsForRoute
-            )
-            route.isSharedPublicly = newValue
-            try? modelContext.save()
-        } catch {
-            shareErrorMessage = "共有の変更に失敗しました: \(error.localizedDescription)"
+
+        let shouldBePublic = visibility == .publicShared
+        if shouldBePublic != route.isSharedPublicly {
+            do {
+                try await syncService.setPubliclyShared(
+                    route,
+                    isShared: shouldBePublic,
+                    userID: authService.userID,
+                    ownerDisplayName: authService.displayName,
+                    stamps: stampsForRoute,
+                    photoPosts: photoPostsForRoute
+                )
+                route.isSharedPublicly = shouldBePublic
+            } catch {
+                shareErrorMessage = "共有の変更に失敗しました: \(error.localizedDescription)"
+                isUpdatingShare = false
+                return
+            }
         }
+
+        route.isHiddenOnMap = (visibility == .hidden)
+        try? modelContext.save()
         isUpdatingShare = false
     }
 

@@ -27,6 +27,10 @@ final class WalkRoute {
     /// `true`の間、この時間旅は自分だけの「My Trips」ではなく、
     /// 全ユーザー共通の「みんなの時空旅」にも公開される。
     var isSharedPublicly: Bool = false
+    /// `true`の間、この時間旅は「My Trips」一覧には出るが、マップ画面の
+    /// 「保存済みの徒歩ルート」としては描画しない（過去のルート表示を整理したい時用）。
+    /// `isSharedPublicly`が`true`の時はこちらは意味を持たない（常に表示扱い）。
+    var isHiddenOnMap: Bool = false
 
     init(
         id: UUID = UUID(),
@@ -37,7 +41,8 @@ final class WalkRoute {
         overlayMapID: String? = nil,
         overlayOpacity: Double = 0.55,
         title: String? = nil,
-        isSharedPublicly: Bool = false
+        isSharedPublicly: Bool = false,
+        isHiddenOnMap: Bool = false
     ) {
         self.id = id
         self.latitudes = coordinates.map(\.latitude)
@@ -49,6 +54,7 @@ final class WalkRoute {
         self.overlayOpacity = overlayOpacity
         self.title = title
         self.isSharedPublicly = isSharedPublicly
+        self.isHiddenOnMap = isHiddenOnMap
     }
 
     /// 歩いた時間（秒）。`endedAt`が無い（この項目を追加する前の）記録では`nil`。
