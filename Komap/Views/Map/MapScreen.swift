@@ -512,6 +512,17 @@ struct MapScreen: View {
             guard isWatchTrackingActive else { return }
             watchTrackedPath.append(coordinate)
             checkForNewStamps(near: coordinate)
+        case .watchTrackingSnapshot(let sessionID, let coordinates):
+            // iPhoneがロック中・バックグラウンドなどで`watchLocationUpdate`を取りこぼしていた間も、
+            // ここで累積軌跡に追いつく。別セッションの古いスナップショットは無視し、
+            // 既に持っている軌跡より短い（＝古い）ものでは上書きしない。
+            guard let incomingSessionID = UUID(uuidString: sessionID) else { return }
+            if let activeWatchSessionID, activeWatchSessionID != incomingSessionID { return }
+            isWatchTrackingActive = true
+            activeWatchSessionID = incomingSessionID
+            if coordinates.count > watchTrackedPath.count {
+                watchTrackedPath = coordinates
+            }
         }
     }
 

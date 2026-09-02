@@ -163,13 +163,36 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// Watch単体のGPSで得た現在地をiPhoneへ転送し、御朱印チェックポイントの判定に使ってもらう。
     /// 位置更新は頻繁なので、キューに積む`transferUserInfo`は使わず、到達可能な時だけ
     /// ベストエフォートで送る（届かなくても次の更新ですぐ追いつくため問題ない）。
+    ///
+    /// ただし、iPhoneがロック中・バックグラウンドなどで到達不能な間はこれが一切届かず、
+    /// 記録の軌跡がiPhone側にまったく反映されないままになってしまう。そのため、
+    /// 到達可能かどうかに関わらず`sendTrackingSnapshot()`で累積軌跡も送っておき、
+    /// iPhoneが後で操作可能になった時にすぐ追いつけるようにする。
     private func sendLocationUpdate(_ coordinate: CLLocationCoordinate2D) {
-        guard let session, session.activationState == .activated, session.isReachable else { return }
-        session.sendMessage(
-            ["command": "watchLocationUpdate", "lat": coordinate.latitude, "lon": coordinate.longitude],
-            replyHandler: nil,
-            errorHandler: nil
-        )
+        if let session, session.activationState == .activated, session.isReachable {
+            session.sendMessage(
+                ["command": "watchLocationUpdate", "lat": coordinate.latitude, "lon": coordinate.longitude],
+                replyHandler: nil,
+                errorHandler: nil
+            )
+        }
+        sendTrackingSnapshot()
+    }
+
+    /// 記録中の累積軌跡を、iPhoneが今すぐ受け取れるかどうかに関わらず送っておく。
+    /// `updateApplicationContext`は内容が常に最新のものに置き換わるだけなので、
+    /// 頻繁に呼んでもキューが溜まる心配がない。
+    private func sendTrackingSnapshot() {
+        guard let session, session.activationState == .activated,
+              let tracker, let sessionID = activeSessionID
+        else { return }
+        let path = tracker.path
+        guard !path.isEmpty else { return }
+        try? session.updateApplicationContext([
+            "trackingSessionID": sessionID.uuidString,
+            "trackingLatitudes": path.map(\.latitude),
+            "trackingLongitudes": path.map(\.longitude),
+        ])
     }
 
     /// iPhoneから届いた「御朱印を新しく獲得した」通知を受け取る。
