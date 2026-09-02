@@ -243,9 +243,12 @@ struct SyncService {
                 }
             }
 
+            // プライバシーのため、公開する名前はGoogleの表示名の先頭6文字だけにする。
+            let truncatedOwnerDisplayName = ownerDisplayName.map { String($0.prefix(6)) }
+
             let data: [String: Any] = [
                 "ownerUserID": userID,
-                "ownerDisplayName": ownerDisplayName as Any? ?? NSNull(),
+                "ownerDisplayName": truncatedOwnerDisplayName as Any? ?? NSNull(),
                 "title": route.title as Any? ?? NSNull(),
                 "latitudes": route.latitudes,
                 "longitudes": route.longitudes,

@@ -561,7 +561,7 @@ private struct SharedTripRow: View {
                 HStack(spacing: 10) {
                     Label(distanceText, systemImage: "figure.walk")
                     if let ownerName = trip.ownerDisplayName, !ownerName.isEmpty {
-                        Label(ownerName, systemImage: "person.fill")
+                        Label(String(ownerName.prefix(6)), systemImage: "person.fill")
                     }
                 }
                 .font(.caption2)

@@ -58,7 +58,8 @@ export function fromSharedTrip(trip: SharedTrip): UnifiedTrip {
     stepCount: trip.stepCount,
     overlayMapID: trip.overlayMapID,
     totalDistanceMeters: trip.totalDistanceMeters,
-    ownerDisplayName: trip.ownerDisplayName,
+    // プライバシーのため、表示名は先頭6文字だけにする（サージケートペアも1文字として数える）。
+    ownerDisplayName: trip.ownerDisplayName ? Array.from(trip.ownerDisplayName).slice(0, 6).join("") : null,
     photoURLs: trip.photoURLs,
     stampCount: null,
   };
