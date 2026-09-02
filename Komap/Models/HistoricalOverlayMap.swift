@@ -154,17 +154,20 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.7166, longitude: 139.7929)
     )
 
+    // 麻布・六本木は、アプリ内の現在の地図（チェックポイント表示）のスクリーンショットから
+    // ピンアイコン類を除去し、セピア調のフィルターをかけて「古地図風」に加工した画像を使用。
+    // 実際の歴史史料のスキャンではない（`goshikiFudo`より上のイラスト画像と同じ扱い）。
     static let roppongi = HistoricalOverlayMap(
         id: "roppongi-meiji",
-        title: "麻布・六本木周辺（明治時代）",
-        era: "明治時代（1891年・明治24年頃）",
-        summary: "大名屋敷が置かれていた麻布・六本木の町割りが広がっていたエリア。現在の六本木ヒルズ（毛利庭園）・乃木神社周辺に相当します。",
+        title: "麻布・六本木周辺",
+        era: "古地図風（現在の地図をもとに加工）",
+        summary: "大名屋敷が置かれていた麻布・六本木の町割りをイメージした、現在の地図をもとにした古地図風の画像です。現在の六本木ヒルズ（毛利庭園）・乃木神社周辺に相当します。",
         imageAssetName: "OldMap_Roppongi",
-        southWest: CLLocationCoordinate2D(latitude: 35.655, longitude: 139.720),
-        northEast: CLLocationCoordinate2D(latitude: 35.672, longitude: 139.740)
+        southWest: CLLocationCoordinate2D(latitude: 35.64769, longitude: 139.72254),
+        northEast: CLLocationCoordinate2D(latitude: 35.67459, longitude: 139.74098)
     )
 
-    // 以下3枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
+    // 以下2枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
     // の実画像を、地域を絞らず広域のまま使ったもの。1931年より前に発行されたためパブリックドメイン
     // （出典: Wikimedia Commons）。目黒・世田谷・豊島など東京十五区の外側にあたるエリアも含むため、
     // 他の6枚に比べて図の密度は粗く、位置合わせもより概算になる。
@@ -207,14 +210,16 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.6933, longitude: 139.7496)
     )
 
+    // 赤坂・紀尾井町も同様に、現在の地図のスクリーンショットからピンアイコンを除去して
+    // セピア調に加工した「古地図風」画像。実際の歴史史料のスキャンではない。
     static let akasakaKioicho = HistoricalOverlayMap(
         id: "akasaka-kioicho-meiji",
         title: "赤坂・紀尾井町（大名屋敷跡）",
-        era: "明治時代（1891年・明治24年頃）",
-        summary: "紀伊徳川家・尾張徳川家・彦根井伊家の屋敷が並び、「紀尾井町」の地名の由来となったエリア。赤坂の社寺も含みます。",
-        imageAssetName: "OldMap_TokyoMeiji1891",
-        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
-        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+        era: "古地図風（現在の地図をもとに加工）",
+        summary: "紀伊徳川家・尾張徳川家・彦根井伊家の屋敷が並び、「紀尾井町」の地名の由来となったエリア。現在の地図をもとにした古地図風の画像で、赤坂の社寺周辺も含みます。",
+        imageAssetName: "OldMap_AkasakaKioicho",
+        southWest: CLLocationCoordinate2D(latitude: 35.66579, longitude: 139.72203),
+        northEast: CLLocationCoordinate2D(latitude: 35.69024, longitude: 139.73768)
     )
 
     static let tokaido = HistoricalOverlayMap(

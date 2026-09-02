@@ -46,8 +46,8 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
   {
     id: "roppongi-meiji",
-    title: "麻布・六本木周辺（明治時代）",
-    era: "明治時代（1891年・明治24年頃）",
+    title: "麻布・六本木周辺",
+    era: "古地図風（現在の地図をもとに加工）",
   },
   {
     id: "goshiki-fudo-meiji",
@@ -67,7 +67,7 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   {
     id: "akasaka-kioicho-meiji",
     title: "赤坂・紀尾井町（大名屋敷跡）",
-    era: "明治時代（1891年・明治24年頃）",
+    era: "古地図風（現在の地図をもとに加工）",
   },
   {
     id: "tokaido-edo",
