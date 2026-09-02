@@ -78,36 +78,34 @@ private struct MapTopLeftControls: View {
 
     var body: some View {
         Menu {
-            Menu {
-                OldMapPickerMenuContent(
-                    selectedOverlay: $mapSession.selectedOverlay,
-                    isShowingAllOverlays: $mapSession.isShowingAllOverlays,
-                    onRequestSearch: {
-                        mapSession.isShowingOldMapSearch = true
-                    }
-                )
-            } label: {
-                Label("古地図選択", systemImage: "map")
-            }
-            Divider()
-            Button {
-                mapSession.selectedTab = .myTimeTrip
-            } label: {
-                Label("マイ時空旅", systemImage: "book.closed")
-            }
-            Divider()
-            Button {
-                mapSession.selectedTab = .settings
-            } label: {
-                Label("セットアップ", systemImage: "gearshape")
+            Section("Komap 古地図巡り") {
+                Menu {
+                    OldMapPickerMenuContent(
+                        selectedOverlay: $mapSession.selectedOverlay,
+                        isShowingAllOverlays: $mapSession.isShowingAllOverlays,
+                        onRequestSearch: {
+                            mapSession.isShowingOldMapSearch = true
+                        }
+                    )
+                } label: {
+                    Label("古地図選択", systemImage: "map")
+                }
+                Divider()
+                Button {
+                    mapSession.selectedTab = .myTimeTrip
+                } label: {
+                    Label("マイ時空旅", systemImage: "book.closed")
+                }
+                Divider()
+                Button {
+                    mapSession.selectedTab = .settings
+                } label: {
+                    Label("セットアップ", systemImage: "gearshape")
+                }
             }
         } label: {
-            Image("KomapIcon")
-                .resizable()
-                .scaledToFill()
-                .frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+            Image(systemName: "line.3.horizontal")
+                .roundControlButtonStyle()
         }
         .padding(.top, 8)
         .padding(.leading, 16)

@@ -151,6 +151,9 @@ struct MapScreen: View {
             }
             .padding(.bottom, 12)
         }
+        .overlay(alignment: .bottomTrailing) {
+            currentLocationButton
+        }
         .overlay(alignment: .top) {
             if let pointsToastMessage {
                 Text(pointsToastMessage)
@@ -229,6 +232,26 @@ struct MapScreen: View {
                 if !isPresented { discardPendingWalkRoute() }
             }
         )
+    }
+
+    /// Google純正の現在地ボタンより小さく・低い位置に置く、自前の現在地ボタン。
+    /// 押すと現在地へカメラを移動する（現在地の「青い点」自体は`GMSMapView`側のまま）。
+    private var currentLocationButton: some View {
+        Button {
+            if let coordinate = locationManager.currentLocation {
+                mapSession.moveCamera(to: coordinate)
+            }
+        } label: {
+            Image(systemName: "location.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 32, height: 32)
+                .background(.regularMaterial, in: Circle())
+                .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+        }
+        .disabled(locationManager.currentLocation == nil)
+        .padding(.trailing, 16)
+        .padding(.bottom, bottomPanelHeight - 12)
     }
 
     private var actionButtonsRow: some View {

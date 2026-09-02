@@ -45,7 +45,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         let mapView = GMSMapView()
         mapView.camera = initialCamera
         mapView.isMyLocationEnabled = true
-        mapView.settings.myLocationButton = true
+        // Google純正の現在地ボタンは大きいため非表示にし、代わりにもっと小さい
+        // 自前のボタン（MapScreen側）を使う。現在地の「青い点」表示自体は上のまま残す。
+        mapView.settings.myLocationButton = false
         mapView.settings.compassButton = true
         mapView.delegate = context.coordinator
         // 歩いた道の朱色をくっきり引き立たせるため、地図自体は少しだけ彩度を落としておく。
