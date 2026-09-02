@@ -69,9 +69,11 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
-      # storage:rules は、Firebase Consoleで一度もStorageバケットを作成（「Get started」）
-      # していないプロジェクトだとバケットが存在せずデプロイ自体が失敗し、
-      # 同じコマンドに含めているhosting・firestore:rulesまで巻き込んで失敗してしまう。
-      # Storageバケットのセットアップ後に、このコマンドへstorage:rulesを追加すること。
-      - name: Deploy to Firebase Hosting + Firestore rules
-        run: npx firebase-tools@latest deploy --only hosting,firestore:rules --project komapprj --non-interactive
+      # Storageバケットを作成済みのため、Storageルールもデプロイ対象に含める。
+      # このプロジェクトはStorageバケットが1つだけの単純な構成のため、
+      # ターゲット名は`storage:rules`ではなく`storage`を指定する
+      # （`storage:rules`はfirebase.jsonで複数バケットをtarget指定している
+      # 構成向けの書き方で、単純な構成では「Could not find rules for the
+      # following storage targets: rules」というエラーで失敗する）。
+      - name: Deploy to Firebase Hosting + Firestore/Storage rules
+        run: npx firebase-tools@latest deploy --only hosting,firestore:rules,storage --project komapprj --non-interactive
