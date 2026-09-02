@@ -296,13 +296,14 @@ struct MapScreen: View {
             }
         } label: {
             Image(systemName: "location.fill")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 16.8, weight: .semibold)) // 14の20%増し
                 .foregroundStyle(.primary)
-                .frame(width: 32, height: 32)
+                .frame(width: 38.4, height: 38.4) // 32の20%増し
                 .background(.regularMaterial, in: Circle())
                 .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
         }
         .disabled(locationManager.currentLocation == nil)
+        .padding(.trailing, 1)
     }
 
     private var actionButtonsRow: some View {

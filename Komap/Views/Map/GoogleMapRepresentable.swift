@@ -89,7 +89,14 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onTap: onTap)
+        let coordinator = Coordinator(onTap: onTap)
+        // このView自体が生成される前から存在していたカメラ移動リクエストは、
+        // 「既に処理済み」として扱う。そうしないと、マップタブを離れて戻ってきた時に
+        // （Viewが作り直されてCoordinatorも真新しくなるため）、以前の現在地追従などで
+        // 残っていた古いリクエストがここで初めて処理され、チェックポイントに合わせた
+        // 初期カメラフィットを直後に上書きしてしまう。
+        coordinator.lastHandledMoveRequestID = moveCameraRequest?.id
+        return coordinator
     }
 
     final class Coordinator: NSObject, GMSMapViewDelegate {
@@ -132,7 +139,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private static let minimumUnrevealedAlpha: CGFloat = 0.6
         /// 歩いた道の縁取りの太さ（画面上のポイント数）。中の透かし塗りよりわずかに太いだけの、
         /// 細く濃い縁として見せる。
-        private let walkedTrailBorderWidth: CGFloat = 18
+        private let walkedTrailBorderWidth: CGFloat = 14.4 // 18の20%減
         /// 歩いた道の中を薄く塗る太さ。縁取りより一回り細くすることで、縁だけが濃い線として残り、
         /// 中央は明るい色が重なって薄く見える。
         private let walkedTrailFillWidth: CGFloat = 12
@@ -291,6 +298,22 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     fitBounds = bounds
                 }
                 mapView.moveCamera(GMSCameraUpdate.fit(fitBounds, withPadding: 24))
+                // 「五色不動めぐり」「松尾芭蕉ゆかりの地」「霞ヶ関・虎ノ門」「赤坂・紀尾井町」など、
+                // 広域の同じ画像を使い回している古地図は、チェックポイントが画像全体に対して
+                // ごく一部・細長い範囲に集中していることがあり、そこへぴったりフィットすると
+                // ズームしすぎてGoogle Maps SDKがグラウンドオーバーレイを描画できなくなることがある。
+                // そのため、フィット後のズームが行き過ぎていたら上限まで戻す。
+                if mapView.camera.zoom > Self.maxCheckpointFitZoom {
+                    let center = CLLocationCoordinate2D(
+                        latitude: (fitBounds.northEast.latitude + fitBounds.southWest.latitude) / 2,
+                        longitude: (fitBounds.northEast.longitude + fitBounds.southWest.longitude) / 2
+                    )
+                    mapView.moveCamera(
+                        GMSCameraUpdate.setCamera(
+                            GMSCameraPosition(target: center, zoom: Self.maxCheckpointFitZoom)
+                        )
+                    )
+                }
 
                 // ぼかし画像の生成は重いので、メインスレッドをブロックしないよう
                 // バックグラウンドで計算してから後で使う（先に元画像で表示しておく）。
@@ -437,6 +460,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 10枚重ねてもほとんど見分けがつかない。GPUの合成負荷を減らすため、
         /// この表示専用にあらかじめ縮小しておく。
         private static let allOverlaysMaxDimension: CGFloat = 480
+
+        /// 古地図選択時にチェックポイントへカメラフィットする際の、これ以上は
+        /// ズームしない上限。広域画像を使い回している古地図でチェックポイントが
+        /// 画像のごく一部に集中していると、フィットだけに任せると極端にズーム
+        /// しすぎてグラウンドオーバーレイが描画されなくなることがあるため。
+        private static let maxCheckpointFitZoom: Float = 17
 
         private static func downsampledForAllOverlays(_ image: UIImage?) -> UIImage? {
             guard let image else { return nil }
