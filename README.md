@@ -113,6 +113,11 @@ Web（`map.ktrips.net`）で「自分のマップ」を見られるようにす�
      追加のキー発行は不要です。「有効にする」→サポートメールを選択→保存、のみで使えるようになります。
    - iOS側で使うには、後述の「1-4-1. iOSでGoogleサインインを使うための追加設定」も行ってください。
 3. 「Firestore Database」を作成します（本番モードでOK。ルールは後述のものをデプロイします）。
+3-1. 「Storage」を開き、「開始する（Get started）」でStorageバケットを作成します
+   （御朱印・投稿写真の画像本体を保存するために必要です）。**バケットのリージョンは
+   後から変更できない**ため、利用者に近いリージョン（例: `asia-northeast1`）を選んでください。
+   このバケットを作成しないまま`firebase deploy`でStorageルールをデプロイしようとすると、
+   `Firebase Storage has not been set up on project ...` というエラーで失敗します。
 4. 「プロジェクトの設定」→「マイアプリ」で **iOSアプリ** を追加します。
    - Bundle ID には `project.yml` の `PRODUCT_BUNDLE_IDENTIFIER`（既定値 `com.komap.Komap`）を入力。
    - ダウンロードした `GoogleService-Info.plist` を `Komap/Resources/GoogleService-Info.plist`
@@ -143,8 +148,15 @@ Web（`map.ktrips.net`）で「自分のマップ」を見られるようにす�
 npm install -g firebase-tools
 firebase login
 # .firebaserc の "YOUR_FIREBASE_PROJECT_ID" を実際のプロジェクトIDに書き換えてから:
-firebase deploy --only firestore:rules,storage:rules
+firebase deploy --only firestore:rules,storage
 ```
+
+> Storageルールのデプロイ対象は `storage:rules` ではなく `storage` を指定してください。
+> このプロジェクトのようにStorageバケットが1つだけの構成では、`storage:rules`は
+> `Could not find rules for the following storage targets: rules` というエラーで
+> 失敗します（`storage:rules`は`firebase.json`で複数バケットをtarget指定している
+> 構成向けの書き方です）。また、上記の手順3-1でStorageバケットを作成する前に
+> このコマンドを実行すると失敗します。
 
 > `firebase/firestore.rules` は「自分の `users/{uid}/places` `stamps` `walkRoutes`
 > `photoPosts` 配下のみ読み書き可能、`sharedTrips`（みんなの時空旅）はサインインしていれば
@@ -250,7 +262,7 @@ Firebase Authenticationの「承認済みドメイン」に追加しておく必
 
 `web/**`・`firebase.json`・`firebase/**` を変更して`main`ブランチにpushすると、
 `.github/workflows/deploy-web.yml` が自動的にWebアプリをビルドし、Firebase Hosting と
-Firestoreルールへデプロイします（手動で`workflow_dispatch`から実行することも可能）。
+Firestore/Storageルールへデプロイします（手動で`workflow_dispatch`から実行することも可能）。
 
 利用するには、GitHubリポジトリの Settings → Secrets and variables → Actions に、
 以下のRepository secretsを登録してください。
@@ -261,15 +273,17 @@ Firestoreルールへデプロイします（手動で`workflow_dispatch`から�
 | `VITE_FIREBASE_API_KEY` 他 `VITE_FIREBASE_*` | `web/.env` と同じ値（2-1を参照） |
 | `VITE_GOOGLE_MAPS_API_KEY` | `web/.env` と同じ値 |
 
-サービスアカウントは、Hosting・Firestoreルールのデプロイだけができる最小権限で
-発行することを推奨します。
+サービスアカウントは、Hosting・Firestore/Storageルールのデプロイだけができる最小権限で
+発行することを推奨します。`roles/firebasestorage.admin`が無いと、Storageルールの
+デプロイだけが `Deploy to Firebase Hosting + Firestore/Storage rules` ステップで
+失敗します（Hosting・Firestoreは成功するため気づきにくい点に注意してください）。
 
 ```bash
 gcloud iam service-accounts create github-actions-deploy \
   --project=YOUR_FIREBASE_PROJECT_ID \
   --display-name="GitHub Actions (Firebase deploy)"
 
-for role in roles/firebasehosting.admin roles/firebaserules.admin roles/datastore.indexAdmin; do
+for role in roles/firebasehosting.admin roles/firebaserules.admin roles/firebasestorage.admin roles/datastore.indexAdmin; do
   gcloud projects add-iam-policy-binding YOUR_FIREBASE_PROJECT_ID \
     --member="serviceAccount:github-actions-deploy@YOUR_FIREBASE_PROJECT_ID.iam.gserviceaccount.com" \
     --role="$role"
@@ -293,12 +307,15 @@ gcloud iam service-accounts keys create github-actions-deploy-key.json \
 - **イラスト画像**（江戸城周辺・浅草周辺）: このサンプルアプリのために生成した
   **古地図"風"のイラスト**で、実際の歴史史料をスキャンしたものではありません。
 - **実在の歴史地図**（本郷・谷中／上野／日本橋／芝／神田／麻布・六本木、および
-  「五色不動めぐり」「松尾芭蕉ゆかりの地」）: 「1891 Meiji Map of Tokyo or Edo, Japan」
+  「五色不動めぐり」「松尾芭蕉ゆかりの地」「霞ヶ関・虎ノ門」「赤坂・紀尾井町」
+  「東海道」「中山道」「九段下・千鳥ヶ淵」）: 「1891 Meiji Map of Tokyo or Edo, Japan」
   （Geographicus発行、1931年より前の発行につきパブリックドメイン。出典: Wikimedia Commons）
   の実画像を、エリアごとに切り出す、または広域のまま使ったものです。位置合わせは
   地図上の目印（不忍池・皇居のお堀等）を基準に手作業で行った概算で、史料的に厳密な
-  測量座標ではありません。特に「五色不動めぐり」「松尾芭蕉ゆかりの地」は、旧東京市の
-  外側にあたる地域（目黒・世田谷など）も含む広域表示のため、地図の密度が粗く、
+  測量座標ではありません。「五色不動めぐり」「松尾芭蕉ゆかりの地」「霞ヶ関・虎ノ門」
+  「赤坂・紀尾井町」「東海道」「中山道」「九段下・千鳥ヶ淵」は、専用に切り出した画像を
+  用意せず広域画像をそのまま使い回しているテーマ別ルートで、旧東京市の外側にあたる
+  地域（目黒・世田谷・品川区南部など）も含む広域表示のため、地図の密度が粗く、
   位置合わせもより概算になります。
 
 いずれの画像も、設定している緯度経度の位置合わせ座標
