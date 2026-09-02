@@ -5,15 +5,16 @@ import type { SharedTrip } from "../types/sharedTrip";
 
 /**
  * 全ユーザーが公開している「みんなの時空旅」（`sharedTrips`）をリアルタイムに監視する。
- * サインインしていれば、自分・他ユーザーを問わず公開済みの時空旅がすべて見える。
+ * サインインしていない訪問者でも、公開済みの時空旅は誰でも見られる
+ * （Firestoreルールで`sharedTrips`は公開読み取り可にしているため）。
  */
-export function useSharedTrips(isSignedIn: boolean) {
+export function useSharedTrips() {
   const [trips, setTrips] = useState<SharedTrip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!db || !isSignedIn) {
+    if (!db) {
       setTrips([]);
       return;
     }
@@ -55,7 +56,7 @@ export function useSharedTrips(isSignedIn: boolean) {
     );
 
     return () => unsubscribe();
-  }, [isSignedIn]);
+  }, []);
 
   return { trips, isLoading, error };
 }

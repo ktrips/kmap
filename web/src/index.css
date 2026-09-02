@@ -45,41 +45,14 @@ code {
   font-weight: 600;
 }
 
-/* ---------- Sign-in screen ---------- */
+/* ---------- Loading screen ---------- */
 
-.loading-screen,
-.sign-in-screen {
+.loading-screen {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-}
-
-.sign-in-card {
-  max-width: 420px;
-  background: var(--color-card);
-  border-radius: 20px;
-  padding: 40px 32px;
-  box-shadow: var(--shadow-soft);
-  text-align: center;
-}
-
-.sign-in-card h1 {
-  margin: 4px 0 16px;
-  font-size: 1.6rem;
-}
-
-.sign-in-description {
-  color: #5b5044;
-  line-height: 1.7;
-  margin-bottom: 28px;
-}
-
-.sign-in-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .google-button {
@@ -101,6 +74,13 @@ code {
 .google-button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.google-button-compact {
+  width: auto;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .setup-notice {
@@ -188,6 +168,44 @@ code {
   color: #fff;
   font-weight: 600;
   font-size: 0.95rem;
+}
+
+/* ---------- Public shared trips view（未サインイン向け） ---------- */
+
+.public-intro {
+  padding: 20px 28px;
+  background: var(--color-card);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.public-intro h1 {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+}
+
+.public-intro > p {
+  margin: 0 0 14px;
+  color: #5b5044;
+  line-height: 1.7;
+  max-width: 720px;
+}
+
+.public-intro-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.public-intro-points p {
+  flex: 1 1 320px;
+  margin: 0;
+  padding: 12px 14px;
+  background: #fdf2e3;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-brown-deep);
 }
 
 .app-body {

@@ -3,7 +3,7 @@ import { Header } from "./components/Header";
 import { MapView } from "./components/MapView";
 import { PlaceDetail } from "./components/PlaceDetail";
 import { PlaceList } from "./components/PlaceList";
-import { SignInScreen } from "./components/SignInScreen";
+import { PublicSharedTripsView } from "./components/PublicSharedTripsView";
 import { TripDetail } from "./components/TripDetail";
 import { TripList } from "./components/TripList";
 import { isFirebaseConfigured } from "./lib/firebase";
@@ -22,7 +22,7 @@ export default function App() {
   const { user, isInitializing, isSigningIn, error, signInWithGoogle, signOut } = useAuth();
   const { places } = usePlaces(user?.uid ?? null);
   const { trips: ownTrips } = useWalkRoutes(user?.uid ?? null);
-  const { trips: sharedTrips } = useSharedTrips(Boolean(user));
+  const { trips: sharedTrips } = useSharedTrips();
   const { stamps } = useStamps(user?.uid ?? null);
   const { photoPosts } = usePhotoPosts(user?.uid ?? null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -59,7 +59,8 @@ export default function App() {
 
   if (!user) {
     return (
-      <SignInScreen
+      <PublicSharedTripsView
+        sharedTrips={sharedTrips}
         isSigningIn={isSigningIn}
         error={error}
         isFirebaseConfigured={isFirebaseConfigured}
