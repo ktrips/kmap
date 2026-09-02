@@ -158,32 +158,36 @@ code {
   gap: 16px;
 }
 
-.account-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-size: 0.85rem;
-}
-
-.account-name {
-  font-weight: 600;
-}
-
 .account-count {
+  font-size: 0.85rem;
   color: #8a7c68;
 }
 
-.ghost-button {
-  border: 1px solid var(--color-border);
-  background: transparent;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 0.85rem;
-  color: var(--color-brown-deep);
+.account-avatar-button {
+  border: none;
+  background: none;
+  padding: 0;
+  line-height: 0;
+  cursor: pointer;
+  border-radius: 50%;
 }
 
-.ghost-button:hover {
-  background: rgba(138, 90, 52, 0.08);
+.account-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.account-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-brown-deep);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .app-body {
