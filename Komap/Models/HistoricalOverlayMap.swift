@@ -189,10 +189,30 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
     )
 
+    static let kasumigasekiToranomon = HistoricalOverlayMap(
+        id: "kasumigaseki-toranomon-meiji",
+        title: "霞ヶ関・虎ノ門（大名屋敷と社寺）",
+        era: "明治時代（1891年・明治24年頃）",
+        summary: "桜田門から虎ノ門にかけて、大名屋敷や由緒ある社寺が並んでいたエリア。現在の官庁街・虎ノ門ヒルズ周辺に相当します。",
+        imageAssetName: "OldMap_TokyoMeiji1891",
+        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+    )
+
+    static let akasakaKioicho = HistoricalOverlayMap(
+        id: "akasaka-kioicho-meiji",
+        title: "赤坂・紀尾井町（大名屋敷跡）",
+        era: "明治時代（1891年・明治24年頃）",
+        summary: "紀伊徳川家・尾張徳川家・彦根井伊家の屋敷が並び、「紀尾井町」の地名の由来となったエリア。赤坂の社寺も含みます。",
+        imageAssetName: "OldMap_TokyoMeiji1891",
+        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, ueno, nihonbashi, shiba, kanda, roppongi,
-        goshikiFudo, bashoOkuNoHosomichi,
+        goshikiFudo, bashoOkuNoHosomichi, kasumigasekiToranomon, akasakaKioicho,
     ]
 
     /// 同梱の古地図 + ユーザーが検索して追加した古地図。

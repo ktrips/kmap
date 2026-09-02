@@ -59,6 +59,16 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     title: "松尾芭蕉ゆかりの地（深川〜千住）",
     era: "明治時代（1891年・明治24年頃）",
   },
+  {
+    id: "kasumigaseki-toranomon-meiji",
+    title: "霞ヶ関・虎ノ門（大名屋敷と社寺）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
+  {
+    id: "akasaka-kioicho-meiji",
+    title: "赤坂・紀尾井町（大名屋敷跡）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
 ];
 
 export function findOldMap(id: string | null): OldMapEntry | undefined {

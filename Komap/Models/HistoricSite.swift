@@ -419,6 +419,80 @@ enum HistoricSiteCatalog {
             summary: "千住にある古社。境内には松尾芭蕉の句碑「奥の細道矢立初めの碑」が立つ。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7458, longitude: 139.7965)
         ),
+
+        // 霞ヶ関・虎ノ門（大名屋敷と社寺）
+        HistoricSite(
+            id: "kasumigaseki-sakuradamon",
+            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            name: "桜田門",
+            summary: "江戸城外桜田門。桜田門外の変の舞台としても知られ、霞ヶ関・虎ノ門エリアへの入口にあたる門。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6773, longitude: 139.7539)
+        ),
+        HistoricSite(
+            id: "kasumigaseki-hibiya-park",
+            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            name: "日比谷公園",
+            summary: "江戸時代は大名屋敷や陸軍練兵場だった地に、明治36年に開園した日本初の近代西洋式公園。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6740, longitude: 139.7565)
+        ),
+        HistoricSite(
+            id: "kasumigaseki-atago-shrine",
+            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            name: "愛宕神社",
+            summary: "江戸時代から防火の神様として信仰された、都心随一の高台にある神社。出世の石段でも知られる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6653, longitude: 139.7494)
+        ),
+        HistoricSite(
+            id: "kasumigaseki-toranomon-kotohira",
+            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            name: "虎ノ門金刀比羅宮",
+            summary: "万治3年（1660年）創建。丸亀藩の江戸藩邸内に、讃岐の金刀比羅宮を勧請したのが始まり。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6699, longitude: 139.7497)
+        ),
+        HistoricSite(
+            id: "kasumigaseki-tameike",
+            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            name: "溜池跡",
+            summary: "江戸城の外堀を兼ねた人工の溜め池があった場所。現在の溜池交差点にその名を残す。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6693, longitude: 139.7413)
+        ),
+
+        // 赤坂・紀尾井町（大名屋敷跡）
+        HistoricSite(
+            id: "akasaka-hikawa-shrine",
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
+            name: "赤坂氷川神社",
+            summary: "徳川吉宗が創建した、赤坂の総鎮守。江戸時代の姿を伝える社殿が残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6739, longitude: 139.7362)
+        ),
+        HistoricSite(
+            id: "akasaka-hie-shrine",
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
+            name: "日枝神社",
+            summary: "徳川将軍家の産土神として篤く崇敬された、江戸三大祭のひとつ山王祭で知られる神社。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6733, longitude: 139.7392)
+        ),
+        HistoricSite(
+            id: "kioicho-geihinkan",
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
+            name: "迎賓館赤坂離宮（紀州藩邸跡）",
+            summary: "紀伊徳川家の中屋敷があった地。「紀尾井町」の「紀」はこの紀州藩に由来する。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6797, longitude: 139.7327)
+        ),
+        HistoricSite(
+            id: "kioicho-sophia-univ",
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
+            name: "上智大学（尾張藩邸跡）",
+            summary: "尾張徳川家の中屋敷があった地。「紀尾井町」の「尾」はこの尾張藩に由来する。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6857, longitude: 139.7305)
+        ),
+        HistoricSite(
+            id: "kioicho-new-otani",
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
+            name: "ホテルニューオータニ（彦根藩井伊家邸跡）",
+            summary: "彦根藩井伊家の中屋敷があった地。「紀尾井町」の「井」はこの井伊家に由来する。庭園に往時の面影が残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6788, longitude: 139.7343)
+        ),
     ]
 
     static func site(withID id: String) -> HistoricSite? {
