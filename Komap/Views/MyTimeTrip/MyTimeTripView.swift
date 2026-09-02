@@ -47,12 +47,12 @@ struct MyTimeTripView: View {
     }
 
     /// 「私の時空旅」を古地図ごとにまとめたグループ。`walkRoutes`が新しい順のため、
-    /// 各グループ内の時間旅も新しい順のまま保たれる。「みんなの時空旅」に公開中のものは、
-    /// こちらではなく`sharedTrips`側にだけ表示する。
+    /// 各グループ内の時間旅も新しい順のまま保たれる。「みんなの時空旅」に公開中のものも、
+    /// ここから消さず同じように表示し、公開中であることは行の小さなフラグで示す。
     private var walkRouteGroups: [WalkRouteGroup] {
         var order: [String] = []
         var routesByKey: [String: [WalkRoute]] = [:]
-        for route in walkRoutes where !route.isSharedPublicly {
+        for route in walkRoutes {
             let key = route.overlayMapID ?? ""
             if routesByKey[key] == nil {
                 order.append(key)
@@ -167,12 +167,15 @@ struct MyTimeTripView: View {
     }
 
     private func loadSharedTrips() async {
-        guard authService.userID != nil else {
+        guard let userID = authService.userID else {
             sharedTrips = []
             return
         }
         isLoadingSharedTrips = true
-        sharedTrips = (try? await syncService.fetchAllSharedTrips()) ?? sharedTrips
+        // 自分の時空旅は「私の時空旅」側に公開フラグ付きで既に表示されているため、
+        // ここでは他ユーザーが公開したものだけを見せる。
+        let all = (try? await syncService.fetchAllSharedTrips()) ?? sharedTrips
+        sharedTrips = all.filter { $0.ownerUserID != userID }
         isLoadingSharedTrips = false
     }
 
@@ -480,10 +483,19 @@ private struct TripRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(route.title?.isEmpty == false ? route.title! : route.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(route.title?.isEmpty == false ? route.title! : route.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    if route.isSharedPublicly {
+                        Label("公開中", systemImage: "person.2.fill")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.blue)
+                            .labelStyle(.titleAndIcon)
+                    }
+                }
 
                 HStack(spacing: 10) {
                     Label(distanceText, systemImage: "figure.walk")
