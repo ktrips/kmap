@@ -26,6 +26,15 @@ struct StampListView: View {
         return HistoricSiteCatalog.all
     }
 
+    /// 「すべての御朱印」表示時（`overlayMapID`が`nil`）に、チェックポイントを持つ古地図ごとに
+    /// カタログの並び順のままグルーピングしたもの。
+    private var sitesByMap: [(map: HistoricalOverlayMap, sites: [HistoricSite])] {
+        OldMapCatalog.allIncludingCustom.compactMap { map in
+            let mapSites = HistoricSiteCatalog.sites(forOverlayID: map.id)
+            return mapSites.isEmpty ? nil : (map, mapSites)
+        }
+    }
+
     private var stampsBySiteID: [String: CollectedStamp] {
         Dictionary(collectedStamps.map { ($0.siteID, $0) }, uniquingKeysWith: { first, _ in first })
     }
@@ -51,15 +60,21 @@ struct StampListView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
-                LazyVGrid(columns: cardColumns, spacing: 12) {
-                    ForEach(sites) { site in
-                        let stamp = stampsBySiteID[site.id]
-                        StampCell(site: site, stamp: stamp)
-                            .onTapGesture {
-                                if let stamp {
-                                    selectedStamp = StampSelection(site: site, stamp: stamp)
-                                }
+                if overlayMapID == nil {
+                    ForEach(sitesByMap, id: \.map.id) { group in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("\(group.map.title) (\(collectedCount(in: group.sites)) / \(group.sites.count))")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.brown)
+
+                            LazyVGrid(columns: cardColumns, spacing: 12) {
+                                stampCells(for: group.sites)
                             }
+                        }
+                    }
+                } else {
+                    LazyVGrid(columns: cardColumns, spacing: 12) {
+                        stampCells(for: sites)
                     }
                 }
 
@@ -73,6 +88,23 @@ struct StampListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedStamp) { selection in
             StampCheckInSheet(site: selection.site, stamp: selection.stamp)
+        }
+    }
+
+    private func collectedCount(in sites: [HistoricSite]) -> Int {
+        sites.filter { stampsBySiteID[$0.id] != nil }.count
+    }
+
+    @ViewBuilder
+    private func stampCells(for sites: [HistoricSite]) -> some View {
+        ForEach(sites) { site in
+            let stamp = stampsBySiteID[site.id]
+            StampCell(site: site, stamp: stamp)
+                .onTapGesture {
+                    if let stamp {
+                        selectedStamp = StampSelection(site: site, stamp: stamp)
+                    }
+                }
         }
     }
 }

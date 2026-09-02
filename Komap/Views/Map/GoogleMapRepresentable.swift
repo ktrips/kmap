@@ -66,7 +66,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         context.coordinator.onCheckpointTap = onCheckpointTap
         context.coordinator.onPhotoPostTap = onPhotoPostTap
         if showAllOverlays {
-            context.coordinator.applyAllOverlays(OldMapCatalog.allIncludingCustom, to: mapView)
+            context.coordinator.applyAllOverlays(OldMapCatalog.allIncludingCustom, checkpoints: checkpoints, to: mapView)
         } else {
             context.coordinator.removeAllOverlays()
             context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, checkpoints: checkpoints, to: mapView)
@@ -107,7 +107,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var savedPolylinePairs: [TrailPolylinePair] = []
         private var liveTrailPair: TrailPolylinePair?
         private var checkpointMarkers: [String: GMSMarker] = [:]
+        /// 直近で`applyCheckpoints`に適用した獲得済み状態。GPS更新のたびに呼ばれても、
+        /// 変化のないマーカーの`icon`/`opacity`を再設定しない（負荷軽減）ために使う。
+        private var checkpointCollectedState: [String: Bool] = [:]
         private var photoPostMarkers: [UUID: GMSMarker] = [:]
+        /// チェックポイントの通常アイコン。マーカーごとに毎回生成し直さないよう使い回す。
+        private static let checkpointIcon = GMSMarker.markerImage(with: .shuiro)
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
@@ -140,7 +145,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         /// 「全ての古地図を表示」用に、渡された古地図すべてをグラウンドオーバーレイとして重ねる。
         /// 一度重ねたら（一覧が変わらない限り）作り直さず、初回だけ全体が収まるようカメラを合わせる。
-        func applyAllOverlays(_ overlays: [HistoricalOverlayMap], to mapView: GMSMapView) {
+        func applyAllOverlays(_ overlays: [HistoricalOverlayMap], checkpoints: [HistoricSite] = [], to mapView: GMSMapView) {
             currentOverlay?.map = nil
             currentOverlay = nil
             currentOverlayID = nil
@@ -173,6 +178,13 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             for overlayMap in overlays {
                 combinedBounds = combinedBounds?.includingCoordinate(overlayMap.southWest).includingCoordinate(overlayMap.northEast)
                     ?? GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+            }
+            // 古地図の位置合わせは仮座標のため、古地図の範囲だけでカメラを合わせると
+            // チェックポイントが画面外に出てしまうことがある。単一の古地図表示時と同様、
+            // チェックポイントの座標も収まるようにする。
+            for checkpoint in checkpoints {
+                combinedBounds = combinedBounds?.includingCoordinate(checkpoint.coordinate)
+                    ?? GMSCoordinateBounds(coordinate: checkpoint.coordinate, coordinate: checkpoint.coordinate)
             }
             if let combinedBounds {
                 mapView.moveCamera(GMSCameraUpdate.fit(combinedBounds, withPadding: 24))
@@ -470,19 +482,24 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             for siteID in staleIDs {
                 checkpointMarkers[siteID]?.map = nil
                 checkpointMarkers.removeValue(forKey: siteID)
+                checkpointCollectedState.removeValue(forKey: siteID)
             }
 
             for site in checkpoints where checkpointMarkers[site.id] == nil {
                 let marker = GMSMarker(position: site.coordinate)
                 marker.title = site.name
                 marker.userData = site
+                marker.icon = Self.checkpointIcon
                 marker.map = mapView
                 checkpointMarkers[site.id] = marker
             }
 
+            // GPS更新のたびに全マーカーへ`icon`/`opacity`を設定し直すと、チェックポイントが
+            // 多い「全ての古地図を表示」時に特に重くなるため、獲得状態が変わったマーカーだけ更新する。
             for (siteID, marker) in checkpointMarkers {
                 let isCollected = collectedSiteIDs.contains(siteID)
-                marker.icon = GMSMarker.markerImage(with: .shuiro)
+                guard checkpointCollectedState[siteID] != isCollected else { continue }
+                checkpointCollectedState[siteID] = isCollected
                 marker.opacity = isCollected ? 1.0 : 0.6
             }
         }

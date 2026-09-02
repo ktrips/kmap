@@ -39,13 +39,6 @@ struct MyTimeTripView: View {
     /// 4枚横並びのグリッド（アップした写真セクション用）。
     private let photoGridColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
 
-    /// チェックポイントが1つ以上ある古地図だけを、カタログの並び順のまま返す。
-    private var mapsWithCheckpoints: [HistoricalOverlayMap] {
-        OldMapCatalog.allIncludingCustom.filter { map in
-            HistoricSiteCatalog.all.contains { $0.overlayMapID == map.id }
-        }
-    }
-
     /// 「私の時空旅」を古地図ごとにまとめたグループ。`walkRoutes`が新しい順のため、
     /// 各グループ内の時間旅も新しい順のまま保たれる。「みんなの時空旅」に公開中のものも、
     /// ここから消さず同じように表示し、公開中であることは行の小さなフラグで示す。
@@ -94,6 +87,13 @@ struct MyTimeTripView: View {
             }
             .navigationTitle("My Trips 時空旅")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        mapSession.selectedTab = .map
+                    } label: {
+                        Label("Mapに戻る", systemImage: "map")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         prepareAndShowShareSheet()
@@ -241,38 +241,17 @@ struct MyTimeTripView: View {
 
     private var stampsSection: some View {
         TimeTripSection(title: "御朱印", systemImage: "seal.fill") {
-            VStack(alignment: .leading, spacing: 12) {
-                NavigationLink {
-                    StampListView()
-                } label: {
-                    StampSummaryCard(
-                        title: "すべての御朱印",
-                        collectedCount: collectedStamps.count,
-                        totalCount: HistoricSiteCatalog.all.count
-                    )
-                }
-                .buttonStyle(.plain)
-
-                ForEach(mapsWithCheckpoints) { map in
-                    NavigationLink {
-                        StampListView(overlayMapID: map.id, title: map.title)
-                    } label: {
-                        MapStampRow(
-                            map: map,
-                            collectedCount: collectedCount(forOverlayID: map.id),
-                            totalCount: HistoricSiteCatalog.sites(forOverlayID: map.id).count
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
+            NavigationLink {
+                StampListView()
+            } label: {
+                StampSummaryCard(
+                    title: "すべての御朱印",
+                    collectedCount: collectedStamps.count,
+                    totalCount: HistoricSiteCatalog.all.count
+                )
             }
+            .buttonStyle(.plain)
         }
-    }
-
-    private func collectedCount(forOverlayID overlayMapID: String) -> Int {
-        HistoricSiteCatalog.sites(forOverlayID: overlayMapID)
-            .filter { collectedSiteIDs.contains($0.id) }
-            .count
     }
 
     // MARK: - 保存した物語
@@ -699,52 +678,6 @@ private struct StampSummaryCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-}
-
-/// 古地図ごとの御朱印の集まり具合を示す、コンパクトな行。
-private struct MapStampRow: View {
-    let map: HistoricalOverlayMap
-    let collectedCount: Int
-    let totalCount: Int
-
-    var body: some View {
-        HStack(spacing: 12) {
-            thumbnail
-                .frame(width: 40, height: 40)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(map.title)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Text("御朱印 \(collectedCount) / \(totalCount)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.footnote.bold())
-                .foregroundStyle(.secondary)
-        }
-        .padding(10)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    @ViewBuilder
-    private var thumbnail: some View {
-        if let uiImage = map.image {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-        } else {
-            Rectangle()
-                .fill(Color.brown.opacity(0.25))
-                .overlay(Image(systemName: "map").foregroundStyle(.brown))
-        }
     }
 }
 
