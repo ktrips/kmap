@@ -493,6 +493,117 @@ enum HistoricSiteCatalog {
             summary: "彦根藩井伊家の中屋敷があった地。「紀尾井町」の「井」はこの井伊家に由来する。庭園に往時の面影が残る。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6788, longitude: 139.7343)
         ),
+
+        // 東海道（日本橋〜品川宿）
+        HistoricSite(
+            id: "tokaido-nihonbashi",
+            overlayMapID: OldMapCatalog.tokaido.id,
+            name: "日本橋",
+            summary: "五街道の起点。東海道はここから京の三条大橋まで続いていた。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6835, longitude: 139.7742)
+        ),
+        HistoricSite(
+            id: "tokaido-takanawa-okido",
+            overlayMapID: OldMapCatalog.tokaido.id,
+            name: "高輪大木戸跡",
+            summary: "江戸の南の入口を示した木戸の跡。ここから先が正式な「江戸」の外だった。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6335, longitude: 139.7402)
+        ),
+        HistoricSite(
+            id: "tokaido-sengakuji",
+            overlayMapID: OldMapCatalog.tokaido.id,
+            name: "泉岳寺",
+            summary: "赤穂浪士（四十七士）の墓所として知られる、東海道沿いの寺院。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6435, longitude: 139.7385)
+        ),
+        HistoricSite(
+            id: "tokaido-shinagawa-juku",
+            overlayMapID: OldMapCatalog.tokaido.id,
+            name: "品川宿本陣跡",
+            summary: "東海道最初の宿場・品川宿の本陣（大名などの宿泊所）があった地。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6247, longitude: 139.7397)
+        ),
+        HistoricSite(
+            id: "tokaido-suzugamori",
+            overlayMapID: OldMapCatalog.tokaido.id,
+            name: "鈴ヶ森刑場跡",
+            summary: "江戸時代、東海道の入口に置かれた刑場の跡。街道を行き交う人々への見せしめの意味もあった。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.5865, longitude: 139.7377)
+        ),
+
+        // 中山道（日本橋〜板橋宿）
+        HistoricSite(
+            id: "nakasendo-nihonbashi",
+            overlayMapID: OldMapCatalog.nakasendo.id,
+            name: "日本橋",
+            summary: "五街道の起点。中山道はここから内陸を経て京の三条大橋まで続いていた。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6835, longitude: 139.7742)
+        ),
+        HistoricSite(
+            id: "nakasendo-kanda-myojin",
+            overlayMapID: OldMapCatalog.nakasendo.id,
+            name: "神田明神",
+            summary: "中山道が通っていた神田の総鎮守。多くの旅人が道中の無事を祈った。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7020, longitude: 139.7671)
+        ),
+        HistoricSite(
+            id: "nakasendo-hongo-oiwake",
+            overlayMapID: OldMapCatalog.nakasendo.id,
+            name: "本郷追分",
+            summary: "中山道と日光御成道（岩槻街道）が分岐した地点。「追分」の地名はこの分かれ道に由来する。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7183, longitude: 139.7592)
+        ),
+        HistoricSite(
+            id: "nakasendo-sugamo-koshinzuka",
+            overlayMapID: OldMapCatalog.nakasendo.id,
+            name: "巣鴨庚申塚",
+            summary: "中山道沿いの庚申塚。旅人や地元の人々の信仰を集めた道中の目印。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7365, longitude: 139.7325)
+        ),
+        HistoricSite(
+            id: "nakasendo-itabashi-juku",
+            overlayMapID: OldMapCatalog.nakasendo.id,
+            name: "板橋宿本陣跡",
+            summary: "中山道最初の宿場・板橋宿の本陣があった地。石神井川に架かる板橋が地名の由来。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7513, longitude: 139.7093)
+        ),
+
+        // 九段下・千鳥ヶ淵（靖国神社周辺）
+        HistoricSite(
+            id: "kudanshita-yasukuni-shrine",
+            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            name: "靖国神社",
+            summary: "明治2年（1869年）創建。国のために亡くなった人々を祀る神社。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6938, longitude: 139.7423)
+        ),
+        HistoricSite(
+            id: "kudanshita-chidorigafuchi",
+            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            name: "千鳥ヶ淵",
+            summary: "江戸城の外堀のひとつ。桜の名所としても知られる、水面が美しい濠。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6913, longitude: 139.7457)
+        ),
+        HistoricSite(
+            id: "kudanshita-tayasumon",
+            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            name: "田安門",
+            summary: "江戸城北の丸を守った門のひとつ。現存する江戸城の城門としては最古級とされる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6942, longitude: 139.7499)
+        ),
+        HistoricSite(
+            id: "kudanshita-shimizumon",
+            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            name: "清水門",
+            summary: "江戸城北の丸のもうひとつの門。枡形（ますがた）の形式が今も残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6912, longitude: 139.7508)
+        ),
+        HistoricSite(
+            id: "kudanshita-kudanzaka",
+            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            name: "九段坂",
+            summary: "江戸時代、坂に沿って九段の石段状の武家屋敷が並んでいたことが地名の由来とされる坂。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6942, longitude: 139.7492)
+        ),
     ]
 
     static func site(withID id: String) -> HistoricSite? {

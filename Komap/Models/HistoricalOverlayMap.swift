@@ -209,10 +209,41 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
     )
 
+    static let tokaido = HistoricalOverlayMap(
+        id: "tokaido-edo",
+        title: "東海道（日本橋〜品川宿）",
+        era: "江戸時代（五街道が整備された時期）",
+        summary: "五街道の起点・日本橋から、京へ向かう東海道の最初の宿場町・品川宿にかけてのエリアです。",
+        imageAssetName: "OldMap_TokyoMeiji1891",
+        southWest: CLLocationCoordinate2D(latitude: 35.55, longitude: 139.660),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+    )
+
+    static let nakasendo = HistoricalOverlayMap(
+        id: "nakasendo-edo",
+        title: "中山道（日本橋〜板橋宿）",
+        era: "江戸時代（五街道が整備された時期）",
+        summary: "五街道の起点・日本橋から、内陸を経て京へ向かう中山道の最初の宿場町・板橋宿にかけてのエリアです。",
+        imageAssetName: "OldMap_TokyoMeiji1891",
+        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+    )
+
+    static let kudanshitaChidorigafuchi = HistoricalOverlayMap(
+        id: "kudanshita-chidorigafuchi-meiji",
+        title: "九段下・千鳥ヶ淵（靖国神社周辺）",
+        era: "明治時代（1891年・明治24年頃）",
+        summary: "江戸城北の丸の門や外堀・千鳥ヶ淵、明治に創建された靖国神社が並ぶエリアです。",
+        imageAssetName: "OldMap_TokyoMeiji1891",
+        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, ueno, nihonbashi, shiba, kanda, roppongi,
         goshikiFudo, bashoOkuNoHosomichi, kasumigasekiToranomon, akasakaKioicho,
+        tokaido, nakasendo, kudanshitaChidorigafuchi,
     ]
 
     /// 同梱の古地図 + ユーザーが検索して追加した古地図。

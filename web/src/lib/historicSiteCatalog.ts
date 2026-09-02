@@ -71,6 +71,21 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "kioicho-geihinkan", name: "迎賓館赤坂離宮（紀州藩邸跡）" },
   { id: "kioicho-sophia-univ", name: "上智大学（尾張藩邸跡）" },
   { id: "kioicho-new-otani", name: "ホテルニューオータニ（彦根藩井伊家邸跡）" },
+  { id: "tokaido-nihonbashi", name: "日本橋" },
+  { id: "tokaido-takanawa-okido", name: "高輪大木戸跡" },
+  { id: "tokaido-sengakuji", name: "泉岳寺" },
+  { id: "tokaido-shinagawa-juku", name: "品川宿本陣跡" },
+  { id: "tokaido-suzugamori", name: "鈴ヶ森刑場跡" },
+  { id: "nakasendo-nihonbashi", name: "日本橋" },
+  { id: "nakasendo-kanda-myojin", name: "神田明神" },
+  { id: "nakasendo-hongo-oiwake", name: "本郷追分" },
+  { id: "nakasendo-sugamo-koshinzuka", name: "巣鴨庚申塚" },
+  { id: "nakasendo-itabashi-juku", name: "板橋宿本陣跡" },
+  { id: "kudanshita-yasukuni-shrine", name: "靖国神社" },
+  { id: "kudanshita-chidorigafuchi", name: "千鳥ヶ淵" },
+  { id: "kudanshita-tayasumon", name: "田安門" },
+  { id: "kudanshita-shimizumon", name: "清水門" },
+  { id: "kudanshita-kudanzaka", name: "九段坂" },
 ];
 
 export function findHistoricSite(id: string | null): HistoricSiteEntry | undefined {

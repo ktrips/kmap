@@ -69,6 +69,21 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     title: "赤坂・紀尾井町（大名屋敷跡）",
     era: "明治時代（1891年・明治24年頃）",
   },
+  {
+    id: "tokaido-edo",
+    title: "東海道（日本橋〜品川宿）",
+    era: "江戸時代（五街道が整備された時期）",
+  },
+  {
+    id: "nakasendo-edo",
+    title: "中山道（日本橋〜板橋宿）",
+    era: "江戸時代（五街道が整備された時期）",
+  },
+  {
+    id: "kudanshita-chidorigafuchi-meiji",
+    title: "九段下・千鳥ヶ淵（靖国神社周辺）",
+    era: "明治時代（1891年・明治24年頃）",
+  },
 ];
 
 export function findOldMap(id: string | null): OldMapEntry | undefined {
