@@ -289,8 +289,17 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             let isNewOverlay = currentOverlayID != overlayMap.id
             if isNewOverlay {
+                // 古いオーバーレイのテクスチャをすぐに手放せるよう、`.map = nil`の前に
+                // `.icon`も明示的に外しておく（`.map = nil`だけでは、Google Maps SDK内部の
+                // テクスチャアトラスがすぐには解放されないことがある）。
+                currentOverlay?.icon = nil
                 currentOverlay?.map = nil
-                currentBaseImage = overlayMap.image
+                // フル解像度のまま古地図を切り替え続けると、Google Maps SDKの
+                // テクスチャアトラス上限（`applyAllOverlays`のコメント参照）に達して、
+                // ある古地図から先は真っ白・あるいは一部だけ描画された状態になり
+                // 二度と古地図が表示されなくなることがあった。単体表示でも、以前は
+                // 「全ての古地図を表示」専用だったダウンサンプルを行う。
+                currentBaseImage = Self.downsampledForSingleOverlay(overlayMap.image)
                 currentBlurredImage = nil
                 lastRevealedPointCount = 0
 
@@ -493,11 +502,23 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private static let maxCheckpointFitZoom: Float = 17
 
         private static func downsampledForAllOverlays(_ image: UIImage?) -> UIImage? {
+            downsampled(image, maxDimension: allOverlaysMaxDimension)
+        }
+
+        /// 単体表示時（ズームインして見ることが多い）は、全件表示時ほど強くは縮小せず、
+        /// 画質と、Google Maps SDKのテクスチャアトラス上限を超えないことのバランスを取る。
+        private static let singleOverlayMaxDimension: CGFloat = 1600
+
+        private static func downsampledForSingleOverlay(_ image: UIImage?) -> UIImage? {
+            downsampled(image, maxDimension: singleOverlayMaxDimension)
+        }
+
+        private static func downsampled(_ image: UIImage?, maxDimension: CGFloat) -> UIImage? {
             guard let image else { return nil }
             let longestSide = max(image.size.width, image.size.height)
-            guard longestSide > allOverlaysMaxDimension else { return image }
+            guard longestSide > maxDimension else { return image }
 
-            let scale = allOverlaysMaxDimension / longestSide
+            let scale = maxDimension / longestSide
             let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
             let renderer = UIGraphicsImageRenderer(size: newSize)
             return renderer.image { _ in

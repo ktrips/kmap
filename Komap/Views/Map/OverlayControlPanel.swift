@@ -15,16 +15,12 @@ struct OverlayControlPanel: View {
     /// APIキーが両方とも設定されている時だけメニューに表示する。
     var onRequestSearch: () -> Void = {}
 
+    @State private var isPresentingPicker = false
+
     var body: some View {
         VStack(spacing: 14) {
-            Menu {
-                OldMapPickerMenuContent(
-                    selectedOverlay: $selectedOverlay,
-                    isShowingAllOverlays: $isShowingAllOverlays,
-                    onSelect: onSelect,
-                    onSelectAll: onSelectAll,
-                    onRequestSearch: onRequestSearch
-                )
+            Button {
+                isPresentingPicker = true
             } label: {
                 HStack {
                     Image(systemName: "map.fill")
@@ -36,6 +32,15 @@ struct OverlayControlPanel: View {
                         .font(.caption)
                 }
                 .foregroundStyle(.primary)
+            }
+            .sheet(isPresented: $isPresentingPicker) {
+                OldMapPickerSheet(
+                    selectedOverlay: $selectedOverlay,
+                    isShowingAllOverlays: $isShowingAllOverlays,
+                    onSelect: onSelect,
+                    onSelectAll: onSelectAll,
+                    onRequestSearch: onRequestSearch
+                )
             }
 
             if selectedOverlay != nil && !isShowingAllOverlays {
@@ -57,10 +62,18 @@ struct OverlayControlPanel: View {
     }
 }
 
-/// 古地図選択メニューの中身（「全ての古地図を表示」「古地図を表示しない」古地図一覧・新規登録）。
-/// 画面下部の`OverlayControlPanel`と、右上のハンバーガーメニュー内の「古地図選択」submenu、
-/// 両方から使う。
-struct OldMapPickerMenuContent: View {
+/// 古地図選択シートの中身（「全ての古地図を表示」「古地図を表示しない」古地図一覧・新規登録）。
+/// 画面下部の`OverlayControlPanel`と、右上のハンバーガーメニュー内の「古地図選択」、
+/// 両方から`.sheet`として表示する。
+///
+/// - Important: 以前はSwiftUIの`Menu`にこの内容をそのまま並べていたが、
+///   同梱の古地図が増えて項目数が多くなった結果、iOS側がメニューの表示可能件数を
+///   超えた分を（スクロールもできないまま）黙って表示しないことがあった
+///   （画面下部から開くメニューで、上に入り切らない項目が切り捨てられる）。
+///   そのため一覧が伸びても確実に全件が見えるよう、スクロール可能な`List`を
+///   シートとして全画面表示する形に変更した。
+struct OldMapPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
     @Binding var selectedOverlay: HistoricalOverlayMap?
     @Binding var isShowingAllOverlays: Bool
     var onSelect: (HistoricalOverlayMap?) -> Void = { _ in }
@@ -68,49 +81,67 @@ struct OldMapPickerMenuContent: View {
     var onRequestSearch: () -> Void = {}
 
     var body: some View {
-        Group {
-            Button {
-                isShowingAllOverlays = true
-                onSelectAll()
-            } label: {
-                if isShowingAllOverlays {
-                    Label("全ての古地図を表示", systemImage: "checkmark")
-                } else {
-                    Text("全ての古地図を表示")
+        NavigationStack {
+            List {
+                Section {
+                    Button {
+                        isShowingAllOverlays = true
+                        onSelectAll()
+                        dismiss()
+                    } label: {
+                        if isShowingAllOverlays {
+                            Label("全ての古地図を表示", systemImage: "checkmark")
+                        } else {
+                            Text("全ての古地図を表示")
+                        }
+                    }
+                    Button("古地図を表示しない") {
+                        isShowingAllOverlays = false
+                        selectedOverlay = nil
+                        onSelect(nil)
+                        dismiss()
+                    }
                 }
-            }
-            Divider()
-            Button("古地図を表示しない") {
-                isShowingAllOverlays = false
-                selectedOverlay = nil
-                onSelect(nil)
-            }
-            Divider()
-            ForEach(OldMapCatalog.allIncludingCustom) { overlay in
-                Button {
-                    isShowingAllOverlays = false
-                    selectedOverlay = overlay
-                    onSelect(overlay)
-                } label: {
-                    if !isShowingAllOverlays && overlay.id == selectedOverlay?.id {
-                        Label(menuTitle(for: overlay), systemImage: "checkmark")
-                    } else {
-                        Text(menuTitle(for: overlay))
+
+                Section {
+                    ForEach(OldMapCatalog.allIncludingCustom) { overlay in
+                        Button {
+                            isShowingAllOverlays = false
+                            selectedOverlay = overlay
+                            onSelect(overlay)
+                            dismiss()
+                        } label: {
+                            if !isShowingAllOverlays && overlay.id == selectedOverlay?.id {
+                                Label(menuTitle(for: overlay), systemImage: "checkmark")
+                            } else {
+                                Text(menuTitle(for: overlay))
+                            }
+                        }
+                    }
+                }
+
+                if SecretsConfig.isOldMapSearchConfigured {
+                    Section {
+                        Button {
+                            onRequestSearch()
+                            dismiss()
+                        } label: {
+                            Label("新しい古地図を登録", systemImage: "plus.circle")
+                        }
                     }
                 }
             }
-            if SecretsConfig.isOldMapSearchConfigured {
-                Divider()
-                Button {
-                    onRequestSearch()
-                } label: {
-                    Label("新しい古地図を登録", systemImage: "plus.circle")
+            .navigationTitle("古地図を選択")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") { dismiss() }
                 }
             }
         }
     }
 
-    /// メニュー一覧だけで使う、少し短くした古地図名。選択後に表示される名称（`title`そのもの）は変えない。
+    /// 一覧だけで使う、少し短くした古地図名。選択後に表示される名称（`title`そのもの）は変えない。
     private func menuTitle(for overlay: HistoricalOverlayMap) -> String {
         if overlay.id == OldMapCatalog.goshikiFudo.id {
             return "五色不動巡り(目黒・目白・目赤・目青・目黄)"

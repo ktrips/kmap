@@ -140,38 +140,38 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.7266, longitude: 139.7398)
         ),
 
-        // 上野（寛永寺・不忍池周辺）
+        // 上野（寛永寺・不忍池周辺）※「明治の文豪（本郷・上野）」に統合済み
         HistoricSite(
             id: "ueno-kaneiji",
-            overlayMapID: OldMapCatalog.ueno.id,
+            overlayMapID: OldMapCatalog.meijiWriters.id,
             name: "寛永寺根本中堂",
             summary: "徳川将軍家の菩提寺として栄えた、上野の中心的な寺院。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7175, longitude: 139.7735)
         ),
         HistoricSite(
             id: "ueno-bentendo",
-            overlayMapID: OldMapCatalog.ueno.id,
+            overlayMapID: OldMapCatalog.meijiWriters.id,
             name: "不忍池辯天堂",
             summary: "不忍池に浮かぶ中之島に建つ、弁財天を祀るお堂。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7139, longitude: 139.7717)
         ),
         HistoricSite(
             id: "ueno-toshogu",
-            overlayMapID: OldMapCatalog.ueno.id,
+            overlayMapID: OldMapCatalog.meijiWriters.id,
             name: "上野東照宮",
             summary: "徳川家康を祀る、金色殿で知られる荘厳な東照宮。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7161, longitude: 139.7724)
         ),
         HistoricSite(
             id: "ueno-kiyomizu",
-            overlayMapID: OldMapCatalog.ueno.id,
+            overlayMapID: OldMapCatalog.meijiWriters.id,
             name: "清水観音堂",
             summary: "京都の清水寺を模して建てられた、舞台造りのお堂。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7156, longitude: 139.7731)
         ),
         HistoricSite(
             id: "ueno-gojoten",
-            overlayMapID: OldMapCatalog.ueno.id,
+            overlayMapID: OldMapCatalog.meijiWriters.id,
             name: "五条天神社",
             summary: "医薬の神様を祀る、上野の山に古くから鎮座する神社。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7150, longitude: 139.7728)
@@ -214,75 +214,75 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6820, longitude: 139.7758)
         ),
 
-        // 芝（増上寺周辺）
+        // 芝（増上寺周辺）※「東海道（日本橋・芝増上寺・品川）」に統合済み
         HistoricSite(
             id: "shiba-zojoji",
-            overlayMapID: OldMapCatalog.shiba.id,
+            overlayMapID: OldMapCatalog.tokaido.id,
             name: "増上寺大殿",
             summary: "徳川将軍家の菩提寺のひとつ。東京タワーを背にそびえる大殿。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6572, longitude: 139.7492)
         ),
         HistoricSite(
             id: "shiba-sangedatsumon",
-            overlayMapID: OldMapCatalog.shiba.id,
+            overlayMapID: OldMapCatalog.tokaido.id,
             name: "三解脱門",
             summary: "増上寺の入口に建つ、江戸初期からの姿を残す重厚な門。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6579, longitude: 139.7488)
         ),
         HistoricSite(
             id: "shiba-toshogu",
-            overlayMapID: OldMapCatalog.shiba.id,
+            overlayMapID: OldMapCatalog.tokaido.id,
             name: "芝東照宮",
             summary: "徳川家康を祀る、増上寺に隣接する東照宮。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6566, longitude: 139.7493)
         ),
         HistoricSite(
             id: "shiba-maruyama-kofun",
-            overlayMapID: OldMapCatalog.shiba.id,
+            overlayMapID: OldMapCatalog.tokaido.id,
             name: "芝丸山古墳",
             summary: "都内有数の規模を誇る、芝公園内に残る前方後円墳。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6555, longitude: 139.7482)
         ),
         HistoricSite(
             id: "shiba-tokyo-tower",
-            overlayMapID: OldMapCatalog.shiba.id,
+            overlayMapID: OldMapCatalog.tokaido.id,
             name: "東京タワー",
             summary: "増上寺のすぐそばにそびえる、東京のランドマーク。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6586, longitude: 139.7454)
         ),
 
-        // 神田（神田明神周辺）
+        // 神田（神田明神周辺）※「日本橋・神田明神」に統合済み
         HistoricSite(
             id: "kanda-myojin-checkpoint",
-            overlayMapID: OldMapCatalog.kanda.id,
+            overlayMapID: OldMapCatalog.nihonbashi.id,
             name: "神田明神",
             summary: "江戸総鎮守として庶民に親しまれてきた神社。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7020, longitude: 139.7671)
         ),
         HistoricSite(
             id: "kanda-seido",
-            overlayMapID: OldMapCatalog.kanda.id,
+            overlayMapID: OldMapCatalog.nihonbashi.id,
             name: "湯島聖堂",
             summary: "儒学の学問所として栄えた、孔子廟を祀る史跡。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7009, longitude: 139.7659)
         ),
         HistoricSite(
             id: "kanda-nikolai-do",
-            overlayMapID: OldMapCatalog.kanda.id,
+            overlayMapID: OldMapCatalog.nihonbashi.id,
             name: "ニコライ堂",
             summary: "明治時代に建てられた、ビザンチン様式の大聖堂。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6976, longitude: 139.7644)
         ),
         HistoricSite(
             id: "kanda-jimbocho",
-            overlayMapID: OldMapCatalog.kanda.id,
+            overlayMapID: OldMapCatalog.nihonbashi.id,
             name: "神保町古書店街",
             summary: "世界有数の規模を誇る、古書店が軒を連ねる街。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6958, longitude: 139.7573)
         ),
         HistoricSite(
             id: "kanda-shohei-bridge",
-            overlayMapID: OldMapCatalog.kanda.id,
+            overlayMapID: OldMapCatalog.nihonbashi.id,
             name: "昌平橋",
             summary: "神田川に架かる、湯島聖堂のそばの古くからの橋。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6989, longitude: 139.7659)
@@ -420,38 +420,38 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.7458, longitude: 139.7965)
         ),
 
-        // 霞ヶ関・虎ノ門（大名屋敷と社寺）
+        // 霞ヶ関・虎ノ門（大名屋敷と社寺）※「江戸城周辺（安政期）」に統合済み
         HistoricSite(
             id: "kasumigaseki-sakuradamon",
-            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "桜田門",
             summary: "江戸城外桜田門。桜田門外の変の舞台としても知られ、霞ヶ関・虎ノ門エリアへの入口にあたる門。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6773, longitude: 139.7539)
         ),
         HistoricSite(
             id: "kasumigaseki-hibiya-park",
-            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "日比谷公園",
             summary: "江戸時代は大名屋敷や陸軍練兵場だった地に、明治36年に開園した日本初の近代西洋式公園。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6740, longitude: 139.7565)
         ),
         HistoricSite(
             id: "kasumigaseki-atago-shrine",
-            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "愛宕神社",
             summary: "江戸時代から防火の神様として信仰された、都心随一の高台にある神社。出世の石段でも知られる。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6653, longitude: 139.7494)
         ),
         HistoricSite(
             id: "kasumigaseki-toranomon-kotohira",
-            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "虎ノ門金刀比羅宮",
             summary: "万治3年（1660年）創建。丸亀藩の江戸藩邸内に、讃岐の金刀比羅宮を勧請したのが始まり。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6699, longitude: 139.7497)
         ),
         HistoricSite(
             id: "kasumigaseki-tameike",
-            overlayMapID: OldMapCatalog.kasumigasekiToranomon.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "溜池跡",
             summary: "江戸城の外堀を兼ねた人工の溜め池があった場所。現在の溜池交差点にその名を残す。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6693, longitude: 139.7413)
@@ -568,75 +568,75 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.7513, longitude: 139.7093)
         ),
 
-        // 九段下・千鳥ヶ淵（靖国神社周辺）
+        // 九段下・千鳥ヶ淵（靖国神社周辺）※「江戸城周辺（安政期）」に統合済み
         HistoricSite(
             id: "kudanshita-yasukuni-shrine",
-            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "靖国神社",
             summary: "明治2年（1869年）創建。国のために亡くなった人々を祀る神社。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6938, longitude: 139.7423)
         ),
         HistoricSite(
             id: "kudanshita-chidorigafuchi",
-            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "千鳥ヶ淵",
             summary: "江戸城の外堀のひとつ。桜の名所としても知られる、水面が美しい濠。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6913, longitude: 139.7457)
         ),
         HistoricSite(
             id: "kudanshita-tayasumon",
-            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "田安門",
             summary: "江戸城北の丸を守った門のひとつ。現存する江戸城の城門としては最古級とされる。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6942, longitude: 139.7499)
         ),
         HistoricSite(
             id: "kudanshita-shimizumon",
-            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "清水門",
             summary: "江戸城北の丸のもうひとつの門。枡形（ますがた）の形式が今も残る。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6912, longitude: 139.7508)
         ),
         HistoricSite(
             id: "kudanshita-kudanzaka",
-            overlayMapID: OldMapCatalog.kudanshitaChidorigafuchi.id,
+            overlayMapID: OldMapCatalog.edoCastle.id,
             name: "九段坂",
             summary: "江戸時代、坂に沿って九段の石段状の武家屋敷が並んでいたことが地名の由来とされる坂。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6942, longitude: 139.7492)
         ),
 
-        // 麻布・六本木周辺
+        // 麻布・六本木周辺 ※「赤坂・紀尾井町・六本木」に統合済み
         HistoricSite(
             id: "roppongi-hills-mori-garden",
-            overlayMapID: OldMapCatalog.roppongi.id,
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
             name: "六本木ヒルズ（毛利庭園）",
             summary: "長州藩毛利家の下屋敷があった地。当時の庭園の一部が現在も毛利庭園として残る。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6604, longitude: 139.7292)
         ),
         HistoricSite(
             id: "roppongi-nogi-shrine",
-            overlayMapID: OldMapCatalog.roppongi.id,
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
             name: "乃木神社",
             summary: "乃木希典・静子夫妻を祀る神社。乃木邸跡に隣接する。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6667, longitude: 139.7268)
         ),
         HistoricSite(
             id: "roppongi-azabudai",
-            overlayMapID: OldMapCatalog.roppongi.id,
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
             name: "麻布台（大名屋敷跡）",
             summary: "複数の大名屋敷が置かれていた高台。現在の麻布台ヒルズ周辺にあたる。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6631, longitude: 139.7395)
         ),
         HistoricSite(
             id: "roppongi-azabujuban",
-            overlayMapID: OldMapCatalog.roppongi.id,
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
             name: "麻布十番",
             summary: "江戸時代から続く商店街。かつての古川沿いの町人地で、今も昔ながらの賑わいが残る。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6558, longitude: 139.7350)
         ),
         HistoricSite(
             id: "roppongi-arisugawa-park",
-            overlayMapID: OldMapCatalog.roppongi.id,
+            overlayMapID: OldMapCatalog.akasakaKioicho.id,
             name: "有栖川宮記念公園",
             summary: "盛岡藩南部家の下屋敷、後に有栖川宮家の御用地となった地。起伏に富んだ地形が名残を伝える。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6553, longitude: 139.7236)

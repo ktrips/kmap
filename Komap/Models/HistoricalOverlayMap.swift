@@ -81,9 +81,12 @@ enum OldMapCatalog {
         id: "edo-castle-1850s",
         title: "江戸城周辺（安政期）",
         era: "江戸時代後期（1850年代・安政期）",
-        summary: "江戸城の内堀・外堀と大名屋敷が広がっていたエリア。現在の皇居・大手町・丸の内周辺に相当します。",
+        summary: "江戸城の内堀・外堀と大名屋敷が広がっていたエリア。現在の皇居・大手町・丸の内に加え、九段下・千鳥ヶ淵（靖国神社周辺）、霞ヶ関・虎ノ門一帯も含みます。",
         imageAssetName: "OldMap_EdoCastle",
-        southWest: CLLocationCoordinate2D(latitude: 35.674, longitude: 139.740),
+        // 元々は皇居周辺のみの範囲だったが、九段下・千鳥ヶ淵（`kudanshitaChidorigafuchi`）と
+        // 霞ヶ関・虎ノ門（`kasumigasekiToranomon`）を統合したため、南側を少し広げている
+        // （イラスト画像自体はそのままのため、南端付近はやや引き伸ばされた表示になる）。
+        southWest: CLLocationCoordinate2D(latitude: 35.6653, longitude: 139.740),
         northEast: CLLocationCoordinate2D(latitude: 35.696, longitude: 139.767)
     )
 
@@ -97,80 +100,42 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.723, longitude: 139.806)
     )
 
-    // 以下6枚は「東京實測全圖」（1891年・明治24年、Geographicus発行）の実画像を
-    // エリアごとに切り出したもの。1931年より前に発行されたためパブリックドメイン
-    // （出典: Wikimedia Commons）。位置合わせは地図上の目印（不忍池・皇居のお堀等）
-    // を基準に手作業で行った概算で、史料的に厳密な測量座標ではない。
+    // 以下2枚（+ 東海道`tokaido`が使う`OldMap_Shiba`）は「東京實測全圖」
+    // （1891年・明治24年、Geographicus発行）の実画像をエリアごとに切り出したもの。
+    // 1931年より前に発行されたためパブリックドメイン（出典: Wikimedia Commons）。
+    // 位置合わせは地図上の目印（不忍池・皇居のお堀等）を基準に手作業で行った概算で、
+    // 史料的に厳密な測量座標ではない。かつて別々の古地図だった「神田」「上野」「芝」は、
+    // それぞれ日本橋・本郷・東海道の古地図に統合済み（統合の経緯は各エントリのコメント参照）。
 
     static let meijiWriters = HistoricalOverlayMap(
         id: "meiji-writers",
-        title: "明治の文豪の家（本郷・谷中）",
+        title: "明治の文豪（本郷・上野）",
         era: "明治時代（1891年・明治24年頃）",
-        summary: "夏目漱石・森鴎外・樋口一葉など、明治の文豪たちが暮らした本郷・千駄木・谷中周辺のエリアです。帝国大学（現・東京大学）や不忍池も見えます。",
+        summary: "夏目漱石・森鴎外・樋口一葉など、明治の文豪たちが暮らした本郷・千駄木・谷中と、寛永寺・不忍池を中心とした上野周辺をあわせたエリアです。帝国大学（現・東京大学）も見えます。",
         imageAssetName: "OldMap_MeijiWriters",
-        // 谷中七福神のうち田端・西日暮里側の3社寺も収まるよう、北側を少し広げている
-        // （元画像自体の解像度はそのままのため、北端付近はやや引き伸ばされた表示になる）。
+        // 谷中七福神のうち田端・西日暮里側の3社寺、および上野（寛永寺・不忍池周辺、
+        // 旧`ueno`エントリ）のチェックポイントも収まるよう、範囲を広げている
+        // （元画像自体の解像度はそのままのため、特に東端・北端付近はやや引き伸ばされた表示になる）。
         southWest: CLLocationCoordinate2D(latitude: 35.6929, longitude: 139.7484),
-        northEast: CLLocationCoordinate2D(latitude: 35.7395, longitude: 139.7895)
-    )
-
-    static let ueno = HistoricalOverlayMap(
-        id: "ueno-edo",
-        title: "上野（寛永寺・不忍池周辺）",
-        era: "明治時代（1891年・明治24年頃）",
-        summary: "徳川将軍家の菩提寺・寛永寺と不忍池を中心に広がっていたエリア。現在の上野公園周辺に相当します。",
-        imageAssetName: "OldMap_Ueno",
-        southWest: CLLocationCoordinate2D(latitude: 35.6968, longitude: 139.7573),
-        northEast: CLLocationCoordinate2D(latitude: 35.7311, longitude: 139.7984)
+        northEast: CLLocationCoordinate2D(latitude: 35.7395, longitude: 139.7984)
     )
 
     static let nihonbashi = HistoricalOverlayMap(
         id: "nihonbashi-edo",
-        title: "日本橋（商人の町）",
+        title: "日本橋・神田明神",
         era: "明治時代（1891年・明治24年頃）",
-        summary: "五街道の起点・日本橋を中心に、商人たちの店が軒を連ねた経済の中心地。",
+        summary: "五街道の起点・日本橋を中心に、商人たちの店が軒を連ねた経済の中心地。北の神田明神門前町までを含みます。",
         imageAssetName: "OldMap_Nihonbashi",
+        // もともと別の古地図だった「神田（神田明神周辺）」を統合したため、北側に範囲を
+        // 広げている（画像自体はそのままのため、北端付近はやや引き伸ばされた表示になる）。
         southWest: CLLocationCoordinate2D(latitude: 35.6638, longitude: 139.7505),
-        northEast: CLLocationCoordinate2D(latitude: 35.6981, longitude: 139.7916)
-    )
-
-    static let shiba = HistoricalOverlayMap(
-        id: "shiba-edo",
-        title: "芝（増上寺周辺）",
-        era: "明治時代（1891年・明治24年頃）",
-        summary: "徳川将軍家の菩提寺のひとつ・増上寺を中心に広がっていたエリア。現在の芝公園周辺に相当します。",
-        imageAssetName: "OldMap_Shiba",
-        southWest: CLLocationCoordinate2D(latitude: 35.6379, longitude: 139.7262),
-        northEast: CLLocationCoordinate2D(latitude: 35.6722, longitude: 139.7673)
-    )
-
-    static let kanda = HistoricalOverlayMap(
-        id: "kanda-edo",
-        title: "神田（神田明神周辺）",
-        era: "明治時代（1891年・明治24年頃）",
-        summary: "江戸総鎮守・神田明神の門前町として栄えたエリア。現在の神田・御茶ノ水周辺に相当します。",
-        imageAssetName: "OldMap_Kanda",
-        southWest: CLLocationCoordinate2D(latitude: 35.6823, longitude: 139.7518),
         northEast: CLLocationCoordinate2D(latitude: 35.7166, longitude: 139.7929)
     )
 
-    // 麻布・六本木は、アプリ内の現在の地図（チェックポイント表示）のスクリーンショットから
-    // ピンアイコン類を除去し、セピア調のフィルターをかけて「古地図風」に加工した画像を使用。
-    // 実際の歴史史料のスキャンではない（`goshikiFudo`より上のイラスト画像と同じ扱い）。
-    static let roppongi = HistoricalOverlayMap(
-        id: "roppongi-meiji",
-        title: "麻布・六本木周辺",
-        era: "古地図風（現在の地図をもとに加工）",
-        summary: "大名屋敷が置かれていた麻布・六本木の町割りをイメージした、現在の地図をもとにした古地図風の画像です。現在の六本木ヒルズ（毛利庭園）・乃木神社周辺に相当します。",
-        imageAssetName: "OldMap_Roppongi",
-        southWest: CLLocationCoordinate2D(latitude: 35.64769, longitude: 139.72254),
-        northEast: CLLocationCoordinate2D(latitude: 35.67459, longitude: 139.74098)
-    )
-
-    // 以下2枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
+    // 以下1枚は「1891 Meiji Map of Tokyo or Edo, Japan」（Geographicus発行、東京實測全圖の英語版）
     // の実画像を、地域を絞らず広域のまま使ったもの。1931年より前に発行されたためパブリックドメイン
     // （出典: Wikimedia Commons）。目黒・世田谷・豊島など東京十五区の外側にあたるエリアも含むため、
-    // 他の6枚に比べて図の密度は粗く、位置合わせもより概算になる。
+    // 他の実測図に比べて図の密度は粗く、位置合わせもより概算になる。
 
     static let goshikiFudo = HistoricalOverlayMap(
         id: "goshiki-fudo-meiji",
@@ -182,11 +147,14 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
     )
 
-    // 以下3枚（松尾芭蕉ゆかりの地・東海道・中山道）は、上記と同じ「1891 Meiji Map of Tokyo
+    // 以下1枚（松尾芭蕉ゆかりの地）は、上記と同じ「1891 Meiji Map of Tokyo
     // or Edo, Japan」（Geographicus発行、Wikimedia Commonsより取得、パブリックドメイン）の
-    // フル解像度画像（3500×2610px）から、それぞれのルートに合わせてエリアを切り出したもの。
+    // フル解像度画像（3500×2610px）から、ルートに合わせてエリアを切り出したもの。
     // 位置合わせは同梱の広域画像と同じ座標系（南西 35.615, 139.660 / 北東 35.755, 139.825が
     // フル画像全体に対応）を基準に計算した概算で、史料的に厳密な測量座標ではない。
+    // （東海道はかつて同じグループの専用画像を使っていたが、現在は`shiba`統合により
+    // 「東京實測全圖」実写版の増上寺クロップ画像を使っている。中山道は`OldMap_Nakasendo`
+    // という同種の専用クロップ画像を引き続き使用。）
 
     static let bashoOkuNoHosomichi = HistoricalOverlayMap(
         id: "basho-oku-no-hosomichi-meiji",
@@ -198,38 +166,31 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.7967)
     )
 
-    // 同じ原本のフル解像度画像から、霞ヶ関・虎ノ門エリア（外務省・海軍省・麹町区一帯）を
-    // 切り出したもの。位置合わせは上記と同じ座標系を基準にした概算。
-    static let kasumigasekiToranomon = HistoricalOverlayMap(
-        id: "kasumigaseki-toranomon-meiji",
-        title: "霞ヶ関・虎ノ門（大名屋敷と社寺）",
-        era: "明治時代（1891年・明治24年頃）",
-        summary: "桜田門から虎ノ門にかけて、大名屋敷や由緒ある社寺が並んでいたエリア。現在の官庁街・虎ノ門ヒルズ周辺に相当します。地図中には当時の外務省・海軍省・麹町区の町割りが見えます。",
-        imageAssetName: "OldMap_KasumigasekiToranomon",
-        southWest: CLLocationCoordinate2D(latitude: 35.6531, longitude: 139.7071),
-        northEast: CLLocationCoordinate2D(latitude: 35.6933, longitude: 139.7496)
-    )
-
     // 赤坂・紀尾井町も同様に、現在の地図のスクリーンショットからピンアイコンを除去して
     // セピア調に加工した「古地図風」画像。実際の歴史史料のスキャンではない。
+    // もともと別の古地図だった「麻布・六本木周辺」（`roppongi`）を統合したため、
+    // 南側に範囲を広げている。
     static let akasakaKioicho = HistoricalOverlayMap(
         id: "akasaka-kioicho-meiji",
-        title: "赤坂・紀尾井町（大名屋敷跡）",
+        title: "赤坂・紀尾井町・六本木",
         era: "古地図風（現在の地図をもとに加工）",
-        summary: "紀伊徳川家・尾張徳川家・彦根井伊家の屋敷が並び、「紀尾井町」の地名の由来となったエリア。現在の地図をもとにした古地図風の画像で、赤坂の社寺周辺も含みます。",
+        summary: "紀伊徳川家・尾張徳川家・彦根井伊家の屋敷が並び、「紀尾井町」の地名の由来となったエリア。現在の地図をもとにした古地図風の画像で、赤坂の社寺周辺・麻布・六本木も含みます。",
         imageAssetName: "OldMap_AkasakaKioicho",
-        southWest: CLLocationCoordinate2D(latitude: 35.66579, longitude: 139.72203),
-        northEast: CLLocationCoordinate2D(latitude: 35.69024, longitude: 139.73768)
+        southWest: CLLocationCoordinate2D(latitude: 35.64769, longitude: 139.72203),
+        northEast: CLLocationCoordinate2D(latitude: 35.69024, longitude: 139.74098)
     )
 
+    // もともと別の古地図だった「芝（増上寺周辺）」（`shiba`）の画像を、東海道の古地図として
+    // 品川方面まで範囲を広げて使う形に統合した。画像自体は増上寺周辺のままのため、
+    // 日本橋・品川に近い南北の端はやや引き伸ばされた表示になる。
     static let tokaido = HistoricalOverlayMap(
         id: "tokaido-edo",
-        title: "東海道（日本橋〜京橋・新橋）",
+        title: "東海道（日本橋・芝増上寺・品川）",
         era: "江戸時代（五街道が整備された時期）",
-        summary: "五街道の起点・日本橋から、京橋・新橋・築地にかけて広がる東海道沿いの町人地エリアです。",
-        imageAssetName: "OldMap_Tokaido",
-        southWest: CLLocationCoordinate2D(latitude: 35.620, longitude: 139.720),
-        northEast: CLLocationCoordinate2D(latitude: 35.700, longitude: 139.800)
+        summary: "五街道の起点・日本橋から、徳川将軍家の菩提寺・増上寺がある芝を経て、東海道最初の宿場・品川宿にかけてのエリアです。",
+        imageAssetName: "OldMap_Shiba",
+        southWest: CLLocationCoordinate2D(latitude: 35.5865, longitude: 139.7262),
+        northEast: CLLocationCoordinate2D(latitude: 35.6835, longitude: 139.7742)
     )
 
     static let nakasendo = HistoricalOverlayMap(
@@ -240,16 +201,6 @@ enum OldMapCatalog {
         imageAssetName: "OldMap_Nakasendo",
         southWest: CLLocationCoordinate2D(latitude: 35.680, longitude: 139.700),
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.790)
-    )
-
-    static let kudanshitaChidorigafuchi = HistoricalOverlayMap(
-        id: "kudanshita-chidorigafuchi-meiji",
-        title: "九段下・千鳥ヶ淵（靖国神社周辺）",
-        era: "明治時代（1891年・明治24年頃）",
-        summary: "江戸城北の丸の門や外堀・千鳥ヶ淵、明治に創建された靖国神社が並ぶエリアです。",
-        imageAssetName: "OldMap_TokyoMeiji1891",
-        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
-        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
     )
 
     // 同じ「1891 Meiji Map of Tokyo or Edo, Japan」のフル解像度画像から、原宿・代々木周辺
@@ -267,7 +218,7 @@ enum OldMapCatalog {
 
     // 現在の地図（OpenStreetMap）から、赤坂〜二子玉川間の大山街道沿いを取得し、
     // セピア調フィルターをかけて古地図風に加工した画像。実際の歴史史料ではない
-    // （`roppongi`/`akasakaKioicho`と同じ「現在の地図から加工した古地図風画像」の扱い）。
+    // （`akasakaKioicho`と同じ「現在の地図から加工した古地図風画像」の扱い）。
     // ピンアイコン等が写り込んでいない素の地図から作成したため、inpaintによる除去は行っていない。
     static let oyamaKaido = HistoricalOverlayMap(
         id: "oyama-kaido",
@@ -281,9 +232,9 @@ enum OldMapCatalog {
 
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
-        edoCastle, asakusa, meijiWriters, ueno, nihonbashi, shiba, kanda, roppongi,
-        goshikiFudo, bashoOkuNoHosomichi, kasumigasekiToranomon, akasakaKioicho,
-        tokaido, nakasendo, kudanshitaChidorigafuchi,
+        edoCastle, asakusa, meijiWriters, nihonbashi,
+        goshikiFudo, bashoOkuNoHosomichi, akasakaKioicho,
+        tokaido, nakasendo,
         meijiJinguOmotesando, oyamaKaido,
     ]
 

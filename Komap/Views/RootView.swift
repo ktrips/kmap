@@ -75,6 +75,7 @@ private struct MainTabView: View {
 /// 「マイ時空旅」・「セットアップ」の3項目をまとめる。
 private struct MapTopLeftControls: View {
     @EnvironmentObject private var mapSession: MapSessionState
+    @State private var isPresentingOldMapPicker = false
 
     var body: some View {
         Menu {
@@ -91,14 +92,11 @@ private struct MapTopLeftControls: View {
                     .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             }
             Divider()
-            Menu {
-                OldMapPickerMenuContent(
-                    selectedOverlay: $mapSession.selectedOverlay,
-                    isShowingAllOverlays: $mapSession.isShowingAllOverlays,
-                    onRequestSearch: {
-                        mapSession.isShowingOldMapSearch = true
-                    }
-                )
+            // 「古地図選択」はここでsubmenu（Menu内Menu）にせず、シートを開くボタンにする。
+            // 同梱の古地図が増えた結果、submenuに入り切らない項目がスクロールもできないまま
+            // 表示されなくなる問題があったため（`OldMapPickerSheet`のコメント参照）。
+            Button {
+                isPresentingOldMapPicker = true
             } label: {
                 Label("古地図選択", systemImage: "map")
             }
@@ -120,6 +118,15 @@ private struct MapTopLeftControls: View {
         }
         .padding(.top, 8)
         .padding(.leading, 16)
+        .sheet(isPresented: $isPresentingOldMapPicker) {
+            OldMapPickerSheet(
+                selectedOverlay: $mapSession.selectedOverlay,
+                isShowingAllOverlays: $mapSession.isShowingAllOverlays,
+                onRequestSearch: {
+                    mapSession.isShowingOldMapSearch = true
+                }
+            )
+        }
     }
 }
 
