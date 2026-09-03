@@ -26,6 +26,7 @@
   "hosting": {
     "public": "web/dist",
     "site": "komapprj",
+    "cleanUrls": true,
     "ignore": [
       "firebase.json",
       "**/.*",
