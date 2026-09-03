@@ -39,11 +39,6 @@ export function PublicSharedTripsView({
           <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
           <p className="brand-eyebrow">Komap 古地図巡り</p>
         </div>
-        {isFirebaseConfigured && (
-          <button className="google-button google-button-compact" onClick={onSignInWithGoogle} disabled={isSigningIn}>
-            {isSigningIn ? "サインイン中..." : "Googleでサインイン"}
-          </button>
-        )}
       </header>
 
       <div className="public-intro">
@@ -52,16 +47,16 @@ export function PublicSharedTripsView({
           みんなが公開している「時空旅」の記録（歩いたルート・投稿写真）を
           地図で見ることができます。気になる時空旅を左のリストから選んで楽しんで下さい。
         </p>
-        <div className="public-intro-points">
-          <p>
-            <strong>📱 iOSアプリなら、</strong>
-            実際に歩きながらGPSで自分だけの時空旅を記録できます。古地図を重ねて、昔の街を歩いているような散策が楽しめます。
-          </p>
-          <p>
-            <strong>🔑 Googleでサインインすると、</strong>
-            自分が歩いた時空旅・集めた御朱印・投稿した写真がクラウドに保存され、このWebページからいつでも見返せるようになります。
-          </p>
-        </div>
+        {isFirebaseConfigured && (
+          <div className="public-intro-cta">
+            <button className="google-button google-button-large" onClick={onSignInWithGoogle} disabled={isSigningIn}>
+              {isSigningIn ? "サインイン中..." : "Googleでサインイン"}
+            </button>
+            <p className="public-intro-cta-note">
+              サインインすると、Webで写真が見えることや、iOSアプリをインストールして時空旅を楽しめます。
+            </p>
+          </div>
+        )}
         {error && <p className="error-text">{error}</p>}
       </div>
 
