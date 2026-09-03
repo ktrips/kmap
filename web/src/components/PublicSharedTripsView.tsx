@@ -49,8 +49,8 @@ export function PublicSharedTripsView({
       <div className="public-intro">
         <h1>みんなの時空旅</h1>
         <p>
-          サインインしなくても、みんなが公開している「時空旅」の記録（歩いたルート・投稿写真）を
-          地図で見ることができます。気になる記録を左のリストから選んでみてください。
+          みんなが公開している「時空旅」の記録（歩いたルート・投稿写真）を
+          地図で見ることができます。気になる時空旅を左のリストから選んで楽しんで下さい。
         </p>
         <div className="public-intro-points">
           <p>
