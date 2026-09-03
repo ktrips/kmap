@@ -27,7 +27,7 @@ function durationLabel(trip: UnifiedTrip): string | null {
 export function TripDetail({ trip }: Props) {
   if (!trip) {
     return (
-      <div className="place-detail place-detail-empty">
+      <div className="trip-detail place-detail-empty">
         <p>左のリストから、時空旅を選んでください。</p>
       </div>
     );
@@ -37,7 +37,7 @@ export function TripDetail({ trip }: Props) {
   const duration = durationLabel(trip);
 
   return (
-    <div className="place-detail">
+    <div className="trip-detail">
       {trip.latitudes.length > 0 && <TripMapView latitudes={trip.latitudes} longitudes={trip.longitudes} />}
 
       <p className="place-detail-era">{dateFormatter.format(trip.startedAt)}</p>
