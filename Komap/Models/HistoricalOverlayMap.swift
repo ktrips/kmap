@@ -26,10 +26,16 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
     let imageAssetName: String?
     /// `StampPhotoStore`に保存したファイル名。検索して追加した古地図で使う。
     let imageFileName: String?
-    /// 画像の左下（南西）に対応する緯度経度
+    /// 画像の左下（南西）に対応する緯度経度。`bearing`が0でない場合、実際に画像が
+    /// 覆う範囲はこの矩形を`bearing`の分だけ中心を軸に回転させたものになる
+    /// （`GMSGroundOverlay.bearing`と同じ仕様）。
     let southWest: CLLocationCoordinate2D
     /// 画像の右上（北東）に対応する緯度経度
     let northEast: CLLocationCoordinate2D
+    /// 画像の「上」が指す方角（真北から時計回りの度数）。0なら回転なし（画像の上＝北）。
+    /// 手描きの古地図は必ずしも北を上にして描かれていないため、実際の地理と重ねる際に
+    /// 画像そのものを回転させたい場合に使う。
+    let bearing: CLLocationDirection
 
     init(
         id: String,
@@ -39,7 +45,8 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
         imageAssetName: String? = nil,
         imageFileName: String? = nil,
         southWest: CLLocationCoordinate2D,
-        northEast: CLLocationCoordinate2D
+        northEast: CLLocationCoordinate2D,
+        bearing: CLLocationDirection = 0
     ) {
         self.id = id
         self.title = title
@@ -49,6 +56,7 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
         self.imageFileName = imageFileName
         self.southWest = southWest
         self.northEast = northEast
+        self.bearing = bearing
     }
 
     /// この古地図がカバーする範囲の中心（初期表示時のカメラ位置に使う）
@@ -144,21 +152,29 @@ enum OldMapCatalog {
     // （出典: Wikimedia Commons）。目黒・世田谷・豊島など東京十五区の外側にあたるエリアも含むため、
     // 他の実測図に比べて図の密度は粗く、位置合わせもより概算になる。
 
+    // 皇居のお堀（中心）と不忍池・帝国大学（本郷、北東）の実際の緯度経度と、
+    // 画像上のピクセル位置を照合して、回転（bearing）・縮尺・中心位置を計算した。
+    // 元画像は北が上ではなく、真北から時計回り約325°（＝反時計回りに約35°）の方向を
+    // 上にして描かれている（実測図でも、紙面に収めるために東京の海岸線の向きに合わせて
+    // 回転して印刷されたとみられる）。それでも手描きの古地図のため、細部までの
+    // 完全な精度は無い（皇居・不忍池・本郷を基準にした概算）。
     static let goshikiFudo = HistoricalOverlayMap(
         id: "goshiki-fudo-meiji",
         title: "五色不動めぐり（目黒・目白・目赤・目青・目黄）",
         era: "明治時代（1891年・明治24年頃）",
         summary: "江戸の町を鬼門から守るとされた五色不動を東西南北にめぐる、広域の古地図です。目黒区・豊島区・文京区・世田谷区・台東区にまたがります。",
         imageAssetName: "OldMap_TokyoMeiji1891",
-        southWest: CLLocationCoordinate2D(latitude: 35.615, longitude: 139.660),
-        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.825)
+        southWest: CLLocationCoordinate2D(latitude: 35.63735, longitude: 139.71808),
+        northEast: CLLocationCoordinate2D(latitude: 35.72185, longitude: 139.82213),
+        bearing: 325.0
     )
 
     // 以下1枚（松尾芭蕉ゆかりの地）は、上記と同じ「1891 Meiji Map of Tokyo
     // or Edo, Japan」（Geographicus発行、Wikimedia Commonsより取得、パブリックドメイン）の
-    // フル解像度画像（3500×2610px）から、ルートに合わせてエリアを切り出したもの。
-    // 位置合わせは同梱の広域画像と同じ座標系（南西 35.615, 139.660 / 北東 35.755, 139.825が
-    // フル画像全体に対応）を基準に計算した概算で、史料的に厳密な測量座標ではない。
+    // フル解像度画像（3500×2610px）から、ルートに合わせてエリアを切り出したもの
+    // （切り出し済みの別画像のため、上記`goshikiFudo`のbearingの影響は受けない）。
+    // 位置合わせは、切り出し前の画像に対して地図上の目印を基準に手作業で行った概算で、
+    // 史料的に厳密な測量座標ではない。
     // （東海道はかつて同じグループの専用画像を使っていたが、現在は`shiba`統合により
     // 「東京實測全圖」実写版の増上寺クロップ画像を使っている。中山道は`OldMap_Nakasendo`
     // という同種の専用クロップ画像を引き続き使用。）

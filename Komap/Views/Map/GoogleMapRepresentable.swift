@@ -183,7 +183,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             // 達して古地図が一切描画されなくなることがある。画像・範囲が同じものは
             // 1枚にまとめてから重ねる。
             func key(for overlayMap: HistoricalOverlayMap) -> String {
-                "\(overlayMap.imageAssetName ?? overlayMap.imageFileName ?? "")|\(overlayMap.southWest.latitude)|\(overlayMap.southWest.longitude)|\(overlayMap.northEast.latitude)|\(overlayMap.northEast.longitude)"
+                "\(overlayMap.imageAssetName ?? overlayMap.imageFileName ?? "")|\(overlayMap.southWest.latitude)|\(overlayMap.southWest.longitude)|\(overlayMap.northEast.latitude)|\(overlayMap.northEast.longitude)|\(overlayMap.bearing)"
             }
             var seenKeys = Set<String>()
             let uniqueMaps = overlays.filter { seenKeys.insert(key(for: $0)).inserted }
@@ -203,6 +203,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             allOverlays = uniqueMaps.map { overlayMap in
                 let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
                 let overlay = GMSGroundOverlay(bounds: bounds, icon: nil)
+                overlay.bearing = overlayMap.bearing
                 overlay.opacity = 0.75
                 overlay.map = mapView
                 return overlay
@@ -211,10 +212,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             let generation = allOverlaysGeneration
             for (index, overlayMap) in uniqueMaps.enumerated() {
                 let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+                let bearing = overlayMap.bearing
                 let cacheKey = newKeys[index]
                 if let cached = Self.downsampledImageCache[cacheKey] {
                     allOverlays[index].map = nil
                     let replacement = GMSGroundOverlay(bounds: bounds, icon: cached)
+                    replacement.bearing = bearing
                     replacement.opacity = 0.75
                     replacement.map = mapView
                     allOverlays[index] = replacement
@@ -235,6 +238,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                         else { return }
                         self.allOverlays[index].map = nil
                         let replacement = GMSGroundOverlay(bounds: bounds, icon: image)
+                        replacement.bearing = bearing
                         replacement.opacity = 0.75
                         replacement.map = mapView
                         self.allOverlays[index] = replacement
@@ -308,6 +312,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     coordinate: overlayMap.northEast
                 )
                 let overlay = GMSGroundOverlay(bounds: bounds, icon: currentBaseImage)
+                overlay.bearing = overlayMap.bearing
                 overlay.opacity = 1
                 overlay.map = mapView
                 currentOverlay = overlay
@@ -485,10 +490,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
         }
 
-        /// 「全ての古地図を表示」はズームアウトして見るため、フル解像度の画像を
-        /// 10枚重ねてもほとんど見分けがつかない。GPUの合成負荷を減らすため、
-        /// この表示専用にあらかじめ縮小しておく。
-        private static let allOverlaysMaxDimension: CGFloat = 480
+        /// 同梱の古地図画像は、この環境のGoogle Maps SDKが確実に描画できることを
+        /// 確認済みの1024×1024で統一している（`HistoricalOverlayMap.imageAssetName`の
+        /// ドキュメント参照）。1024×1024以外のサイズ（480など、正方形でも）だと
+        /// `GMSGroundOverlay`が画像を一切描画しない不具合があるため、「全ての古地図を表示」
+        /// 専用の縮小サイズも1024のまま（＝実質縮小しない）にしておく必要がある。
+        private static let allOverlaysMaxDimension: CGFloat = 1024
 
         /// `downsampledForAllOverlays`の結果をキー（画像名+範囲）ごとに使い回すキャッシュ。
         /// 同梱画像はアプリ起動中に内容が変わらないため、「全ての古地図を表示」を
