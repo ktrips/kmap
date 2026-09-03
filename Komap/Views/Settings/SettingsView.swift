@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var customSearchSavedMessage: String?
     @State private var isSyncing = false
     @State private var syncMessage: String?
+    @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
 
     private let syncService = SyncService()
 
@@ -62,6 +63,33 @@ struct SettingsView: View {
                     Text("Googleカスタム検索（古地図検索用）")
                 } footer: {
                     Text("マップ画面の「古地図を選択」から新しい古地図をWeb検索して追加する機能で使用します。両方設定するとメニューに追加項目が表示されます。APIキーはCloud Console、検索エンジンIDはProgrammable Search Engineで取得できます。")
+                }
+
+                Section {
+                    HStack(spacing: 10) {
+                        Text("現在")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                        Slider(
+                            value: $defaultOverlayOpacity,
+                            in: 0...1,
+                            onEditingChanged: { isEditing in
+                                if !isEditing {
+                                    mapSession.updateDefaultOverlayOpacity(defaultOverlayOpacity)
+                                }
+                            }
+                        )
+                        Text("古地図")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("\(Int(defaultOverlayOpacity * 100))%")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("古地図のデフォルト濃度")
+                } footer: {
+                    Text("マップ画面で古地図を選んだ時に最初から使われる濃度です。マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
                 }
 
                 Section("Google Maps") {

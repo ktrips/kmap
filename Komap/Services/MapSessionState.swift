@@ -25,7 +25,7 @@ struct CameraMoveRequest: Equatable {
 @MainActor
 final class MapSessionState: ObservableObject {
     @Published var selectedOverlay: HistoricalOverlayMap? = OldMapCatalog.edoCastle
-    @Published var overlayOpacity: Double = 0.3
+    @Published var overlayOpacity: Double = MapSessionState.defaultOverlayOpacity
     @Published var cameraMoveRequest: CameraMoveRequest?
     @Published var selectedTab: AppTab = .map
     /// 「全ての古地図を表示」が選ばれているかどうか。右上のハンバーガーメニュー内の
@@ -34,8 +34,39 @@ final class MapSessionState: ObservableObject {
     /// 「新しい古地図を登録」の検索シートを表示するかどうか。
     @Published var isShowingOldMapSearch: Bool = false
 
+    private static let defaultOverlayOpacityKey = "defaultOverlayOpacity"
+    /// セットアップ画面で変更していない場合の、古地図濃度の初期値。
+    private static let fallbackDefaultOverlayOpacity: Double = 0.6
+
+    /// 起動時・「セットアップ」で変更していない限り古地図濃度に使う値。
+    /// セットアップ画面の設定を保存・反映するために`UserDefaults`に永続化する。
+    static var defaultOverlayOpacity: Double {
+        get {
+            let stored = UserDefaults.standard.object(forKey: defaultOverlayOpacityKey) as? Double
+            return stored ?? fallbackDefaultOverlayOpacity
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: defaultOverlayOpacityKey)
+        }
+    }
+
+    /// 「セットアップ」画面から呼ぶ。次回以降の起動時に使うデフォルト濃度として保存しつつ、
+    /// 今表示中の濃度にもすぐ反映する。
+    func updateDefaultOverlayOpacity(_ value: Double) {
+        Self.defaultOverlayOpacity = value
+        overlayOpacity = value
+    }
+
     func moveCamera(to coordinate: CLLocationCoordinate2D) {
         cameraMoveRequest = CameraMoveRequest(coordinate)
+    }
+
+    /// ハンバーガーメニュー最上部（Komapアイコン・アプリ名）をタップした時に呼ぶ。
+    /// 古地図オーバーレイを外した「元のマップ」表示に戻す。
+    func resetToOriginalMap() {
+        isShowingAllOverlays = false
+        selectedOverlay = nil
+        selectedTab = .map
     }
 
     /// 「My TimeTrip」の記録から、その時の古地図・不透明度・位置を復元してマップタブへ移動する。

@@ -79,17 +79,20 @@ private struct MapTopLeftControls: View {
 
     var body: some View {
         Menu {
-            // Sectionのheaderに`Label`（画像アイコン）を渡してもメニュー上では
-            // テキストしか表示されないため、通常のメニュー項目として
-            // アプリ名の行を先頭に置く（ボタンではないのでタップしても何も起きない）。
-            Label {
-                Text("Komap 古地図巡り")
-            } icon: {
-                Image("KomapIcon")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 20, height: 20)
-                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            // アプリ名の行をタップすると、古地図オーバーレイを外した「元のマップ」表示に
+            // 戻る（迷子になった時のホームボタンのような役割）。
+            Button {
+                mapSession.resetToOriginalMap()
+            } label: {
+                Label {
+                    Text("Komap 古地図巡り")
+                } icon: {
+                    Image("KomapIcon")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 20, height: 20)
+                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                }
             }
             Divider()
             // 「古地図選択」はここでsubmenu（Menu内Menu）にせず、シートを開くボタンにする。
@@ -98,19 +101,23 @@ private struct MapTopLeftControls: View {
             Button {
                 isPresentingOldMapPicker = true
             } label: {
-                Label("古地図選択", systemImage: "map")
+                // Menu項目はカスタムレイアウトが効かず単純なテキスト+アイコンしか
+                // 描画されないため、「その場で開いて選ぶ」ことが分かるよう
+                // タイトル末尾に下矢印（⌄）を付ける。
+                Label("古地図選択  ⌄", systemImage: "map")
             }
             Divider()
             Button {
                 mapSession.selectedTab = .myTimeTrip
             } label: {
-                Label("マイ時空旅", systemImage: "book.closed")
+                // 同様に、新しい画面へ遷移することが分かるよう末尾に右矢印（›）を付ける。
+                Label("マイ時空旅  ›", systemImage: "book.closed")
             }
             Divider()
             Button {
                 mapSession.selectedTab = .settings
             } label: {
-                Label("セットアップ", systemImage: "gearshape")
+                Label("セットアップ  ›", systemImage: "gearshape")
             }
         } label: {
             Image(systemName: "line.3.horizontal")
