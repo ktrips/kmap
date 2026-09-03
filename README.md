@@ -297,6 +297,50 @@ gcloud iam service-accounts keys create github-actions-deploy-key.json \
 シークレットに貼り付けたら、ローカルのキーファイルは削除してください。漏洩した場合は
 `gcloud iam service-accounts keys delete` で失効できます。
 
+### 2-5. Googleサインイン時のTestFlight自動招待（Cloud Functions）
+
+Web版でGoogleサインインすると、そのメールアドレス宛にTestFlightの外部テスト招待が
+自動送信されるようになっています（`functions/src/index.ts` の `requestTestFlightInvite`）。
+初回サインイン時に一度だけ送信され、以降は`testflightInvites/{email}` (Firestore) を見て
+重複送信しません。
+
+**前提条件**（すべて揃っていないと動作しません）:
+- Firebaseプロジェクトが **Blazeプラン**（従量課金）であること（外部API通信にはCloud
+  FunctionsのBlazeプランが必須）
+- App Store Connectで対象アプリの**外部テスターグループ**が作成済みで、External Beta App
+  Reviewを通過していること（このグループに追加されたテスターへ実際に招待メールが飛ぶ）
+- App Store Connect API キー（Issuer ID・Key ID・`.p8`秘密鍵）を発行済みであること
+  （App Store Connect → ユーザとアクセス → 統合 → App Store Connect API）
+
+**セットアップ手順**:
+
+```bash
+cd functions
+npm install
+```
+
+Cloud Functionsのシークレットとして、以下4つを登録します（値はGoogle Secret Managerに
+保存され、リポジトリには一切残りません）。
+
+```bash
+firebase functions:secrets:set APPSTORE_CONNECT_ISSUER_ID
+firebase functions:secrets:set APPSTORE_CONNECT_KEY_ID
+# .p8ファイルの中身をそのまま貼り付ける（改行はそのままでOK）
+firebase functions:secrets:set APPSTORE_CONNECT_PRIVATE_KEY
+# App Store Connect > TestFlight > 対象の外部テスターグループのURLに含まれるID
+firebase functions:secrets:set APPSTORE_CONNECT_BETA_GROUP_ID
+```
+
+デプロイ:
+
+```bash
+firebase deploy --only functions
+```
+
+デプロイ後、Web版で新しいGoogleアカウントを使ってサインインすると、そのメール宛に
+Appleから「TestFlightでKomapをテストするよう招待されました」というメールが届きます。
+送信状況は `firebase functions:log` で確認できます。
+
 ---
 
 ## 古地図データについて（重要な注意）
