@@ -4,6 +4,7 @@ import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import jwt from "jsonwebtoken";
+import * as crypto from "node:crypto";
 
 admin.initializeApp();
 setGlobalOptions({ region: "asia-northeast1", maxInstances: 10 });
@@ -33,6 +34,38 @@ function normalizePEMPrivateKey(raw: string): string {
 
 /** App Store Connect APIへの認証に使う短命JWT（ES256）を都度作る。 */
 function buildAppStoreConnectToken(): string {
+  const raw = APPSTORE_PRIVATE_KEY.value();
+  const pem = normalizePEMPrivateKey(raw);
+
+  // 実際に鍵として読めるかどうかを先に検証し、読めない場合は「値の中身」を一切出さずに
+  // 診断に必要な情報（長さ・改行の有無・鍵種別など）だけログへ出す。
+  // これで、Secret Managerに保存された値そのものがおかしいのか、
+  // このコード側の変換がおかしいのかを、秘密鍵をログに残さず切り分けられる。
+  let keyObject: crypto.KeyObject;
+  try {
+    keyObject = crypto.createPrivateKey(pem);
+  } catch (err) {
+    logger.error("App Store Connect秘密鍵のパースに失敗", {
+      rawLength: raw.length,
+      rawContainsLiteralBackslashN: raw.includes("\\n"),
+      rawContainsRealNewline: raw.includes("\n"),
+      rawHasBeginMarker: raw.includes("BEGIN"),
+      rawHasEndMarker: raw.includes("END"),
+      normalizedLength: pem.length,
+      parseError: err instanceof Error ? err.message : String(err),
+    });
+    throw new HttpsError("internal", "App Store Connect秘密鍵の設定が不正です。");
+  }
+  if (keyObject.asymmetricKeyType !== "ec") {
+    logger.error("App Store Connect秘密鍵の種類が不正（ECではない）", {
+      asymmetricKeyType: keyObject.asymmetricKeyType,
+    });
+    throw new HttpsError(
+      "internal",
+      `App Store Connect秘密鍵の種類が不正です（${keyObject.asymmetricKeyType}）。.p8ファイルの中身を確認してください。`,
+    );
+  }
+
   const now = Math.floor(Date.now() / 1000);
   return jwt.sign(
     {
@@ -41,7 +74,7 @@ function buildAppStoreConnectToken(): string {
       exp: now + 19 * 60, // App Store Connect APIのトークンは最長20分
       aud: "appstoreconnect-v1",
     },
-    normalizePEMPrivateKey(APPSTORE_PRIVATE_KEY.value()),
+    keyObject,
     {
       algorithm: "ES256",
       header: {
