@@ -77,15 +77,24 @@ struct MapScreen: View {
     /// 同じ実在の場所が複数の古地図（谷中七福神と上野の不忍池辯天堂など）にまたがって
     /// 登録されている場合、マーカーが同じ座標に重なって表示がおかしくなるため、
     /// 座標が同じチェックポイントは1つにまとめる。
-    private var activeCheckpoints: [HistoricSite] {
+    ///
+    /// - Important: GPSの更新など、選択中の古地図と無関係な理由でもこの画面のbodyは
+    ///   頻繁に再評価される。ここを計算プロパティのままにすると、その都度
+    ///   （「全ての古地図を表示」中は約70件の）フィルタ処理をやり直すことになるため、
+    ///   `cachedActiveCheckpoints`に結果をキャッシュし、実際に古地図の選択が
+    ///   変わった時だけ`recomputeActiveCheckpoints()`で更新する。
+    @State private var cachedActiveCheckpoints: [HistoricSite] = []
+
+    private func recomputeActiveCheckpoints() {
         if mapSession.isShowingAllOverlays {
             var seenCoordinateKeys = Set<String>()
-            return HistoricSiteCatalog.all.filter { site in
+            cachedActiveCheckpoints = HistoricSiteCatalog.all.filter { site in
                 let key = "\((site.coordinate.latitude * 100_000).rounded()),\((site.coordinate.longitude * 100_000).rounded())"
                 return seenCoordinateKeys.insert(key).inserted
             }
+        } else {
+            cachedActiveCheckpoints = HistoricSiteCatalog.sites(forOverlayID: mapSession.selectedOverlay?.id)
         }
-        return HistoricSiteCatalog.sites(forOverlayID: mapSession.selectedOverlay?.id)
     }
 
     /// 今の記録セッションのID。iPhoneでの記録中は`activeWalkSessionID`、
@@ -123,7 +132,7 @@ struct MapScreen: View {
                 bottomInset: bottomPanelHeight,
                 savedWalkPaths: savedRoutes.filter { !$0.isHiddenOnMap }.map(\.coordinates),
                 liveWalkPath: displayedLiveWalkPath,
-                checkpoints: activeCheckpoints,
+                checkpoints: cachedActiveCheckpoints,
                 collectedSiteIDs: collectedSiteIDs,
                 photoPosts: photoPosts,
                 onTap: { coordinate in
@@ -230,6 +239,13 @@ struct MapScreen: View {
         .onAppear {
             locationManager.requestPermissionIfNeeded()
             syncWatchState()
+            recomputeActiveCheckpoints()
+        }
+        .onChange(of: mapSession.selectedOverlay?.id) { _, _ in
+            recomputeActiveCheckpoints()
+        }
+        .onChange(of: mapSession.isShowingAllOverlays) { _, _ in
+            recomputeActiveCheckpoints()
         }
         .onChange(of: locationManager.walkPath.count) { _, _ in
             guard let latest = locationManager.walkPath.last else { return }
@@ -689,7 +705,7 @@ struct MapScreen: View {
         let current = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         let alreadyCollected = collectedSiteIDs
 
-        for site in activeCheckpoints where !alreadyCollected.contains(site.id) {
+        for site in cachedActiveCheckpoints where !alreadyCollected.contains(site.id) {
             let siteLocation = CLLocation(latitude: site.coordinate.latitude, longitude: site.coordinate.longitude)
             guard current.distance(from: siteLocation) <= stampCollectionRadiusMeters else { continue }
 

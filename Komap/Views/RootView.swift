@@ -56,16 +56,24 @@ private struct MainTabView: View {
     @EnvironmentObject private var mapSession: MapSessionState
 
     var body: some View {
-        switch mapSession.selectedTab {
-        case .map:
+        ZStack {
+            // マップタブは`switch`で条件分岐させず、常にマウントしたまま表示・非表示だけを
+            // 切り替える。以前は他タブへ移動するたびに`MapScreen`（＝`GMSMapView`本体・
+            // GPSのLocationManager・チェックポイントのマーカー・古地図オーバーレイの画像）が
+            // 丸ごと作り直されており、マップタブに戻るたびに毎回同じ初期化コストを
+            // 払っていたため「地図の表示が遅い」原因になっていた。
             ZStack(alignment: .topLeading) {
                 MapScreen()
                 MapTopLeftControls()
             }
-        case .myTimeTrip:
-            MyTimeTripView()
-        case .settings:
-            SettingsView()
+            .opacity(mapSession.selectedTab == .map ? 1 : 0)
+            .allowsHitTesting(mapSession.selectedTab == .map)
+
+            if mapSession.selectedTab == .myTimeTrip {
+                MyTimeTripView()
+            } else if mapSession.selectedTab == .settings {
+                SettingsView()
+            }
         }
     }
 }
