@@ -101,6 +101,11 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     title: "大山街道（赤坂〜二子玉川）",
     era: "古地図風（現在の地図をもとに加工）",
   },
+  {
+    id: "kagurazaka-waseda-shinjuku-meiji",
+    title: "神楽坂・早稲田・新宿",
+    era: "古地図風（現在の地図をもとに加工）",
+  },
 ];
 
 export function findOldMap(id: string | null): OldMapEntry | undefined {

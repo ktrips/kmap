@@ -16,6 +16,13 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
     /// 短い紹介文（ピッカーやカード表示用）
     let summary: String
     /// Assets.xcassets 内の画像名。同梱の古地図で使う。
+    ///
+    /// - Important: 画像は必ず1024×1024pxの正方形にしておくこと（縦横比が違う元画像は
+    ///   白背景でレターボックス/ピラーボックスして正方形にする）。1024×1024以外のサイズ
+    ///   （1536×1536のような正方形でも、1200×895のような長方形でも）だと、Google Maps SDKの
+    ///   `GMSGroundOverlay`がこの環境では画像を一切描画しない（チェックポイントや base map は
+    ///   正常なのに、古地図の帯だけ完全に透明になる）不具合を確認している。原因はSDK内部の
+    ///   テクスチャ処理側にあると見られ、アプリ側のコードでは検出できない（エラーもログも出ない）。
     let imageAssetName: String?
     /// `StampPhotoStore`に保存したファイル名。検索して追加した古地図で使う。
     let imageFileName: String?
@@ -216,6 +223,19 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.68296, longitude: 139.73031)
     )
 
+    // 神楽坂・早稲田・新宿も、現在の地図のスクリーンショットからピンアイコンを除去して
+    // セピア調に加工した「古地図風」画像。実際の歴史史料のスキャンではない
+    // （`akasakaKioicho`/`oyamaKaido`と同じ扱い）。
+    static let kagurazakaWasedaShinjuku = HistoricalOverlayMap(
+        id: "kagurazaka-waseda-shinjuku-meiji",
+        title: "神楽坂・早稲田・新宿",
+        era: "古地図風（現在の地図をもとに加工）",
+        summary: "早稲田大学の学生街と、江戸時代から続く花街・神楽坂、新宿駅周辺をあわせたエリア。現在の地図をもとにした古地図風の画像です。",
+        imageAssetName: "OldMap_KagurazakaWasedaShinjuku",
+        southWest: CLLocationCoordinate2D(latitude: 35.685, longitude: 139.696),
+        northEast: CLLocationCoordinate2D(latitude: 35.712, longitude: 139.744)
+    )
+
     // 現在の地図（OpenStreetMap）から、赤坂〜二子玉川間の大山街道沿いを取得し、
     // セピア調フィルターをかけて古地図風に加工した画像。実際の歴史史料ではない
     // （`akasakaKioicho`と同じ「現在の地図から加工した古地図風画像」の扱い）。
@@ -235,7 +255,7 @@ enum OldMapCatalog {
         edoCastle, asakusa, meijiWriters, nihonbashi,
         goshikiFudo, bashoOkuNoHosomichi, akasakaKioicho,
         tokaido, nakasendo,
-        meijiJinguOmotesando, oyamaKaido,
+        meijiJinguOmotesando, oyamaKaido, kagurazakaWasedaShinjuku,
     ]
 
     /// 同梱の古地図 + ユーザーが検索して追加した古地図。
