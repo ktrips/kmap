@@ -1,4 +1,5 @@
 import type { User } from "firebase/auth";
+import { useTestFlightInvite } from "../lib/useTestFlightInvite";
 
 interface Props {
   user: User;
@@ -7,11 +8,21 @@ interface Props {
 }
 
 export function Header({ user, placeCount, onSignOut }: Props) {
+  const { status, errorMessage, requestInvite } = useTestFlightInvite();
+
   const handleAvatarClick = () => {
     if (window.confirm("サインアウトしますか?")) {
       onSignOut();
     }
   };
+
+  const buttonLabel = {
+    idle: "📱 iOSアプリを取得",
+    sending: "送信中…",
+    sent: "✅ 招待メールを送信しました",
+    "already-invited": "✅ 招待メールを送信済みです",
+    error: "⚠️ 送信に失敗しました",
+  }[status];
 
   return (
     <header className="app-header">
@@ -21,6 +32,23 @@ export function Header({ user, placeCount, onSignOut }: Props) {
       </div>
       <div className="app-header-account">
         <span className="account-count">{placeCount}件の記録</span>
+        <div className="testflight-invite">
+          <button
+            type="button"
+            className="testflight-invite-button"
+            onClick={() => requestInvite()}
+            disabled={status === "sending"}
+            title={`${user.email ?? ""} 宛にTestFlightの招待メールを送ります`}
+          >
+            {buttonLabel}
+          </button>
+          {(status === "sent" || status === "already-invited") && (
+            <p className="testflight-invite-note">
+              {user.email} 宛のメールから、TestFlightアプリ経由でインストールできます。
+            </p>
+          )}
+          {status === "error" && errorMessage && <p className="testflight-invite-note is-error">{errorMessage}</p>}
+        </div>
         <button
           className="account-avatar-button"
           onClick={handleAvatarClick}

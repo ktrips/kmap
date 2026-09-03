@@ -5,25 +5,9 @@ import {
   signInWithPopup,
   signOut as firebaseSignOut,
 } from "firebase/auth";
-import { httpsCallable } from "firebase/functions";
 import { useCallback, useEffect, useState } from "react";
-import { auth, functions } from "./firebase";
-
-/**
- * サインインしたユーザー本人のメールアドレスへ、TestFlightの外部テスト招待を送るよう
- * Cloud Functionへ依頼する。既に送信済みの場合はFunction側で何もしないため、
- * 呼び出し側（ここ）は結果を気にせず一度呼べばよい。
- *
- * - iOSアプリの案内・ダウンロードが目的のため、失敗してもサインイン自体は成立させる
- *   （エラーはコンソールに出すだけで、ユーザー操作をブロックしない）。
- */
-function requestTestFlightInviteInBackground() {
-  if (!functions) return;
-  const call = httpsCallable(functions, "requestTestFlightInvite");
-  call().catch((err) => {
-    console.warn("TestFlight招待の送信に失敗しました（サインインは成功しています）", err);
-  });
-}
+import { auth } from "./firebase";
+import { useTestFlightInvite } from "./useTestFlightInvite";
 
 /**
  * Firebase Authenticationの状態を監視し、Googleサインイン（Web版）を提供する。
@@ -36,6 +20,7 @@ export function useAuth() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { requestInvite } = useTestFlightInvite();
 
   useEffect(() => {
     if (!auth) {
@@ -59,13 +44,15 @@ export function useAuth() {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      requestTestFlightInviteInBackground();
+      // iOSアプリの案内が目的のため、失敗してもサインイン自体は成立させる
+      // （エラーはコンソールに出すだけで、ユーザー操作をブロックしない）。
+      void requestInvite();
     } catch (err) {
       setError(err instanceof Error ? err.message : "サインインに失敗しました。");
     } finally {
       setIsSigningIn(false);
     }
-  }, []);
+  }, [requestInvite]);
 
   const signOut = useCallback(async () => {
     if (!auth) return;
