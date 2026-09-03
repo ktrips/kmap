@@ -136,6 +136,13 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// チェックポイントの通常アイコン。マーカーごとに毎回生成し直さないよう使い回す。
         private static let checkpointIcon = GMSMarker.markerImage(with: .shuiro)
 
+        /// 古地図のグラウンドオーバーレイ・チェックポイントのマーカー・投稿写真のピンの
+        /// 重なり順を、`zIndex`を明示することで常に固定する（安全側の対策。詳細は
+        /// `bringCheckpointMarkersToFront`のコメント参照）。
+        private static let groundOverlayZIndex: Int32 = 0
+        private static let checkpointMarkerZIndex: Int32 = 10
+        private static let photoPostMarkerZIndex: Int32 = 20
+
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
         /// 記録中、「まだ通っていない場所」の不透明度の下限。スライダーがこれより低くても、
@@ -205,9 +212,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 let overlay = GMSGroundOverlay(bounds: bounds, icon: nil)
                 overlay.bearing = overlayMap.bearing
                 overlay.opacity = 0.75
+                overlay.zIndex = Self.groundOverlayZIndex
                 overlay.map = mapView
                 return overlay
             }
+            bringCheckpointMarkersToFront(on: mapView)
 
             let generation = allOverlaysGeneration
             for (index, overlayMap) in uniqueMaps.enumerated() {
@@ -219,8 +228,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     let replacement = GMSGroundOverlay(bounds: bounds, icon: cached)
                     replacement.bearing = bearing
                     replacement.opacity = 0.75
+                    replacement.zIndex = Self.groundOverlayZIndex
                     replacement.map = mapView
                     allOverlays[index] = replacement
+                    bringCheckpointMarkersToFront(on: mapView)
                     continue
                 }
                 // `UIImage(named:)`（`overlayMap.image`）はメインスレッドで読み込み、
@@ -240,8 +251,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                         let replacement = GMSGroundOverlay(bounds: bounds, icon: image)
                         replacement.bearing = bearing
                         replacement.opacity = 0.75
+                        replacement.zIndex = Self.groundOverlayZIndex
                         replacement.map = mapView
                         self.allOverlays[index] = replacement
+                        self.bringCheckpointMarkersToFront(on: mapView)
                     }
                 }
             }
@@ -314,6 +327,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 let overlay = GMSGroundOverlay(bounds: bounds, icon: currentBaseImage)
                 overlay.bearing = overlayMap.bearing
                 overlay.opacity = 1
+                overlay.zIndex = Self.groundOverlayZIndex
                 overlay.map = mapView
                 currentOverlay = overlay
                 currentOverlayID = overlayMap.id
@@ -492,9 +506,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         /// 同梱の古地図画像は、この環境のGoogle Maps SDKが確実に描画できることを
         /// 確認済みの1024×1024で統一している（`HistoricalOverlayMap.imageAssetName`の
-        /// ドキュメント参照）。1024×1024以外のサイズ（480など、正方形でも）だと
-        /// `GMSGroundOverlay`が画像を一切描画しない不具合があるため、「全ての古地図を表示」
-        /// 専用の縮小サイズも1024のまま（＝実質縮小しない）にしておく必要がある。
+        /// ドキュメント参照）。1024×1024以外のサイズだと`GMSGroundOverlay`が画像を
+        /// 一切描画しない不具合があるため、「全ての古地図を表示」専用の縮小サイズも
+        /// 1024のまま（＝実質縮小しない）にしておく必要がある
+        /// （「全ての古地図を表示」でチェックポイントのマーカーが表示されない別の問題に
+        /// ついては`bringCheckpointMarkersToFront`のコメントを参照。512に縮小して
+        /// テクスチャ使用量を減らす対策も試したが、別の描画不具合が出たため見送った）。
         private static let allOverlaysMaxDimension: CGFloat = 1024
 
         /// `downsampledForAllOverlays`の結果をキー（画像名+範囲）ごとに使い回すキャッシュ。
@@ -527,7 +544,14 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             let scale = maxDimension / longestSide
             let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-            let renderer = UIGraphicsImageRenderer(size: newSize)
+            // `UIGraphicsImageRenderer`はデフォルトだと端末の画面スケール（Retinaで2〜3倍）で
+            // レンダリングするため、`format.scale`を指定しないと「ポイントサイズは縮小したのに
+            // 実ピクセル数はむしろ増える」ことがある（例: 3倍機で1024pt→512ptに縮小したつもりが
+            // 実際は1536pxになる）。ここでは実ピクセル数そのものを`maxDimension`に収めたいため、
+            // scale基準ではなく実ピクセル基準で明示的に1.0を指定する。
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
             return renderer.image { _ in
                 image.draw(in: CGRect(origin: .zero, size: newSize))
             }
@@ -655,9 +679,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 marker.title = site.name
                 marker.userData = site
                 marker.icon = Self.checkpointIcon
+                marker.zIndex = Self.checkpointMarkerZIndex
                 marker.map = mapView
                 checkpointMarkers[site.id] = marker
             }
+            bringCheckpointMarkersToFront(on: mapView)
 
             // GPS更新のたびに全マーカーへ`icon`/`opacity`を設定し直すと、チェックポイントが
             // 多い「全ての古地図を表示」時に特に重くなるため、獲得状態が変わったマーカーだけ更新する。
@@ -666,6 +692,36 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 guard checkpointCollectedState[siteID] != isCollected else { continue }
                 checkpointCollectedState[siteID] = isCollected
                 marker.opacity = isCollected ? 1.0 : 0.6
+            }
+        }
+
+        /// チェックポイントのマーカーを、既に地図上にある古地図オーバーレイより前面に
+        /// 出るよう、都度セットし直す（`.map`への再代入は「後から追加した方が上」という
+        /// 描画順の目安になるため）。
+        ///
+        /// - Important: これは安全側の対策であり、「全ての古地図を表示」で
+        ///   チェックポイントのマーカーが一切表示されない不具合の根本原因は解決できていない。
+        ///   調査の結果、この環境のGoogle Maps SDKには「同時に読み込む
+        ///   `GMSGroundOverlay`（1024×1024）の数が10枚を超えるあたりから、内部の
+        ///   テクスチャアトラス上限（"Reached the max number of texture atlases,
+        ///   can not allocate more."）に達し、それ以降はマーカー用のテクスチャを
+        ///   一切確保できなくなる」という制約があることを確認した。この状態では
+        ///   `marker.icon`をカスタム画像から外してSDK標準のピンにしても改善せず、
+        ///   `zIndex`を明示しても改善しないため、描画順やアイコンの問題ではなく
+        ///   純粋にテクスチャ数の上限に起因する。オーバーレイ画像を512×512へ縮小して
+        ///   使用テクスチャ量を減らす対策も試したが、今度は複数の古地図を同時に縮小する際に
+        ///   画像の一部が白く欠けて描画される別の不具合が発生したため見送った。
+        ///   根本的に直すには、同時に読み込むオーバーレイの枚数自体を減らす（例:
+        ///   表示範囲に入っているものだけ読み込む）か、複数の古地図画像を1枚のテクスチャに
+        ///   事前合成するなど、テクスチャの総数を減らす設計変更が必要。単体の古地図を
+        ///   選んで表示するモードはこの制約の影響を受けない。
+        private func bringCheckpointMarkersToFront(on mapView: GMSMapView) {
+            for marker in checkpointMarkers.values {
+                // 既に`.map`が同じ`mapView`のままだと再代入が内部的に無視され、
+                // 描画順が更新されないことがあるため、一度`nil`にしてから
+                // 改めてセットし直すことで、確実に「最後に追加した」状態にする。
+                marker.map = nil
+                marker.map = mapView
             }
         }
 
@@ -684,6 +740,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 marker.icon = Self.circularThumbnail(photo)
                 marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
                 marker.userData = post
+                marker.zIndex = Self.photoPostMarkerZIndex
                 marker.map = mapView
                 photoPostMarkers[post.id] = marker
             }
