@@ -119,6 +119,10 @@ private struct MapTopLeftControls: View {
             } label: {
                 Label("セットアップ  ›", systemImage: "gearshape")
             }
+            Divider()
+            Link(destination: URL(string: "https://github.com/ktrips/kmap#readme")!) {
+                Label("Komapの使い方", systemImage: "book")
+            }
         } label: {
             Image(systemName: "line.3.horizontal")
                 .roundControlButtonStyle()

@@ -264,6 +264,20 @@ code {
   min-width: 0;
 }
 
+.sidebar-footer-link {
+  display: block;
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-brown-deep);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sidebar-footer-link:hover {
+  background: rgba(140, 90, 52, 0.08);
+}
+
 .sidebar-menu-button {
   align-self: flex-start;
   display: inline-flex;

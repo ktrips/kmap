@@ -90,6 +90,14 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
             {tab === "trips" && (
               <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
             )}
+            <a
+              className="sidebar-footer-link"
+              href="https://github.com/ktrips/kmap#readme"
+              target="_blank"
+              rel="noreferrer"
+            >
+              📖 Komapの使い方
+            </a>
           </aside>
         )}
         <main className="app-main">

@@ -68,6 +68,14 @@ export function PublicSharedTripsView({
       <div className="app-body">
         <aside className="app-sidebar">
           <TripList trips={trips} selectedId={selectedTripId} onSelect={(trip) => setSelectedTripId(trip.id)} />
+          <a
+            className="sidebar-footer-link"
+            href="https://github.com/ktrips/kmap#readme"
+            target="_blank"
+            rel="noreferrer"
+          >
+            📖 Komapの使い方
+          </a>
         </aside>
         <main className="app-main">
           <TripDetail trip={selectedTrip} />
