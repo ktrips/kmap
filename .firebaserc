@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "komapprj"
+  },
+  "targets": {
+    "komapprj": {
+      "storage": {
+        "default": [
+          "komapprj.firebasestorage.app"
+        ]
+      }
+    }
   }
 }

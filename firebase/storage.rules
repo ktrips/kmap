@@ -2,6 +2,13 @@ rules_version = '2';
 
 // Storageバケット（gs://komapprj.firebasestorage.app、リージョン: asia-northeast1）は
 // Firebase Consoleで作成済み。`firebase deploy --only storage`でこのルールをデプロイできる。
+//
+// 2024年9月のデフォルトバケット命名規則変更（*.appspot.com → *.firebasestorage.app）に
+// firebase-tools側のセットアップ判定が追随しておらず、コンソールでバケットを作成済みでも
+// `firebase deploy`が「Firebase Storage has not been set up on project」と誤検知して
+// 失敗する既知の不具合がある（firebase/firebase-tools#8152）。回避策として、.firebaserc /
+// firebase.jsonでバケット名を明示するstorageターゲット（"default"）を定義し、CLIの
+// バケット自動検出（不具合のある箇所）を経由しないようにしている。
 // 各ユーザーは自分の users/{uid}/** 配下の画像のみ読み書きできる。
 // 「みんなの時空旅」として公開したものは、Cloud Functions等は使わず、
 // アップロード時にオーナー自身が sharedPhotos/{tripId}/** にも同じ画像を書き込む方式にする
