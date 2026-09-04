@@ -272,19 +272,6 @@ struct SyncService {
         }
     }
 
-    /// 「みんなの時空旅」に公開されている、全ユーザー分の時空旅を取得する。
-    func fetchAllSharedTrips() async throws -> [RemoteSharedTrip] {
-        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
-
-        let snapshot = try await sharedTripsCollection
-            .order(by: "startedAt", descending: true)
-            .getDocuments()
-
-        return snapshot.documents.compactMap { document in
-            RemoteSharedTrip(id: document.documentID, data: document.data())
-        }
-    }
-
     // MARK: - いいね・コメント（Webアプリと同じ`sharedTrips/{tripId}/likes`・`/comments`を共有）
 
     private func likesCollection(tripID: String) -> CollectionReference {
@@ -402,54 +389,6 @@ struct RemoteStamp {
     }
 }
 
-/// 「みんなの時空旅」の御朱印・投稿写真1枚分（URLと、史跡名／地点名のラベル）。
-struct RemoteSharedPhoto {
-    let url: String
-    let label: String
-}
-
-/// 「みんなの時空旅」（`sharedTrips/{id}`）から読み取った、他ユーザーを含む時空旅1件分のデータ。
-struct RemoteSharedTrip: Identifiable, Hashable {
-    static func == (lhs: RemoteSharedTrip, rhs: RemoteSharedTrip) -> Bool { lhs.id == rhs.id }
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
-
-    let id: String
-    let ownerUserID: String
-    let ownerDisplayName: String?
-    let title: String?
-    let latitudes: [Double]
-    let longitudes: [Double]
-    let startedAt: Date
-    let endedAt: Date?
-    let stepCount: Int?
-    let overlayMapID: String?
-    let totalDistanceMeters: Double
-    let stampPhotos: [RemoteSharedPhoto]
-    let postPhotos: [RemoteSharedPhoto]
-
-    init?(id: String, data: [String: Any]) {
-        guard let ownerUserID = data["ownerUserID"] as? String else { return nil }
-        self.id = id
-        self.ownerUserID = ownerUserID
-        self.ownerDisplayName = data["ownerDisplayName"] as? String
-        self.title = data["title"] as? String
-        self.latitudes = data["latitudes"] as? [Double] ?? []
-        self.longitudes = data["longitudes"] as? [Double] ?? []
-        self.startedAt = (data["startedAt"] as? Timestamp)?.dateValue() ?? Date()
-        self.endedAt = (data["endedAt"] as? Timestamp)?.dateValue()
-        self.stepCount = data["stepCount"] as? Int
-        self.overlayMapID = data["overlayMapID"] as? String
-        self.totalDistanceMeters = data["totalDistanceMeters"] as? Double ?? 0
-        self.stampPhotos = (data["stampPhotos"] as? [[String: Any]] ?? []).compactMap { dict in
-            guard let url = dict["url"] as? String else { return nil }
-            return RemoteSharedPhoto(url: url, label: dict["siteName"] as? String ?? "")
-        }
-        self.postPhotos = (data["postPhotos"] as? [[String: Any]] ?? []).compactMap { dict in
-            guard let url = dict["url"] as? String else { return nil }
-            return RemoteSharedPhoto(url: url, label: dict["placeName"] as? String ?? "")
-        }
-    }
-}
 
 /// 「みんなの時空旅」への1件のコメント（`sharedTrips/{tripId}/comments/{id}`）。
 struct RemoteTripComment: Identifiable {

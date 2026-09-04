@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// 「みんなの時空旅」の1件に対する、いいね・コメントの表示と投稿。
-/// `WalkRouteDetailView`（自分が公開した時空旅）と`SharedTripDetailView`（他ユーザーの時空旅）の
-/// 両方から、対象の`sharedTrips/{tripId}`のIDだけを渡して埋め込める。
+/// 「みんなの時空旅」として公開した1件に対する、いいね・コメントの表示と投稿。
+/// `WalkRouteDetailView`（自分が公開した時空旅）から、対象の`sharedTrips/{tripId}`の
+/// IDだけを渡して埋め込める。
 struct TripEngagementView: View {
     let tripID: String
     let currentUserID: String?

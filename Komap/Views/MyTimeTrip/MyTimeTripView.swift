@@ -5,7 +5,6 @@ import SwiftUI
 /// それぞれカードでまとめて表示する「My TimeTrip」タブ。
 struct MyTimeTripView: View {
     @EnvironmentObject private var mapSession: MapSessionState
-    @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SavedPlace.createdAt, order: .reverse) private var places: [SavedPlace]
     @Query(sort: \WalkRoute.startedAt, order: .reverse) private var walkRoutes: [WalkRoute]
@@ -16,10 +15,6 @@ struct MyTimeTripView: View {
     @State private var isPreparingShare = false
     @State private var selectedStamp: StampSelection?
     @State private var selectedPhotoPost: WalkPhotoPost?
-    @State private var sharedTrips: [RemoteSharedTrip] = []
-    @State private var isLoadingSharedTrips = false
-
-    private let syncService = SyncService()
 
     private let cardColumns = [GridItem(.adaptive(minimum: 140), spacing: 12)]
 
@@ -82,9 +77,6 @@ struct MyTimeTripView: View {
                             if !walkRoutes.isEmpty {
                                 walkRoutesSection
                             }
-                            if authService.isSignedIn {
-                                sharedTripsSection
-                            }
                             stampsSection
                             pointsSection
                             if !stampsWithPhoto.isEmpty || !photoPosts.isEmpty {
@@ -129,9 +121,6 @@ struct MyTimeTripView: View {
             .navigationDestination(for: WalkRoute.self) { route in
                 WalkRouteDetailView(route: route)
             }
-            .navigationDestination(for: RemoteSharedTrip.self) { trip in
-                SharedTripDetailView(trip: trip)
-            }
             .sheet(item: $selectedStamp) { selection in
                 StampCheckInSheet(site: selection.site, stamp: selection.stamp)
             }
@@ -140,9 +129,6 @@ struct MyTimeTripView: View {
             }
             .sheet(item: shareImageBinding) { holder in
                 ActivityView(items: [holder.image])
-            }
-            .task(id: authService.userID) {
-                await loadSharedTrips()
             }
         }
     }
@@ -162,43 +148,6 @@ struct MyTimeTripView: View {
                 }
             }
         }
-    }
-
-    // MARK: - みんなの時空旅
-
-    private var sharedTripsSection: some View {
-        TimeTripSection(title: "みんなの時空旅", systemImage: "person.2.fill") {
-            if isLoadingSharedTrips && sharedTrips.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity, alignment: .center)
-            } else if sharedTrips.isEmpty {
-                Text("まだ公開されている時空旅がありません。自分の時空旅の「…」メニューから公開できます。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(sharedTrips) { trip in
-                        NavigationLink(value: trip) {
-                            SharedTripRow(trip: trip)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-    }
-
-    private func loadSharedTrips() async {
-        guard let userID = authService.userID else {
-            sharedTrips = []
-            return
-        }
-        isLoadingSharedTrips = true
-        // 自分の時空旅は「私の時空旅」側に公開フラグ付きで既に表示されているため、
-        // ここでは他ユーザーが公開したものだけを見せる。
-        let all = (try? await syncService.fetchAllSharedTrips()) ?? sharedTrips
-        sharedTrips = all.filter { $0.ownerUserID != userID }
-        isLoadingSharedTrips = false
     }
 
     // MARK: - アップした写真
@@ -494,6 +443,14 @@ private struct TripRow: View {
                         .foregroundStyle(.primary)
                         .lineLimit(1)
 
+                    // 名称がある場合、そのままだと日付が消えてしまうため、名称の横に添える。
+                    if route.title?.isEmpty == false {
+                        Text(route.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
                     if route.isSharedPublicly {
                         Label("公開中", systemImage: "person.2.fill")
                             .font(.caption2.bold())
@@ -581,52 +538,6 @@ private struct EngagementCountsView: View {
             likeCount = counts.likeCount
             commentCount = counts.commentCount
         }
-    }
-}
-
-/// 「みんなの時空旅」に並べる、他ユーザーを含む公開済みの時空旅1件分の行。
-private struct SharedTripRow: View {
-    let trip: RemoteSharedTrip
-
-    var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(trip.title?.isEmpty == false ? trip.title! : trip.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Text(mapTitle)
-                    .font(.caption2)
-                    .foregroundStyle(.brown)
-
-                HStack(spacing: 10) {
-                    Label(distanceText, systemImage: "figure.walk")
-                    if let ownerName = trip.ownerDisplayName, !ownerName.isEmpty {
-                        Label(String(ownerName.prefix(6)), systemImage: "person.fill")
-                    }
-                    EngagementCountsView(tripID: trip.id)
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding(10)
-        .background(Color.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var mapTitle: String {
-        OldMapCatalog.resolve(id: trip.overlayMapID)?.title ?? "古地図なし"
-    }
-
-    private var distanceText: String {
-        let meters = trip.totalDistanceMeters
-        if meters >= 1000 {
-            return String(format: "%.1f km", meters / 1000)
-        }
-        return String(format: "%.0f m", meters)
     }
 }
 
