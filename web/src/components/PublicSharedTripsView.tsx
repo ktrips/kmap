@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { TripDetail } from "./TripDetail";
 import { TripList } from "./TripList";
+import { usePresence } from "../lib/usePresence";
 import { fromSharedTrip, type UnifiedTrip } from "../types/unifiedTrip";
 import type { SharedTrip } from "../types/sharedTrip";
 
@@ -34,6 +35,7 @@ export function PublicSharedTripsView({
     [sharedTrips],
   );
   const selectedTrip = trips.find((trip) => trip.id === selectedTripId) ?? null;
+  const activeVisitorCount = usePresence();
 
   const handleSelectTrip = (trip: UnifiedTrip) => {
     setSelectedTripId(trip.id);
@@ -51,7 +53,10 @@ export function PublicSharedTripsView({
 
       {isSidebarOpen && (
         <div className="public-intro">
-          <h1>みんなの時空旅</h1>
+          <h1>みんなで時空を旅しよう</h1>
+          {activeVisitorCount !== null && activeVisitorCount > 0 && (
+            <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
+          )}
           <p>みんなが公開している「時空旅」の記録（歩いたルート・投稿写真）を地図で見ることができます。</p>
           {isFirebaseConfigured && (
             <div className="public-intro-cta">

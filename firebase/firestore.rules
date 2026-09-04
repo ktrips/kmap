@@ -29,6 +29,16 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.ownerUserID == request.auth.uid;
     }
 
+    // Web版の「今◯人が時空旅中」表示用の、生存確認（ハートビート）専用コレクション。
+    // サインインしていない訪問者も含め誰でも自分のセッションIDの文書を書き込める必要があるため
+    // 認証チェックは行わないが、書き込める内容は`lastSeen`（タイムスタンプ）1つだけに限定する。
+    match /presence/{sessionId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['lastSeen'])
+                             && request.resource.data.lastSeen is timestamp;
+      allow delete: if true;
+    }
+
     // 上記以外はすべて拒否（デフォルト拒否）
     match /{document=**} {
       allow read, write: if false;

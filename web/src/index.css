@@ -224,6 +224,19 @@ code {
   font-size: 1.4rem;
 }
 
+.public-intro-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #fdf2e3;
+  color: var(--color-brown-deep);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .public-intro > p {
   margin: 0 0 14px;
   color: #5b5044;
