@@ -46,6 +46,7 @@ targets:
         NSHealthShareUsageDescription: "Apple Watchと連携して記録した際、より正確な歩数を表示するためにヘルスケアの歩数データを使用します。"
         NSHealthUpdateUsageDescription: "ウォーキング記録に関するデータをヘルスケアと正しくやり取りするために使用します。"
         NSCameraUsageDescription: "写真投稿やチェックインでその場の写真を撮影するために、カメラを使用します。"
+        ITSAppUsesNonExemptEncryption: false
         LSApplicationQueriesSchemes:
           - comgooglemaps
           - googlechromes
@@ -109,6 +110,7 @@ targets:
         NSHealthUpdateUsageDescription: "ウォーキング記録をバックグラウンドでも継続するために、ワークアウトセッションを使用します。"
         WKBackgroundModes:
           - workout-processing
+        ITSAppUsesNonExemptEncryption: false
     entitlements:
       path: "Komap Watch App/KomapWatchApp.entitlements"
       properties:
