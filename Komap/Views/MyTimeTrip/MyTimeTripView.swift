@@ -519,6 +519,9 @@ private struct TripRow: View {
                         Label("\(stampCount)", systemImage: "seal.fill")
                             .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
                     }
+                    if route.isSharedPublicly {
+                        EngagementCountsView(tripID: route.id.uuidString)
+                    }
                 }
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -552,6 +555,35 @@ private struct TripRow: View {
     }
 }
 
+/// 一覧の1行に添える、いいね・コメントの件数だけの軽量表示。
+/// Webアプリと同じ`sharedTrips/{tripId}`のいいね・コメントを見るため、
+/// Webで付いた分もここに反映される（0件の間は場所を取らないよう非表示）。
+private struct EngagementCountsView: View {
+    let tripID: String
+
+    @State private var likeCount = 0
+    @State private var commentCount = 0
+
+    private let syncService = SyncService()
+
+    var body: some View {
+        Group {
+            if likeCount > 0 {
+                Label("\(likeCount)", systemImage: "heart.fill")
+                    .foregroundStyle(.pink)
+            }
+            if commentCount > 0 {
+                Label("\(commentCount)", systemImage: "bubble.right.fill")
+            }
+        }
+        .task {
+            guard let counts = try? await syncService.fetchEngagementCounts(tripID: tripID) else { return }
+            likeCount = counts.likeCount
+            commentCount = counts.commentCount
+        }
+    }
+}
+
 /// 「みんなの時空旅」に並べる、他ユーザーを含む公開済みの時空旅1件分の行。
 private struct SharedTripRow: View {
     let trip: RemoteSharedTrip
@@ -573,6 +605,7 @@ private struct SharedTripRow: View {
                     if let ownerName = trip.ownerDisplayName, !ownerName.isEmpty {
                         Label(String(ownerName.prefix(6)), systemImage: "person.fill")
                     }
+                    EngagementCountsView(tripID: trip.id)
                 }
                 .font(.caption2)
                 .foregroundStyle(.secondary)

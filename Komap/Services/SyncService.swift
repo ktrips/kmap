@@ -342,6 +342,16 @@ struct SyncService {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         try await commentsCollection(tripID: tripID).document(commentID).delete()
     }
+
+    /// 一覧表示用に、いいね・コメントの件数だけを軽量に取得する（本文は取得しない）。
+    /// Webアプリと同じコレクションを見るため、Webで付けた分もそのまま件数に含まれる。
+    func fetchEngagementCounts(tripID: String) async throws -> (likeCount: Int, commentCount: Int) {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        async let likeAggregate = likesCollection(tripID: tripID).count.getAggregation(source: .server)
+        async let commentAggregate = commentsCollection(tripID: tripID).count.getAggregation(source: .server)
+        let (likes, comments) = try await (likeAggregate, commentAggregate)
+        return (likes.count.intValue, comments.count.intValue)
+    }
 }
 
 /// Firestoreから読み取った1件分のデータ（`SavedPlace` への変換用の軽量DTO）。
