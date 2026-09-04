@@ -66,6 +66,9 @@ private struct MainTabView: View {
                 MapScreen()
                 MapTopLeftControls()
             }
+            .overlay(alignment: .topTrailing) {
+                MapTopRightControls()
+            }
             .opacity(mapSession.selectedTab == .map ? 1 : 0)
             .allowsHitTesting(mapSession.selectedTab == .map)
 
@@ -146,6 +149,25 @@ private struct MapTopLeftControls: View {
                 }
             )
         }
+    }
+}
+
+/// マップ画面の右上に浮かせる、「マイ時空旅」への直接のショートカットボタン。
+/// 左上のハンバーガーメニューからも遷移できるが、記録を見返す操作は頻度が高いため、
+/// メニューを開かずワンタップで移動できるようにする。
+private struct MapTopRightControls: View {
+    @EnvironmentObject private var mapSession: MapSessionState
+
+    var body: some View {
+        Button {
+            mapSession.selectedTab = .myTimeTrip
+        } label: {
+            Image(systemName: "book.closed.fill")
+                .roundControlButtonStyle()
+        }
+        .padding(.top, 8)
+        .padding(.trailing, 16)
+        .accessibilityLabel("マイ時空旅")
     }
 }
 
