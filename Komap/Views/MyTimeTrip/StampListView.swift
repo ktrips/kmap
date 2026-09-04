@@ -139,6 +139,10 @@ private struct CheckpointMapPreview: UIViewRepresentable {
 
         let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
         let overlay = GMSGroundOverlay(bounds: bounds, icon: Self.downsampledImage(for: overlayMap))
+        // `bearing`（画像の回転）を設定し忘れると、回転が必要な古地図（例:
+        // 五色不動めぐり）だけ実際のチェックポイント位置と古地図の絵柄がずれて
+        // 表示されてしまう（`GoogleMapRepresentable`側では設定済み）。
+        overlay.bearing = overlayMap.bearing
         overlay.opacity = 0.85
         overlay.map = mapView
 
