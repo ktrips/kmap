@@ -53,11 +53,13 @@ export function PublicSharedTripsView({
 
       {isSidebarOpen && (
         <div className="public-intro">
-          <h1>みんなで時空を旅しよう</h1>
-          {activeVisitorCount !== null && activeVisitorCount > 0 && (
-            <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
-          )}
-          <p>みんなが公開している「時空旅」の記録（歩いたルート・投稿写真）を地図で見ることができます。</p>
+          <div className="public-intro-headline">
+            <h1>そうだ、時空旅しよう</h1>
+            {activeVisitorCount !== null && activeVisitorCount > 0 && (
+              <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
+            )}
+          </div>
+          <p>みんなの時空旅（古地図上を歩いたルート・御朱印・写真など）を公開中！</p>
           {isFirebaseConfigured && (
             <div className="public-intro-cta">
               <button
