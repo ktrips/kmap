@@ -361,11 +361,20 @@ private struct WalkRouteGroupCard: View {
     let onResume: (WalkRoute) -> Void
     let onDelete: (WalkRoute) -> Void
 
+    /// 古地図ごとに直近3件だけ最初から表示し、それより古いものは
+    /// 「それ以前を表示」を押すまで畳んでおく。
+    private static let collapsedCount = 3
+    @State private var isShowingAll = false
+
+    private var visibleRoutes: [WalkRoute] {
+        isShowingAll ? group.routes : Array(group.routes.prefix(Self.collapsedCount))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             mapHeader
             VStack(spacing: 8) {
-                ForEach(group.routes) { route in
+                ForEach(visibleRoutes) { route in
                     NavigationLink(value: route) {
                         TripRow(route: route, stampCount: stampCount(route))
                     }
@@ -375,6 +384,17 @@ private struct WalkRouteGroupCard: View {
                         Button("削除", role: .destructive) { onDelete(route) }
                     }
                 }
+            }
+            if !isShowingAll && group.routes.count > Self.collapsedCount {
+                Button {
+                    isShowingAll = true
+                } label: {
+                    Text("それ以前を表示（あと\(group.routes.count - Self.collapsedCount)件）")
+                        .font(.caption.bold())
+                        .foregroundStyle(.brown)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(12)
