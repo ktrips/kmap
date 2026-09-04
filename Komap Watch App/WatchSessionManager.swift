@@ -198,6 +198,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
             "trackingSessionID": sessionID.uuidString,
             "trackingLatitudes": path.map(\.latitude),
             "trackingLongitudes": path.map(\.longitude),
+            "trackingUpdatedAt": Date().timeIntervalSince1970,
         ])
     }
 

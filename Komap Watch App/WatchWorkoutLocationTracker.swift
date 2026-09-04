@@ -89,6 +89,7 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
         do {
             let session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
             let builder = session.associatedWorkoutBuilder()
+            session.delegate = self
             builder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
             session.startActivity(with: Date())
             builder.beginCollection(withStart: Date()) { _, _ in }

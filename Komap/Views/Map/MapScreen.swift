@@ -63,6 +63,8 @@ struct MapScreen: View {
 
     private let syncService = SyncService()
     private let stepCounter = StepCounter()
+    /// Apple Watchと連携して歩いた記録の歩数を、Apple Healthからより正確に取得するために使う。
+    private let healthKitStepReader = HealthKitStepReader()
 
     /// この距離（メートル）以内にチェックポイントへ近づいたら御朱印を獲得する。
     private let stampCollectionRadiusMeters: CLLocationDistance = 60
@@ -470,6 +472,7 @@ struct MapScreen: View {
         activeWalkSessionID = UUID()
         activeWalkStartedAt = Date()
         stepCounter.start()
+        Task { await healthKitStepReader.requestAuthorizationIfNeeded() }
         locationManager.startRecordingWalk()
         isFollowingCurrentLocation = true
         if let coordinate = locationManager.currentLocation {
@@ -502,7 +505,12 @@ struct MapScreen: View {
         }
         let endedAt = Date()
         Task {
-            let stepCount = await stepCounter.finish()
+            // Apple Watchと連携していた場合、Apple Healthの歩数（Watch・iPhone双方の
+            // センサー値がまとめて記録される）の方がiPhone単体の`CMPedometer`より
+            // 実態に近いため、取得できればそちらを優先する。
+            let pedometerStepCount = await stepCounter.finish()
+            let healthStepCount = await healthKitStepReader.stepCount(from: startedAt, to: endedAt)
+            let stepCount = healthStepCount ?? pedometerStepCount
             let pending = PendingWalkRoute(
                 id: sessionID,
                 coordinates: path,
@@ -605,20 +613,26 @@ struct MapScreen: View {
     /// 揃え、記録中にiPhoneへ転送された御朱印・写真投稿がこの記録に正しく紐付くようにする。
     private func saveWatchTrackedRoute(_ route: WatchTrackedRoute) {
         guard route.coordinates.count >= 2 else { return }
-        let walkRoute = WalkRoute(
-            id: UUID(uuidString: route.sessionID) ?? UUID(),
-            coordinates: route.coordinates,
-            startedAt: route.startedAt,
-            endedAt: route.endedAt,
-            stepCount: route.stepCount,
-            overlayMapID: mapSession.selectedOverlay?.id,
-            overlayOpacity: mapSession.overlayOpacity
-        )
-        modelContext.insert(walkRoute)
-        try? modelContext.save()
+        Task {
+            // Watch自身の`CMPedometer`歩数（`route.stepCount`）より、Apple Healthの
+            // 歩数の方がWatchのワークアウトセッション分も含めて正確なため、
+            // 取得できればそちらを優先する。
+            let healthStepCount = await healthKitStepReader.stepCount(from: route.startedAt, to: route.endedAt)
+            let walkRoute = WalkRoute(
+                id: UUID(uuidString: route.sessionID) ?? UUID(),
+                coordinates: route.coordinates,
+                startedAt: route.startedAt,
+                endedAt: route.endedAt,
+                stepCount: healthStepCount ?? route.stepCount,
+                overlayMapID: mapSession.selectedOverlay?.id,
+                overlayOpacity: mapSession.overlayOpacity
+            )
+            modelContext.insert(walkRoute)
+            try? modelContext.save()
 
-        if let userID = authService.userID {
-            Task { try? await syncService.upload(walkRoute, userID: userID) }
+            if let userID = authService.userID {
+                try? await syncService.upload(walkRoute, userID: userID)
+            }
         }
     }
 

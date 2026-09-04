@@ -11,16 +11,17 @@ struct ContentView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 10) {
-                    if let statusIconImageName {
-                        Image(statusIconImageName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 32, height: 32)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    } else {
+                    HStack(spacing: 8) {
                         Image(systemName: statusIconSystemName)
                             .font(.system(size: 28))
                             .foregroundStyle(statusColor)
+                        if let statusIconImageName {
+                            Image(statusIconImageName)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 28, height: 28)
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        }
                     }
                     Text(statusText)
                         .font(.headline)

@@ -160,11 +160,22 @@ extension WatchConnectivityManager: WCSessionDelegate {
         }
     }
 
+    /// `updateApplicationContext`はWatch側が記録を終えた後もクリアされずに残る
+    /// ことがある（例: 記録終了時の`session.updateApplicationContext([:])`が
+    /// 何らかの理由で届かなかった、旧バージョンのWatchアプリのままなど）。
+    /// 特に`activationDidCompleteWith`での読み直しは、有効化のたびに古い
+    /// スナップショットを毎回拾ってしまうと、実際にはとっくに終わっている記録が
+    /// 「Watchで記録中」のまま延々と表示され続けてしまう。そのため、更新から
+    /// 一定時間（`maxSnapshotAge`）以上経っているスナップショットは無視する。
+    private nonisolated static let maxSnapshotAge: TimeInterval = 5 * 60
+
     private nonisolated static func parseTrackingSnapshot(from context: [String: Any]) -> Command? {
         guard let sessionID = context["trackingSessionID"] as? String,
               let latitudes = context["trackingLatitudes"] as? [Double],
               let longitudes = context["trackingLongitudes"] as? [Double],
-              latitudes.count == longitudes.count
+              latitudes.count == longitudes.count,
+              let updatedAt = context["trackingUpdatedAt"] as? TimeInterval,
+              Date().timeIntervalSince1970 - updatedAt <= maxSnapshotAge
         else {
             return nil
         }
