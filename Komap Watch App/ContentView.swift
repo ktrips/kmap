@@ -11,9 +11,17 @@ struct ContentView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 10) {
-                    Image(systemName: statusIcon)
-                        .font(.system(size: 28))
-                        .foregroundStyle(statusColor)
+                    if let statusIconImageName {
+                        Image(statusIconImageName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 32, height: 32)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    } else {
+                        Image(systemName: statusIconSystemName)
+                            .font(.system(size: 28))
+                            .foregroundStyle(statusColor)
+                    }
                     Text(statusText)
                         .font(.headline)
 
@@ -125,13 +133,22 @@ struct ContentView: View {
 
     private var statusText: String {
         switch sessionManager.state {
-        case .idle: return "未記録"
-        case .recording: return "記録中"
+        case .idle: return "時空旅を始める"
+        case .recording: return "時空旅中！"
         case .paused: return "一時停止中"
         }
     }
 
-    private var statusIcon: String {
+    /// 「未記録」「記録中」はアプリアイコンで表す。それ以外（一時停止中）は
+    /// これまで通りSFシンボルのまま。
+    private var statusIconImageName: String? {
+        switch sessionManager.state {
+        case .idle, .recording: return "KomapIcon"
+        case .paused: return nil
+        }
+    }
+
+    private var statusIconSystemName: String {
         switch sessionManager.state {
         case .idle: return "figure.walk"
         case .recording: return "figure.walk.motion"

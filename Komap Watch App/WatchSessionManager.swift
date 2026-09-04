@@ -110,6 +110,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
             state = .idle
             isSelfTracking = false
             activeSessionID = nil
+            // `sendTrackingSnapshot()`で書いた累積軌跡をそのままにしておくと、
+            // 記録終了後にiPhone側アプリを開いた時、有効化時に読み直した古い
+            // スナップショットのせいで「まだWatchで記録中」と誤認してしまう
+            // （`WatchConnectivityManager.activationDidCompleteWith`参照）。
+            // 終了時に空にしておき、次に始まるまでは何も残らないようにする。
+            try? session?.updateApplicationContext([:])
             Task {
                 let result = await tracker.stop()
                 guard shouldSave else {

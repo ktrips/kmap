@@ -131,8 +131,17 @@ extension WatchConnectivityManager: WCSessionDelegate {
         error: Error?
     ) {
         guard activationState == .activated else { return }
+        // Watch単体の記録が、iPhone側アプリを開く前から既に始まっていた場合、
+        // その`updateApplicationContext`は有効化前に届いて`receivedApplicationContext`に
+        // 保存されたままになっており、`didReceiveApplicationContext`（新着時にしか
+        // 呼ばれない）では拾えない。ここで一度読み直すことで、アプリを開いた直後に
+        // 「アプリと連動中」の状態へ追いつけるようにする。
+        let storedContext = session.receivedApplicationContext
         Task { @MainActor in
             self.isActivated = true
+            if let command = Self.parseTrackingSnapshot(from: storedContext) {
+                self.lastCommand = command
+            }
         }
     }
 
@@ -145,17 +154,22 @@ extension WatchConnectivityManager: WCSessionDelegate {
     /// Watch側から送られてくる、記録中の累積軌跡のスナップショットを受け取る
     /// （`watchLocationUpdate`が届かなかった間の埋め合わせ用）。
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
-        guard let sessionID = applicationContext["trackingSessionID"] as? String,
-              let latitudes = applicationContext["trackingLatitudes"] as? [Double],
-              let longitudes = applicationContext["trackingLongitudes"] as? [Double],
+        guard let command = Self.parseTrackingSnapshot(from: applicationContext) else { return }
+        Task { @MainActor in
+            self.lastCommand = command
+        }
+    }
+
+    private nonisolated static func parseTrackingSnapshot(from context: [String: Any]) -> Command? {
+        guard let sessionID = context["trackingSessionID"] as? String,
+              let latitudes = context["trackingLatitudes"] as? [Double],
+              let longitudes = context["trackingLongitudes"] as? [Double],
               latitudes.count == longitudes.count
         else {
-            return
+            return nil
         }
         let coordinates = zip(latitudes, longitudes).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) }
-        Task { @MainActor in
-            self.lastCommand = .watchTrackingSnapshot(sessionID: sessionID, coordinates: coordinates)
-        }
+        return .watchTrackingSnapshot(sessionID: sessionID, coordinates: coordinates)
     }
 
     nonisolated func session(
