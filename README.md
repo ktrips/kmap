@@ -34,6 +34,8 @@
   （直近3件のみ表示し、「それ以前を表示」で全件展開）。
   御朱印・アップした写真（チェックポイント／プラスポイントに分けて4枚横並び）・
   保存した物語・感想（メモ）もまとめて見返せる
+- マップ画面右上のボタンから、ハンバーガーメニューを開かずワンタップで
+  「マイ時空旅」タブへ移動できる
 
 ### クラウド連携
 - Googleでサインインすると、保存した地点・御朱印・時間旅（歩いたルート）・投稿写真がクラウド
@@ -87,6 +89,9 @@ firebase/
 web/                         # Webアプリ本体（Vite + React）
 .github/workflows/
   deploy-web.yml              # main へのpushでWebアプリをFirebase Hostingへ自動デプロイ
+docs/
+  GeoGameAppWithGoogleMap.md  # 本アプリの開発・収益化手法をまとめたKindle向け原稿（Markdown）
+  Komap_週末リリースと収益化ガイド.docx # 上記原稿をKindleペーパーバック判型（8.27x10.11in）で書き出したWord版
 ```
 
 ---
