@@ -25,12 +25,20 @@ export function PublicSharedTripsView({
   onSignInWithGoogle,
 }: Props) {
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  // 時空旅を選ぶと、一覧と案内文（サインインの案内など）を収納して
+  // 地図・写真の表示スペースを広げる。「一覧」ボタンで再び開く。
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const trips = useMemo<UnifiedTrip[]>(
     () => sharedTrips.map(fromSharedTrip).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime()),
     [sharedTrips],
   );
   const selectedTrip = trips.find((trip) => trip.id === selectedTripId) ?? null;
+
+  const handleSelectTrip = (trip: UnifiedTrip) => {
+    setSelectedTripId(trip.id);
+    setIsSidebarOpen(false);
+  };
 
   return (
     <div className="app-shell">
@@ -41,38 +49,57 @@ export function PublicSharedTripsView({
         </div>
       </header>
 
-      <div className="public-intro">
-        <h1>みんなの時空旅</h1>
-        <p>
-          みんなが公開している「時空旅」の記録（歩いたルート・投稿写真）を
-          地図で見ることができます。気になる時空旅を左のリストから選んで楽しんで下さい。
-        </p>
-        {isFirebaseConfigured && (
-          <div className="public-intro-cta">
-            <button className="google-button google-button-large" onClick={onSignInWithGoogle} disabled={isSigningIn}>
-              {isSigningIn ? "サインイン中..." : "Googleでサインイン"}
-            </button>
-            <p className="public-intro-cta-note">
-              サインインすると、Webで写真が見えることや、iOSアプリをインストールして時空旅を楽しめます。
-            </p>
-          </div>
-        )}
-        {error && <p className="error-text">{error}</p>}
-      </div>
+      {isSidebarOpen && (
+        <div className="public-intro">
+          <h1>みんなの時空旅</h1>
+          <p>みんなが公開している「時空旅」の記録（歩いたルート・投稿写真）を地図で見ることができます。</p>
+          {isFirebaseConfigured && (
+            <div className="public-intro-cta">
+              <button
+                className="google-button google-button-large google-button-accent"
+                onClick={onSignInWithGoogle}
+                disabled={isSigningIn}
+              >
+                {isSigningIn ? "サインイン中..." : "Googleでサインイン"}
+              </button>
+              <p className="public-intro-cta-note">
+                サインインするとこんないい事：
+                <br />
+                ・みんなの時空旅が写真入りで見れる。コメントできる。
+                <br />
+                ・iOSアプリをインストールして、自分で時空旅を作れる。
+              </p>
+            </div>
+          )}
+          {error && <p className="error-text">{error}</p>}
+        </div>
+      )}
 
       <div className="app-body">
-        <aside className="app-sidebar">
-          <TripList trips={trips} selectedId={selectedTripId} onSelect={(trip) => setSelectedTripId(trip.id)} />
-          <a
-            className="sidebar-footer-link"
-            href="https://github.com/ktrips/kmap#readme"
-            target="_blank"
-            rel="noreferrer"
-          >
-            📖 Komapの使い方
-          </a>
-        </aside>
+        {isSidebarOpen && (
+          <aside className="app-sidebar">
+            <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
+            <a
+              className="sidebar-footer-link"
+              href="https://github.com/ktrips/kmap#readme"
+              target="_blank"
+              rel="noreferrer"
+            >
+              📖 Komapの使い方
+            </a>
+          </aside>
+        )}
         <main className="app-main">
+          {!isSidebarOpen && (
+            <button
+              type="button"
+              className="sidebar-menu-button"
+              onClick={() => setIsSidebarOpen(true)}
+              aria-label="一覧を表示"
+            >
+              <span aria-hidden="true">☰</span> 一覧
+            </button>
+          )}
           <TripDetail trip={selectedTrip} />
         </main>
       </div>
