@@ -49,7 +49,7 @@ struct StampListView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            LazyVStack(alignment: .leading, spacing: 12) {
                 if let overlayMap {
                     CheckpointMapPreview(
                         overlayMap: overlayMap,
@@ -138,7 +138,7 @@ private struct CheckpointMapPreview: UIViewRepresentable {
         mapView.settings.rotateGestures = false
 
         let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
-        let overlay = GMSGroundOverlay(bounds: bounds, icon: overlayMap.image)
+        let overlay = GMSGroundOverlay(bounds: bounds, icon: Self.downsampledImage(for: overlayMap))
         overlay.opacity = 0.85
         overlay.map = mapView
 
@@ -157,6 +157,38 @@ private struct CheckpointMapPreview: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: GMSMapView, context: Context) {}
+
+    /// この小さなプレビュー用に画像を縮小したものを、古地図ごとにキャッシュして使い回す。
+    /// 「すべての御朱印」表示では古地図の数だけこのプレビューが同時に並ぶため、
+    /// 実寸（実在の史料画像は3500×2610pxなど）のまま`GMSGroundOverlay`に渡すと
+    /// 読み込みが遅く、Google Maps SDKのテクスチャアトラス上限にも達しやすい
+    /// （`GoogleMapRepresentable.applyAllOverlays`と同じ問題）。同じく1024pxへ
+    /// 縮小する（同梱のイラスト画像は元々1024x1024で、1024より縮小すると
+    /// `GMSGroundOverlay`が描画しなくなる不具合があるため、それより小さくはしない）。
+    private static var downsampledImageCache: [String: UIImage] = [:]
+    private static let maxDimension: CGFloat = 1024
+
+    private static func downsampledImage(for overlayMap: HistoricalOverlayMap) -> UIImage? {
+        let cacheKey = overlayMap.imageAssetName ?? overlayMap.imageFileName ?? overlayMap.id
+        if let cached = downsampledImageCache[cacheKey] {
+            return cached
+        }
+        guard let image = overlayMap.image else { return nil }
+        let longestSide = max(image.size.width, image.size.height)
+        guard longestSide > maxDimension else {
+            downsampledImageCache[cacheKey] = image
+            return image
+        }
+        let scale = maxDimension / longestSide
+        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: newSize, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+        downsampledImageCache[cacheKey] = resized
+        return resized
+    }
 }
 
 #Preview {
