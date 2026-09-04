@@ -60,15 +60,16 @@ export function PublicSharedTripsView({
                 onClick={onSignInWithGoogle}
                 disabled={isSigningIn}
               >
-                {isSigningIn ? "サインイン中..." : "Googleでサインイン"}
+                {isSigningIn ? (
+                  "サインイン中..."
+                ) : (
+                  <span className="google-button-content">
+                    <span className="google-button-title">Googleでサインイン</span>
+                    <span className="google-button-bullet">・みんなの時空旅が写真入りで見れる</span>
+                    <span className="google-button-bullet">・iOSアプリで自分で時空旅を作成</span>
+                  </span>
+                )}
               </button>
-              <p className="public-intro-cta-note">
-                サインインするとこんないい事：
-                <br />
-                ・みんなの時空旅が写真入りで見れる。コメントできる。
-                <br />
-                ・iOSアプリをインストールして、自分で時空旅を作れる。
-              </p>
             </div>
           )}
           {error && <p className="error-text">{error}</p>}

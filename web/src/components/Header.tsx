@@ -3,11 +3,11 @@ import { useTestFlightInvite } from "../lib/useTestFlightInvite";
 
 interface Props {
   user: User;
-  placeCount: number;
+  tripCount: number;
   onSignOut: () => void;
 }
 
-export function Header({ user, placeCount, onSignOut }: Props) {
+export function Header({ user, tripCount, onSignOut }: Props) {
   const { status, errorMessage, requestInvite } = useTestFlightInvite();
 
   const handleAvatarClick = () => {
@@ -25,13 +25,13 @@ export function Header({ user, placeCount, onSignOut }: Props) {
   }[status];
 
   return (
-    <header className="app-header">
+    <header className="app-header app-header--authenticated">
       <div className="app-header-title">
         <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
         <p className="brand-eyebrow">Komap 古地図巡り</p>
       </div>
       <div className="app-header-account">
-        <span className="account-count">{placeCount}件の記録</span>
+        <span className="account-count">{tripCount}件の旅</span>
         <div className="testflight-invite">
           <button
             type="button"

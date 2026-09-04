@@ -9,7 +9,7 @@ export function PlaceDetail({ place }: Props) {
   if (!place) {
     return (
       <div className="place-detail place-detail-empty">
-        <p>左のリストまたは地図のピンから、記録を選んでください。</p>
+        <p>リストまたは地図のピンから、記録を選んでください。</p>
       </div>
     );
   }

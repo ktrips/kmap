@@ -28,7 +28,7 @@ export function TripDetail({ trip }: Props) {
   if (!trip) {
     return (
       <div className="trip-detail place-detail-empty">
-        <p>左のリストから、時空旅を選んでください。</p>
+        <p>リストから、時空旅を選んでください。</p>
       </div>
     );
   }

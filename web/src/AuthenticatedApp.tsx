@@ -68,7 +68,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
 
   return (
     <div className="app-shell">
-      <Header user={user} placeCount={places.length} onSignOut={onSignOut} />
+      <Header user={user} tripCount={unifiedTrips.length} onSignOut={onSignOut} />
       <div className="app-body">
         {isSidebarOpen && (
           <aside className="app-sidebar">
