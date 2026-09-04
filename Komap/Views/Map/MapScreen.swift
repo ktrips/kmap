@@ -35,6 +35,10 @@ struct MapScreen: View {
     @State private var pendingWalkRoute: PendingWalkRoute?
     /// 記録中に自由なタイミングで写真を投稿するためのピッカー選択値。
     @State private var photoPostPickerItem: PhotosPickerItem?
+    /// 「写真投稿」メニューの「ライブラリから選ぶ」を押した時に、`.photosPicker`を
+    /// プログラム的に開くためのフラグ（`Menu`内に`PhotosPicker`を直接置くと
+    /// 開かないため）。
+    @State private var isShowingPhotoLibraryPicker = false
     @State private var isPostingPhoto = false
     /// 写真投稿で獲得したポイントを一瞬だけ知らせるトースト表示。
     @State private var pointsToastMessage: String?
@@ -62,6 +66,11 @@ struct MapScreen: View {
 
     /// この距離（メートル）以内にチェックポイントへ近づいたら御朱印を獲得する。
     private let stampCollectionRadiusMeters: CLLocationDistance = 60
+
+    /// 歩いて記録中は「古地図の上を歩いている」ように見せたいので、古地図が
+    /// 選ばれていなければ自動で表示し、不透明度もこの値まで引き上げる
+    /// （既にこれより濃く見せている場合はそのまま）。
+    private let walkingOverlayOpacity: Double = 0.75
 
     /// 画面下部に浮かせているパネル（アクションボタン＋古地図コントロール）が占める高さ。
     /// Google純正の現在地ボタンなどがこのパネルに隠れて押せなくなるのを防ぐため、
@@ -132,6 +141,7 @@ struct MapScreen: View {
                 bottomInset: bottomPanelHeight,
                 savedWalkPaths: savedRoutes.filter { !$0.isHiddenOnMap }.map(\.coordinates),
                 liveWalkPath: displayedLiveWalkPath,
+                isRecordingWalk: locationManager.isRecordingWalk || isWatchTrackingActive,
                 checkpoints: cachedActiveCheckpoints,
                 collectedSiteIDs: collectedSiteIDs,
                 photoPosts: photoPosts,
@@ -266,6 +276,10 @@ struct MapScreen: View {
         }
         .onChange(of: locationManager.isRecordingWalk) { _, _ in
             syncWatchState()
+            showOldMapForWalkingIfNeeded()
+        }
+        .onChange(of: isWatchTrackingActive) { _, _ in
+            showOldMapForWalkingIfNeeded()
         }
         .onChange(of: locationManager.isWalkPaused) { _, _ in
             syncWatchState()
@@ -403,7 +417,14 @@ struct MapScreen: View {
             } label: {
                 Label("カメラで撮る", systemImage: "camera.fill")
             }
-            PhotosPicker(selection: $photoPostPickerItem, matching: .images) {
+            // `PhotosPicker`をこのまま`Menu`の項目にすると、タップしてもメニューが
+            // 閉じるだけでピッカーが開かない（`Menu`内では`PhotosPicker`の標準の
+            // 見た目・挙動が正しく機能しないSwiftUI/PhotosUI側の既知の制約）。
+            // 代わりに普通の`Button`でフラグを立て、`.photosPicker(isPresented:)`
+            // をこのビュー自体に付けてプログラム的に開く。
+            Button {
+                isShowingPhotoLibraryPicker = true
+            } label: {
                 Label("ライブラリから選ぶ", systemImage: "photo.on.rectangle")
             }
         } label: {
@@ -422,6 +443,7 @@ struct MapScreen: View {
             .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         }
         .disabled(isPostingPhoto)
+        .photosPicker(isPresented: $isShowingPhotoLibraryPicker, selection: $photoPostPickerItem, matching: .images)
         .fullScreenCover(isPresented: $isShowingPhotoPostCamera) {
             CameraCaptureView(
                 onCapture: { image in
@@ -452,6 +474,20 @@ struct MapScreen: View {
         isFollowingCurrentLocation = true
         if let coordinate = locationManager.currentLocation {
             mapSession.moveCamera(to: coordinate)
+        }
+        showOldMapForWalkingIfNeeded()
+    }
+
+    /// 歩いて記録中（iPhone本体・Apple Watchどちらでも）は、古地図の上を
+    /// 歩いているように見えるよう、古地図が表示されていなければ表示し、
+    /// 不透明度もある程度濃くする。ユーザーが既にそれ以上濃くしていれば触らない。
+    private func showOldMapForWalkingIfNeeded() {
+        guard locationManager.isRecordingWalk || isWatchTrackingActive else { return }
+        if mapSession.selectedOverlay == nil && !mapSession.isShowingAllOverlays {
+            mapSession.selectedOverlay = OldMapCatalog.edoCastle
+        }
+        if mapSession.overlayOpacity < walkingOverlayOpacity {
+            mapSession.overlayOpacity = walkingOverlayOpacity
         }
     }
 

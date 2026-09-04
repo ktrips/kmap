@@ -24,6 +24,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     var savedWalkPaths: [[CLLocationCoordinate2D]] = []
     /// 「スタート」ボタンで記録中の、現在進行形の徒歩ルート。
     var liveWalkPath: [CLLocationCoordinate2D] = []
+    /// `true`の間（歩いて記録中）は、今の軌跡が目立つよう過去の（保存済みの）
+    /// 軌跡を薄く表示する。
+    var isRecordingWalk: Bool = false
     /// 地図上に強調表示する史跡チェックポイント一覧。
     var checkpoints: [HistoricSite] = []
     /// 既に御朱印を獲得済みのチェックポイントID（マーカーの色分けに使う）。
@@ -77,7 +80,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             context.coordinator.removeAllOverlays()
             context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, checkpoints: checkpoints, to: mapView)
         }
-        context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, to: mapView)
+        context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, isRecording: isRecordingWalk, to: mapView)
         context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
         context.coordinator.applyPhotoPosts(photoPosts, to: mapView)
         mapView.padding = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
@@ -623,10 +626,16 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             onCheckpointTap(site)
         }
 
+        /// 直近に`savedPolylinePairs`へ適用した「薄く表示」状態。歩き始め・終わりの
+        /// たびに毎回色を設定し直さずに済むよう、変化した時だけ更新する。
+        private var isSavedTrailDimmed = false
+
         /// 保存済みの徒歩ルートと、記録中のルートをそれぞれポリラインで塗り分ける。
+        /// 記録中（`isRecording`）は、今の軌跡が目立つよう保存済みルートを薄く表示する。
         func applyWalkPaths(
             saved: [[CLLocationCoordinate2D]],
             live: [CLLocationCoordinate2D],
+            isRecording: Bool,
             to mapView: GMSMapView
         ) {
             // 保存済みルートは件数が変わった時だけ作り直す（記録終了で1件増える程度の頻度）。
@@ -634,8 +643,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 savedPolylinePairs.forEach { $0.remove() }
                 savedPolylinePairs = saved.map { coordinates in
                     let path = GMSMutablePath()
-                    coordinates.forEach { path.add($0) }
-                    return makeTrailPair(path: path, on: mapView)
+                    Self.smoothedTrailCoordinates(coordinates).forEach { path.add($0) }
+                    return makeTrailPair(path: path, dimmed: isRecording, on: mapView)
+                }
+                isSavedTrailDimmed = isRecording
+            } else if isRecording != isSavedTrailDimmed {
+                isSavedTrailDimmed = isRecording
+                for pair in savedPolylinePairs {
+                    pair.border.strokeColor = isRecording ? .walkedTrailBorderFaded : .walkedTrailBorder
+                    pair.fill.strokeColor = isRecording ? .walkedTrailFillFaded : .walkedTrailFill
                 }
             }
 
@@ -646,25 +662,47 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             }
 
             let path = GMSMutablePath()
-            live.forEach { path.add($0) }
+            Self.smoothedTrailCoordinates(live).forEach { path.add($0) }
             if let liveTrailPair {
                 liveTrailPair.setPath(path)
             } else {
-                liveTrailPair = makeTrailPair(path: path, on: mapView)
+                liveTrailPair = makeTrailPair(path: path, dimmed: false, on: mapView)
             }
+        }
+
+        /// GPSのノイズでできる細かいジグザグを和らげ、通った道の角を少し丸く滑らかに
+        /// 見せる（Chaikinのコーナーカット法を1回だけ適用）。始点・終点はそのまま残すため、
+        /// 現在地マーカーや保存済みルートの位置とはズレない。
+        private static func smoothedTrailCoordinates(_ coordinates: [CLLocationCoordinate2D]) -> [CLLocationCoordinate2D] {
+            guard coordinates.count >= 3 else { return coordinates }
+            var result: [CLLocationCoordinate2D] = [coordinates[0]]
+            for index in 0..<(coordinates.count - 1) {
+                let p0 = coordinates[index]
+                let p1 = coordinates[index + 1]
+                result.append(CLLocationCoordinate2D(
+                    latitude: p0.latitude * 0.75 + p1.latitude * 0.25,
+                    longitude: p0.longitude * 0.75 + p1.longitude * 0.25
+                ))
+                result.append(CLLocationCoordinate2D(
+                    latitude: p0.latitude * 0.25 + p1.latitude * 0.75,
+                    longitude: p0.longitude * 0.25 + p1.longitude * 0.75
+                ))
+            }
+            result.append(coordinates[coordinates.count - 1])
+            return result
         }
 
         /// 縁取り（細い線）を先に描き、その上に一回り細い透かし塗りを重ねることで、
         /// 「縁ははっきり・中は控えめ」な1本の通った道を作る。
-        private func makeTrailPair(path: GMSMutablePath, on mapView: GMSMapView) -> TrailPolylinePair {
+        private func makeTrailPair(path: GMSMutablePath, dimmed: Bool, on mapView: GMSMapView) -> TrailPolylinePair {
             let border = GMSPolyline(path: path)
-            border.strokeColor = .walkedTrailBorder
+            border.strokeColor = dimmed ? .walkedTrailBorderFaded : .walkedTrailBorder
             border.strokeWidth = walkedTrailBorderWidth
             border.zIndex = 0
             border.map = mapView
 
             let fill = GMSPolyline(path: path)
-            fill.strokeColor = .walkedTrailFill
+            fill.strokeColor = dimmed ? .walkedTrailFillFaded : .walkedTrailFill
             fill.strokeWidth = walkedTrailFillWidth
             fill.zIndex = 1
             fill.map = mapView
