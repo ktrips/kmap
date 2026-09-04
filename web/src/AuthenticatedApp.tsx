@@ -102,14 +102,17 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
         )}
         <main className="app-main">
           {!isSidebarOpen && (
-            <button
-              type="button"
-              className="sidebar-menu-button"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label="一覧を表示"
-            >
-              <span aria-hidden="true">☰</span> 一覧
-            </button>
+            <div className="detail-header-bar">
+              <button
+                type="button"
+                className="sidebar-menu-button"
+                onClick={() => setIsSidebarOpen(true)}
+                aria-label="一覧を表示"
+              >
+                <span aria-hidden="true">☰</span> 一覧
+              </button>
+              {tab === "trips" && <span className="detail-header-label">時空旅の記録</span>}
+            </div>
           )}
           {tab === "places" && (
             <>
@@ -117,7 +120,9 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
               <PlaceDetail place={selectedPlace} />
             </>
           )}
-          {tab === "trips" && <TripDetail trip={selectedTrip} />}
+          {tab === "trips" && (
+            <TripDetail trip={selectedTrip} currentUser={{ uid: user.uid, displayName: user.displayName }} />
+          )}
         </main>
       </div>
     </div>

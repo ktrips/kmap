@@ -27,6 +27,25 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if request.auth != null && request.resource.data.ownerUserID == request.auth.uid;
       allow delete: if request.auth != null && resource.data.ownerUserID == request.auth.uid;
+
+      // 「いいね」: 文書のIDを自分のuidに固定することで、1人1いいねを強制する。
+      // 中身は持たず、存在すること自体が「いいねした」を表す。
+      match /likes/{uid} {
+        allow read: if true;
+        allow create, delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // コメント: サインイン済みユーザーなら誰でも投稿できるが、投稿者本人のuidを
+      // 偽れないようにし、文字数も制限する。編集は不可（削除して投稿し直す想定）。
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth != null
+                        && request.resource.data.authorUserID == request.auth.uid
+                        && request.resource.data.text is string
+                        && request.resource.data.text.size() > 0
+                        && request.resource.data.text.size() <= 500;
+        allow delete: if request.auth != null && resource.data.authorUserID == request.auth.uid;
+      }
     }
 
     // Web版の「今◯人が時空旅中」表示用の、生存確認（ハートビート）専用コレクション。

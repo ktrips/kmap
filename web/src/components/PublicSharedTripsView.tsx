@@ -97,16 +97,19 @@ export function PublicSharedTripsView({
         )}
         <main className="app-main">
           {!isSidebarOpen && (
-            <button
-              type="button"
-              className="sidebar-menu-button"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label="一覧を表示"
-            >
-              <span aria-hidden="true">☰</span> 一覧
-            </button>
+            <div className="detail-header-bar">
+              <button
+                type="button"
+                className="sidebar-menu-button"
+                onClick={() => setIsSidebarOpen(true)}
+                aria-label="一覧を表示"
+              >
+                <span aria-hidden="true">☰</span> 一覧
+              </button>
+              <span className="detail-header-label">時空旅の記録</span>
+            </div>
           )}
-          <TripDetail trip={selectedTrip} />
+          <TripDetail trip={selectedTrip} currentUser={null} onRequestSignIn={onSignInWithGoogle} />
         </main>
       </div>
     </div>

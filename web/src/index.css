@@ -185,8 +185,8 @@ code {
 .testflight-invite-button {
   border: none;
   border-radius: 999px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
+  padding: 6.4px 12.8px;
+  font-size: 0.68rem;
   font-weight: 600;
   color: #fff;
   background: var(--color-brown);
@@ -317,7 +317,6 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 16px 0 0 24px;
   padding: 8px 14px;
   border: 1px solid var(--color-border);
   border-radius: 10px;
@@ -326,6 +325,155 @@ code {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+.detail-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 0 24px;
+}
+
+.detail-header-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-brown-deep);
+}
+
+.trip-engagement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.trip-like-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-card);
+  color: var(--color-brown-deep);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.trip-like-button:hover:not(:disabled) {
+  background: rgba(140, 90, 52, 0.08);
+}
+
+.trip-like-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.trip-like-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.trip-like-button.is-liked {
+  border-color: #e0748c;
+  background: rgba(224, 116, 140, 0.12);
+  color: #b8455f;
+}
+
+.trip-comments {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.trip-comment-list {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trip-comment-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+}
+
+.trip-comment-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.trip-comment-author {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--color-brown-deep);
+}
+
+.trip-comment-date {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #8a7c6f);
+}
+
+.trip-comment-delete {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: #b8455f;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.trip-comment-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.trip-comment-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.trip-comment-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  background: var(--color-card);
+  color: inherit;
+}
+
+.trip-comment-input:focus {
+  outline: none;
+  border-color: var(--color-brown);
+}
+
+.trip-comment-submit {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-brown);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trip-comment-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* ---------- Sidebar tabs ---------- */
