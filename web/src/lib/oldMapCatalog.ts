@@ -44,14 +44,6 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     southWest: { lat: 35.6929, lng: 139.7484 },
     northEast: { lat: 35.7395, lng: 139.7984 },
   },
-  // 以下は古地図としては統合済みで新規には選べないが、統合前にこのIDで
-  // 記録された過去の時間旅・地点のラベル表示のため、引き続き残している
-  // （画像は統合先に一本化したため、ここには持たせていない）。
-  {
-    id: "ueno-edo",
-    title: "上野（寛永寺・不忍池周辺）",
-    era: "明治時代（1891年・明治24年頃）",
-  },
   {
     id: "nihonbashi-edo",
     title: "日本橋・神田明神",
@@ -59,24 +51,6 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     imageUrl: "/old-maps/old_map_nihonbashi.jpg",
     southWest: { lat: 35.6638, lng: 139.7505 },
     northEast: { lat: 35.7166, lng: 139.7929 },
-  },
-  // 「東海道」に統合済み（下記と同じ理由でIDは残す）
-  {
-    id: "shiba-edo",
-    title: "芝（増上寺周辺）",
-    era: "明治時代（1891年・明治24年頃）",
-  },
-  // 「日本橋・神田明神」に統合済み（下記と同じ理由でIDは残す）
-  {
-    id: "kanda-edo",
-    title: "神田（神田明神周辺）",
-    era: "明治時代（1891年・明治24年頃）",
-  },
-  // 「赤坂・紀尾井町・六本木」に統合済み（下記と同じ理由でIDは残す）
-  {
-    id: "roppongi-meiji",
-    title: "麻布・六本木周辺",
-    era: "古地図風（現在の地図をもとに加工）",
   },
   {
     id: "goshiki-fudo-meiji",
@@ -94,12 +68,6 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     imageUrl: "/old-maps/old_map_basho_oku_no_hosomichi.jpg",
     southWest: { lat: 35.6531, lng: 139.7543 },
     northEast: { lat: 35.755, lng: 139.7967 },
-  },
-  // 「江戸城周辺（安政期）」に統合済み（下記と同じ理由でIDは残す）
-  {
-    id: "kasumigaseki-toranomon-meiji",
-    title: "霞ヶ関・虎ノ門（大名屋敷と社寺）",
-    era: "明治時代（1891年・明治24年頃）",
   },
   {
     id: "akasaka-kioicho-meiji",
@@ -124,12 +92,6 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     imageUrl: "/old-maps/old_map_nakasendo.jpg",
     southWest: { lat: 35.68, lng: 139.7 },
     northEast: { lat: 35.755, lng: 139.79 },
-  },
-  // 「江戸城周辺（安政期）」に統合済み（下記と同じ理由でIDは残す）
-  {
-    id: "kudanshita-chidorigafuchi-meiji",
-    title: "九段下・千鳥ヶ淵（靖国神社周辺）",
-    era: "明治時代（1891年・明治24年頃）",
   },
   {
     id: "meiji-jingu-omotesando-meiji",
@@ -157,7 +119,23 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
 ];
 
+/**
+ * 統合済みで現在は選べない古い古地図IDを、統合先の古地図IDへ読み替える表。
+ * 過去の時空旅・保存した地点は統合前のIDのまま記録されているため、
+ * `findOldMap`で解決する際にここを通して統合先の古地図（タイトル・画像とも）に
+ * 差し替える（iOS側の`HistoricalOverlayMap.swift`の統合履歴と対応）。
+ */
+const MERGED_INTO: Record<string, string> = {
+  "ueno-edo": "meiji-writers",
+  "shiba-edo": "tokaido-edo",
+  "kanda-edo": "nihonbashi-edo",
+  "roppongi-meiji": "akasaka-kioicho-meiji",
+  "kasumigaseki-toranomon-meiji": "edo-castle-1850s",
+  "kudanshita-chidorigafuchi-meiji": "edo-castle-1850s",
+};
+
 export function findOldMap(id: string | null): OldMapEntry | undefined {
   if (!id) return undefined;
-  return OLD_MAP_CATALOG.find((entry) => entry.id === id);
+  const resolvedId = MERGED_INTO[id] ?? id;
+  return OLD_MAP_CATALOG.find((entry) => entry.id === resolvedId);
 }
