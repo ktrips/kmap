@@ -136,7 +136,7 @@ struct MyTimeTripView: View {
     // MARK: - 自分がスタート〜終了した地図
 
     private var walkRoutesSection: some View {
-        TimeTripSection(title: "私の時空旅", systemImage: "map.fill") {
+        TimeTripSection {
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(walkRouteGroups) { group in
                     WalkRouteGroupCard(
@@ -311,14 +311,15 @@ struct MyTimeTripView: View {
 
 /// カードのグリッドをタイトル・アイコン付きの見出しでまとめる共通コンテナ。
 private struct TimeTripSection<Content: View>: View {
-    let title: String
-    let systemImage: String
+    /// `nil`にすると、見出し（タイトル・アイコン）を出さずに`content`だけ表示する。
+    var title: String?
+    var systemImage: String?
     var footer: String?
     @ViewBuilder let content: Content
 
     init(
-        title: String,
-        systemImage: String,
+        title: String? = nil,
+        systemImage: String? = nil,
         footer: String? = nil,
         @ViewBuilder content: () -> Content
     ) {
@@ -330,9 +331,11 @@ private struct TimeTripSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(title, systemImage: systemImage)
-                .font(.headline)
-                .foregroundStyle(.brown)
+            if let title, let systemImage {
+                Label(title, systemImage: systemImage)
+                    .font(.headline)
+                    .foregroundStyle(.brown)
+            }
             content
             if let footer {
                 Text(footer)
@@ -434,18 +437,25 @@ private struct TripRow: View {
     let route: WalkRoute
     let stampCount: Int
 
+    /// 一覧では年を省いた「MM/DD HH:MI」の短い表記にする。
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd HH:mm"
+        return formatter
+    }()
+
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(route.title?.isEmpty == false ? route.title! : route.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
+                    Text(route.title?.isEmpty == false ? route.title! : Self.dateFormatter.string(from: route.startedAt))
                         .font(.subheadline.bold())
                         .foregroundStyle(.primary)
                         .lineLimit(1)
 
                     // 名称がある場合、そのままだと日付が消えてしまうため、名称の横に添える。
                     if route.title?.isEmpty == false {
-                        Text(route.startedAt.formatted(.dateTime.year().month().day().hour().minute()))
+                        Text(Self.dateFormatter.string(from: route.startedAt))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
