@@ -11,20 +11,20 @@ struct ContentView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 10) {
-                    HStack(spacing: 8) {
-                        Image(systemName: statusIconSystemName)
-                            .font(.system(size: 28))
-                            .foregroundStyle(statusColor)
+                    Image(systemName: statusIconSystemName)
+                        .font(.system(size: 28))
+                        .foregroundStyle(statusColor)
+                    HStack(spacing: 6) {
                         if let statusIconImageName {
                             Image(statusIconImageName)
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 28, height: 28)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                .frame(width: 20, height: 20)
+                                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                         }
+                        Text(statusText)
+                            .font(.headline)
                     }
-                    Text(statusText)
-                        .font(.headline)
 
                     if sessionManager.state != .idle {
                         Text(sessionManager.isSelfTracking ? "Watch単体で記録中" : "iPhoneと連動中")
