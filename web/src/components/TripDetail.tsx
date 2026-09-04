@@ -38,7 +38,9 @@ export function TripDetail({ trip }: Props) {
 
   return (
     <div className="trip-detail">
-      {trip.latitudes.length > 0 && <TripMapView latitudes={trip.latitudes} longitudes={trip.longitudes} />}
+      {trip.latitudes.length > 0 && (
+        <TripMapView latitudes={trip.latitudes} longitudes={trip.longitudes} oldMap={oldMap} />
+      )}
 
       <p className="place-detail-era">{dateFormatter.format(trip.startedAt)}</p>
       <h2>{trip.title && trip.title.length > 0 ? trip.title : "時空旅の記録"}</h2>

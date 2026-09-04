@@ -366,6 +366,11 @@ code {
 
 /* ---------- Trip map ---------- */
 
+.trip-map-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
 .trip-map-view {
   width: 100%;
   height: 50vh;
@@ -373,8 +378,32 @@ code {
   max-height: 560px;
   border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 16px;
   border: 1px solid var(--color-border);
+}
+
+/* 古地図の濃度スライダー。iOSアプリの「現在⇔古地図」スライダーと同じ役割を、
+   地図の下端に浮かせたパネルとして再現する。 */
+.trip-map-opacity {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-brown);
+}
+
+.trip-map-opacity input[type="range"] {
+  flex: 1;
+  accent-color: var(--color-brown);
 }
 
 /* 「時空旅」詳細（地図＋写真）は`.place-detail`（一言メモ用、高さ38vh制限）とは違い、
