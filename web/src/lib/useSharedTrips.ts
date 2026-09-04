@@ -49,6 +49,7 @@ export function useSharedTrips() {
             ownerUserID: data.ownerUserID ?? "",
             ownerDisplayName: data.ownerDisplayName ?? null,
             title: data.title ?? null,
+            description: data.notes ?? null,
             latitudes: Array.isArray(data.latitudes) ? data.latitudes : [],
             longitudes: Array.isArray(data.longitudes) ? data.longitudes : [],
             startedAt,

@@ -190,6 +190,7 @@ struct SyncService {
 
         let data: [String: Any] = [
             "title": route.title as Any? ?? NSNull(),
+            "notes": route.notes as Any? ?? NSNull(),
             "latitudes": route.latitudes,
             "longitudes": route.longitudes,
             "startedAt": Timestamp(date: route.startedAt),
@@ -254,6 +255,7 @@ struct SyncService {
                 "ownerUserID": userID,
                 "ownerDisplayName": truncatedOwnerDisplayName as Any? ?? NSNull(),
                 "title": route.title as Any? ?? NSNull(),
+                "notes": route.notes as Any? ?? NSNull(),
                 "latitudes": route.latitudes,
                 "longitudes": route.longitudes,
                 "startedAt": Timestamp(date: route.startedAt),

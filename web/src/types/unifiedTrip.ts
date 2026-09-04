@@ -9,6 +9,8 @@ export interface UnifiedTrip {
   id: string;
   kind: "own" | "shared";
   title: string | null;
+  /** 感想・説明。サインインしていれば自分の時空旅をWebから編集できる。 */
+  description: string | null;
   latitudes: number[];
   longitudes: number[];
   startedAt: Date;
@@ -23,9 +25,16 @@ export interface UnifiedTrip {
   postPhotos: SharedPhoto[];
   /** 獲得した御朱印の数。共有された時空旅では持ち主以外に分からないため`null`。 */
   stampCount: number | null;
+  /** 自分の時空旅（`kind: "own"`）が、「みんなの時空旅」として公開中かどうか。 */
+  isShared: boolean;
 }
 
-export function fromWalkTrip(trip: WalkTrip, stamps: Stamp[], photoPosts: PhotoPost[]): UnifiedTrip {
+export function fromWalkTrip(
+  trip: WalkTrip,
+  stamps: Stamp[],
+  photoPosts: PhotoPost[],
+  isShared: boolean,
+): UnifiedTrip {
   const tripStamps = stamps.filter((stamp) => stamp.walkRouteID === trip.id);
   const tripPhotoPosts = photoPosts.filter((post) => post.walkRouteID === trip.id);
   const stampPhotos: SharedPhoto[] = tripStamps
@@ -45,6 +54,7 @@ export function fromWalkTrip(trip: WalkTrip, stamps: Stamp[], photoPosts: PhotoP
     id: trip.id,
     kind: "own",
     title: trip.title,
+    description: trip.description,
     latitudes: trip.latitudes,
     longitudes: trip.longitudes,
     startedAt: trip.startedAt,
@@ -56,6 +66,7 @@ export function fromWalkTrip(trip: WalkTrip, stamps: Stamp[], photoPosts: PhotoP
     stampPhotos,
     postPhotos,
     stampCount: tripStamps.length,
+    isShared,
   };
 }
 
@@ -64,6 +75,7 @@ export function fromSharedTrip(trip: SharedTrip): UnifiedTrip {
     id: trip.id,
     kind: "shared",
     title: trip.title,
+    description: trip.description,
     latitudes: trip.latitudes,
     longitudes: trip.longitudes,
     startedAt: trip.startedAt,
@@ -76,5 +88,6 @@ export function fromSharedTrip(trip: SharedTrip): UnifiedTrip {
     stampPhotos: trip.stampPhotos,
     postPhotos: trip.postPhotos,
     stampCount: null,
+    isShared: true,
   };
 }

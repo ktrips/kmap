@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { findOldMap } from "../lib/oldMapCatalog";
+import { saveTripDetails } from "../lib/tripEditing";
 import { useTripComments } from "../lib/useTripComments";
 import { useTripLikes } from "../lib/useTripLikes";
 import { TripMapView } from "./TripMapView";
@@ -48,6 +49,16 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   const { likeCount, isLikedByMe, toggleLike, isToggling } = useTripLikes(trip?.id ?? null, currentUser?.uid ?? null);
   const { comments, postComment, deleteComment, isPosting } = useTripComments(trip?.id ?? null);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 選ぶ時空旅を切り替えたら、編集中だった内容は破棄する。
+  useEffect(() => {
+    setIsEditing(false);
+  }, [trip?.id]);
+
   if (!trip) {
     return (
       <div className="trip-detail place-detail-empty">
@@ -58,6 +69,27 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
 
   const oldMap = findOldMap(trip.overlayMapID);
   const duration = durationLabel(trip);
+  const canEdit = trip.kind === "own" && currentUser !== null;
+
+  const startEditing = () => {
+    setEditTitle(trip.title ?? "");
+    setEditDescription(trip.description ?? "");
+    setIsEditing(true);
+  };
+
+  const handleSaveEdits = async () => {
+    if (!currentUser) return;
+    setIsSaving(true);
+    try {
+      await saveTripDetails(currentUser.uid, trip.id, trip.isShared, {
+        title: editTitle.trim().length > 0 ? editTitle.trim() : null,
+        description: editDescription.trim().length > 0 ? editDescription.trim() : null,
+      });
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleLikeClick = () => {
     if (!currentUser) {
@@ -83,7 +115,50 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
       )}
 
       <p className="place-detail-era">{dateFormatter.format(trip.startedAt)}</p>
-      {trip.title && trip.title.length > 0 && <h2>{trip.title}</h2>}
+
+      {isEditing ? (
+        <div className="trip-edit-form">
+          <input
+            type="text"
+            className="trip-edit-title-input"
+            placeholder="旅の名称"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            maxLength={100}
+          />
+          <textarea
+            className="trip-edit-description-input"
+            placeholder="感想・説明を書く…"
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            maxLength={1000}
+            rows={4}
+          />
+          <div className="trip-edit-actions">
+            <button type="button" className="trip-edit-save" onClick={() => void handleSaveEdits()} disabled={isSaving}>
+              {isSaving ? "保存中…" : "保存"}
+            </button>
+            <button type="button" className="trip-edit-cancel" onClick={() => setIsEditing(false)} disabled={isSaving}>
+              キャンセル
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="trip-title-row">
+            {trip.title && trip.title.length > 0 && <h2>{trip.title}</h2>}
+            {canEdit && (
+              <button type="button" className="trip-edit-button" onClick={startEditing}>
+                ✏️ 編集
+              </button>
+            )}
+          </div>
+          {trip.description && trip.description.length > 0 && (
+            <p className="trip-description-text">{trip.description}</p>
+          )}
+        </>
+      )}
+
       {trip.kind === "shared" && trip.ownerDisplayName && (
         <p className="place-detail-oldmap">投稿者：{trip.ownerDisplayName}</p>
       )}

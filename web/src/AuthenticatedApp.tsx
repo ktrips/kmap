@@ -11,7 +11,7 @@ import { usePlaces } from "./lib/usePlaces";
 import { useStamps } from "./lib/useStamps";
 import { useWalkRoutes } from "./lib/useWalkRoutes";
 import type { SharedTrip } from "./types/sharedTrip";
-import { fromSharedTrip, fromWalkTrip, type UnifiedTrip } from "./types/unifiedTrip";
+import { fromWalkTrip, type UnifiedTrip } from "./types/unifiedTrip";
 import type { SavedPlace } from "./types/place";
 
 type SidebarTab = "places" | "trips";
@@ -40,14 +40,15 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   // メニューボタンを押すか、タブを切り替えると再び開く。
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // 自分の時空旅を優先し、同じidが「みんなの時空旅」側にも重複していれば除く
-  // （自分が公開した時空旅は、自分のリストにだけ実際の御朱印数・写真つきで出す）。
+  // 「時空旅」タブは自分の記録だけを並べる（他ユーザーの時空旅は「みんなの時空旅」
+  // 公開ページの役目のため、ここには混ぜない）。公開中かどうかは、同じidの
+  // `sharedTrips`が存在するかで判定し、一覧にアイコンで示す。
+  const sharedTripIDs = useMemo(() => new Set(sharedTrips.map((trip) => trip.id)), [sharedTrips]);
   const unifiedTrips = useMemo<UnifiedTrip[]>(() => {
-    const own = ownTrips.map((trip) => fromWalkTrip(trip, stamps, photoPosts));
-    const ownIDs = new Set(own.map((trip) => trip.id));
-    const shared = sharedTrips.filter((trip) => !ownIDs.has(trip.id)).map(fromSharedTrip);
-    return [...own, ...shared].sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
-  }, [ownTrips, sharedTrips, stamps, photoPosts]);
+    return ownTrips
+      .map((trip) => fromWalkTrip(trip, stamps, photoPosts, sharedTripIDs.has(trip.id)))
+      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+  }, [ownTrips, sharedTripIDs, stamps, photoPosts]);
 
   const selectedPlace = places.find((place) => place.id === selectedId) ?? null;
   const selectedTrip = unifiedTrips.find((trip) => trip.id === selectedTripId) ?? null;

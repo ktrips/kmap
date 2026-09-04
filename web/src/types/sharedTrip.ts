@@ -10,6 +10,8 @@ export interface SharedTrip {
   ownerUserID: string;
   ownerDisplayName: string | null;
   title: string | null;
+  /** 感想・説明。Webからも編集できる。 */
+  description: string | null;
   latitudes: number[];
   longitudes: number[];
   startedAt: Date;

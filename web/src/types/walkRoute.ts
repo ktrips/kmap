@@ -2,6 +2,8 @@
 export interface WalkTrip {
   id: string;
   title: string | null;
+  /** 感想・説明（iOS側の`notes`）。Webからも編集できる。 */
+  description: string | null;
   latitudes: number[];
   longitudes: number[];
   startedAt: Date;

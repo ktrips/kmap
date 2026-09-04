@@ -33,6 +33,7 @@ export function useWalkRoutes(userID: string | null) {
           return {
             id: doc.id,
             title: data.title ?? null,
+            description: data.notes ?? null,
             latitudes: Array.isArray(data.latitudes) ? data.latitudes : [],
             longitudes: Array.isArray(data.longitudes) ? data.longitudes : [],
             startedAt,
