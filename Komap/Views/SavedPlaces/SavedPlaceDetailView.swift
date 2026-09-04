@@ -7,7 +7,7 @@ struct SavedPlaceDetailView: View {
     let place: SavedPlace
 
     private var overlayMap: HistoricalOverlayMap? {
-        OldMapCatalog.all.first { $0.id == place.overlayMapID }
+        OldMapCatalog.resolve(id: place.overlayMapID)
     }
 
     var body: some View {

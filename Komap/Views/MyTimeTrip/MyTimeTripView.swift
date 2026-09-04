@@ -59,7 +59,7 @@ struct MyTimeTripView: View {
         var order: [String] = []
         var routesByKey: [String: [WalkRoute]] = [:]
         for route in walkRoutes {
-            let key = route.overlayMapID ?? ""
+            let key = OldMapCatalog.resolve(id: route.overlayMapID)?.id ?? ""
             if routesByKey[key] == nil {
                 order.append(key)
             }
@@ -106,7 +106,7 @@ struct MyTimeTripView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "map")
-                            Text("←マップに戻る")
+                            Text("マップに戻る")
                         }
                     }
                 }
@@ -128,6 +128,9 @@ struct MyTimeTripView: View {
             }
             .navigationDestination(for: WalkRoute.self) { route in
                 WalkRouteDetailView(route: route)
+            }
+            .navigationDestination(for: RemoteSharedTrip.self) { trip in
+                SharedTripDetailView(trip: trip)
             }
             .sheet(item: $selectedStamp) { selection in
                 StampCheckInSheet(site: selection.site, stamp: selection.stamp)
@@ -175,7 +178,10 @@ struct MyTimeTripView: View {
             } else {
                 VStack(spacing: 8) {
                     ForEach(sharedTrips) { trip in
-                        SharedTripRow(trip: trip)
+                        NavigationLink(value: trip) {
+                            SharedTripRow(trip: trip)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -579,7 +585,7 @@ private struct SharedTripRow: View {
     }
 
     private var mapTitle: String {
-        trip.overlayMapID.flatMap { id in OldMapCatalog.allIncludingCustom.first { $0.id == id }?.title } ?? "古地図なし"
+        OldMapCatalog.resolve(id: trip.overlayMapID)?.title ?? "古地図なし"
     }
 
     private var distanceText: String {

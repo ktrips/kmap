@@ -278,4 +278,22 @@ enum OldMapCatalog {
     static var allIncludingCustom: [HistoricalOverlayMap] {
         all + CustomOverlayMapStore.all()
     }
+
+    /// 統合によって廃止されたID → 統合先IDの対応表。
+    /// 過去の旅・保存した物語などに保存済みの廃止IDを、表示時に統合先の地図へ読み替える。
+    private static let mergedIntoID: [String: String] = [
+        "ueno-edo": "meiji-writers",
+        "shiba-edo": "tokaido-edo",
+        "kanda-edo": "nihonbashi-edo",
+        "roppongi-meiji": "akasaka-kioicho-meiji",
+        "kasumigaseki-toranomon-meiji": "edo-castle-1850s",
+        "kudanshita-chidorigafuchi-meiji": "edo-castle-1850s",
+    ]
+
+    /// 保存されているIDを、廃止されていれば統合先のIDに読み替えてから古地図を探す。
+    static func resolve(id: String?) -> HistoricalOverlayMap? {
+        guard let id else { return nil }
+        let resolvedID = mergedIntoID[id] ?? id
+        return allIncludingCustom.first { $0.id == resolvedID }
+    }
 }

@@ -24,6 +24,8 @@ final class WalkRoute {
     var overlayOpacity: Double
     /// ユーザーが後から付けられる、この時間旅の名前。未設定なら`nil`。
     var title: String?
+    /// ユーザーが後から書ける、この時間旅の感想・メモ。未設定なら`nil`。
+    var notes: String?
     /// `true`の間、この時間旅は自分だけの「My Trips」ではなく、
     /// 全ユーザー共通の「みんなの時空旅」にも公開される。
     var isSharedPublicly: Bool = false
@@ -41,6 +43,7 @@ final class WalkRoute {
         overlayMapID: String? = nil,
         overlayOpacity: Double = 0.55,
         title: String? = nil,
+        notes: String? = nil,
         isSharedPublicly: Bool = false,
         isHiddenOnMap: Bool = false
     ) {
@@ -53,6 +56,7 @@ final class WalkRoute {
         self.overlayMapID = overlayMapID
         self.overlayOpacity = overlayOpacity
         self.title = title
+        self.notes = notes
         self.isSharedPublicly = isSharedPublicly
         self.isHiddenOnMap = isHiddenOnMap
     }
@@ -68,7 +72,7 @@ final class WalkRoute {
     }
 
     var overlayMap: HistoricalOverlayMap? {
-        overlayMapID.flatMap { id in OldMapCatalog.allIncludingCustom.first { $0.id == id } }
+        OldMapCatalog.resolve(id: overlayMapID)
     }
 
     /// 記録した軌跡のおおよその総距離（メートル）。

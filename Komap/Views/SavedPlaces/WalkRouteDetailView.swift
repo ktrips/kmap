@@ -52,6 +52,8 @@ struct WalkRouteDetailView: View {
 
     @State private var isRenaming = false
     @State private var editedTitle = ""
+    @State private var isEditingNotes = false
+    @State private var editedNotes = ""
     @State private var isConfirmingDelete = false
     @State private var selectedPhotoPost: WalkPhotoPost?
     @State private var selectedStamp: StampSelection?
@@ -73,7 +75,7 @@ struct WalkRouteDetailView: View {
     }
 
     private var checkpointsForOverlay: [HistoricSite] {
-        HistoricSiteCatalog.sites(forOverlayID: route.overlayMapID)
+        HistoricSiteCatalog.sites(forOverlayID: route.overlayMap?.id)
     }
 
     var body: some View {
@@ -98,6 +100,14 @@ struct WalkRouteDetailView: View {
                 if !stampsForRoute.isEmpty {
                     checkpointsSection
                 }
+
+                if route.isSharedPublicly {
+                    TripEngagementView(
+                        tripID: route.id.uuidString,
+                        currentUserID: authService.userID,
+                        currentUserDisplayName: authService.displayName
+                    )
+                }
             }
             .padding()
         }
@@ -111,6 +121,12 @@ struct WalkRouteDetailView: View {
                         isRenaming = true
                     } label: {
                         Label("名前を変更", systemImage: "pencil")
+                    }
+                    Button {
+                        editedNotes = route.notes ?? ""
+                        isEditingNotes = true
+                    } label: {
+                        Label(route.notes?.isEmpty == false ? "感想を編集" : "感想を書く", systemImage: "text.quote")
                     }
                     Menu {
                         ForEach(TripVisibility.allCases) { visibility in
@@ -167,6 +183,28 @@ struct WalkRouteDetailView: View {
         .sheet(item: $selectedStamp) { selection in
             StampCheckInSheet(site: selection.site, stamp: selection.stamp)
         }
+        .sheet(isPresented: $isEditingNotes) {
+            NavigationStack {
+                TextEditor(text: $editedNotes)
+                    .padding(12)
+                    .navigationTitle("感想")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("キャンセル") { isEditingNotes = false }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("保存する") {
+                                let trimmed = editedNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+                                route.notes = trimmed.isEmpty ? nil : trimmed
+                                try? modelContext.save()
+                                isEditingNotes = false
+                            }
+                        }
+                    }
+            }
+            .presentationDetents([.medium, .large])
+        }
     }
 
     private var header: some View {
@@ -220,6 +258,13 @@ struct WalkRouteDetailView: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+
+            if let notes = route.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .padding(.top, 4)
+            }
         }
     }
 
@@ -355,7 +400,7 @@ private struct CheckpointRow: View {
 
 /// 歩いたルート（＝自分が通って塗りつぶした地図）を、使っていた古地図・
 /// チェックポイントと一緒に表示する、操作不要の小さな地図。
-private struct WalkRouteMapView: UIViewRepresentable {
+struct WalkRouteMapView: UIViewRepresentable {
     let overlayMap: HistoricalOverlayMap?
     let overlayOpacity: Float
     let path: [CLLocationCoordinate2D]

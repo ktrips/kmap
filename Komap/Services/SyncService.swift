@@ -282,6 +282,66 @@ struct SyncService {
             RemoteSharedTrip(id: document.documentID, data: document.data())
         }
     }
+
+    // MARK: - いいね・コメント（Webアプリと同じ`sharedTrips/{tripId}/likes`・`/comments`を共有）
+
+    private func likesCollection(tripID: String) -> CollectionReference {
+        sharedTripsCollection.document(tripID).collection("likes")
+    }
+
+    private func commentsCollection(tripID: String) -> CollectionReference {
+        sharedTripsCollection.document(tripID).collection("comments")
+    }
+
+    /// この時空旅に「いいね」したユーザーIDの一覧を取得する。
+    func fetchLikeUserIDs(tripID: String) async throws -> [String] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let snapshot = try await likesCollection(tripID: tripID).getDocuments()
+        return snapshot.documents.map(\.documentID)
+    }
+
+    /// 「いいね」の付け外しを行う。ドキュメントIDをuidに固定しているため、1人1いいねが自然に守られる
+    /// （Webアプリの`useTripLikes`と同じ方式）。
+    func setLiked(tripID: String, userID: String, liked: Bool) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let ref = likesCollection(tripID: tripID).document(userID)
+        if liked {
+            try await ref.setData(["likedAt": Timestamp(date: Date())])
+        } else {
+            try await ref.delete()
+        }
+    }
+
+    /// この時空旅へのコメントを、古い順に取得する。
+    func fetchComments(tripID: String) async throws -> [RemoteTripComment] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let snapshot = try await commentsCollection(tripID: tripID)
+            .order(by: "createdAt", descending: false)
+            .getDocuments()
+        return snapshot.documents.compactMap { document in
+            RemoteTripComment(id: document.documentID, data: document.data())
+        }
+    }
+
+    /// コメントを投稿する。
+    func postComment(tripID: String, authorUserID: String, authorDisplayName: String, text: String) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let trimmed = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
+        guard !trimmed.isEmpty else { return }
+        let data: [String: Any] = [
+            "authorUserID": authorUserID,
+            "authorDisplayName": authorDisplayName,
+            "text": trimmed,
+            "createdAt": Timestamp(date: Date()),
+        ]
+        try await commentsCollection(tripID: tripID).addDocument(data: data)
+    }
+
+    /// 自分が投稿したコメントを削除する。
+    func deleteComment(tripID: String, commentID: String) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        try await commentsCollection(tripID: tripID).document(commentID).delete()
+    }
 }
 
 /// Firestoreから読み取った1件分のデータ（`SavedPlace` への変換用の軽量DTO）。
@@ -337,7 +397,10 @@ struct RemoteSharedPhoto {
 }
 
 /// 「みんなの時空旅」（`sharedTrips/{id}`）から読み取った、他ユーザーを含む時空旅1件分のデータ。
-struct RemoteSharedTrip: Identifiable {
+struct RemoteSharedTrip: Identifiable, Hashable {
+    static func == (lhs: RemoteSharedTrip, rhs: RemoteSharedTrip) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+
     let id: String
     let ownerUserID: String
     let ownerDisplayName: String?
@@ -373,5 +436,25 @@ struct RemoteSharedTrip: Identifiable {
             guard let url = dict["url"] as? String else { return nil }
             return RemoteSharedPhoto(url: url, label: dict["placeName"] as? String ?? "")
         }
+    }
+}
+
+/// 「みんなの時空旅」への1件のコメント（`sharedTrips/{tripId}/comments/{id}`）。
+struct RemoteTripComment: Identifiable {
+    let id: String
+    let authorUserID: String
+    let authorDisplayName: String
+    let text: String
+    let createdAt: Date
+
+    init?(id: String, data: [String: Any]) {
+        guard let authorUserID = data["authorUserID"] as? String,
+              let text = data["text"] as? String
+        else { return nil }
+        self.id = id
+        self.authorUserID = authorUserID
+        self.authorDisplayName = data["authorDisplayName"] as? String ?? "名無し"
+        self.text = text
+        self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
     }
 }

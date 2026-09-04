@@ -141,6 +141,13 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// `bringCheckpointMarkersToFront`のコメント参照）。
         private static let groundOverlayZIndex: Int32 = 0
         private static let checkpointMarkerZIndex: Int32 = 10
+        /// 「全ての古地図を表示」で実画像を貼るオーバーレイの上限。これを超える枚数を
+        /// 同時に読み込むと、Google Maps SDKのテクスチャアトラス上限に達し、
+        /// チェックポイントの赤いマーカー用テクスチャが一切確保できなくなり、
+        /// マーカーが軒並み表示されなくなる（`bringCheckpointMarkersToFront`のコメント
+        /// 参照）。上限を超えた分は画像なし（枠だけ）のオーバーレイのままにし、
+        /// チェックポイントのマーカー自体は全古地図分きちんと表示されるようにする。
+        private static let maxSimultaneousAllOverlayImages = 8
         private static let photoPostMarkerZIndex: Int32 = 20
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
@@ -220,6 +227,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             let generation = allOverlaysGeneration
             for (index, overlayMap) in uniqueMaps.enumerated() {
+                // 上限を超えた分は画像を読み込まない（枠だけのオーバーレイのまま）。
+                // チェックポイントのマーカーは`checkpoints`に含まれる全古地図分そのまま描画される。
+                guard index < Self.maxSimultaneousAllOverlayImages else { continue }
                 let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
                 let bearing = overlayMap.bearing
                 let cacheKey = newKeys[index]
@@ -699,9 +709,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 出るよう、都度セットし直す（`.map`への再代入は「後から追加した方が上」という
         /// 描画順の目安になるため）。
         ///
-        /// - Important: これは安全側の対策であり、「全ての古地図を表示」で
-        ///   チェックポイントのマーカーが一切表示されない不具合の根本原因は解決できていない。
-        ///   調査の結果、この環境のGoogle Maps SDKには「同時に読み込む
+        /// - Important: 調査の結果、この環境のGoogle Maps SDKには「同時に読み込む
         ///   `GMSGroundOverlay`（1024×1024）の数が10枚を超えるあたりから、内部の
         ///   テクスチャアトラス上限（"Reached the max number of texture atlases,
         ///   can not allocate more."）に達し、それ以降はマーカー用のテクスチャを
@@ -711,10 +719,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         ///   純粋にテクスチャ数の上限に起因する。オーバーレイ画像を512×512へ縮小して
         ///   使用テクスチャ量を減らす対策も試したが、今度は複数の古地図を同時に縮小する際に
         ///   画像の一部が白く欠けて描画される別の不具合が発生したため見送った。
-        ///   根本的に直すには、同時に読み込むオーバーレイの枚数自体を減らす（例:
-        ///   表示範囲に入っているものだけ読み込む）か、複数の古地図画像を1枚のテクスチャに
-        ///   事前合成するなど、テクスチャの総数を減らす設計変更が必要。単体の古地図を
-        ///   選んで表示するモードはこの制約の影響を受けない。
+        ///   代わりに`maxSimultaneousAllOverlayImages`で、実画像を貼るオーバーレイの枚数
+        ///   自体を上限（10枚未満）に抑えることで、チェックポイントのマーカー用テクスチャの
+        ///   確保に必要な余裕を残すようにした。上限を超えた古地図は画像なし（枠だけ）の
+        ///   オーバーレイのままになるが、チェックポイントのマーカーは全古地図分表示される。
+        ///   この`.map = nil`→再代入は、その安全側の対策として引き続き残している。
+        ///   単体の古地図を選んで表示するモードはこの制約の影響を受けない。
         private func bringCheckpointMarkersToFront(on mapView: GMSMapView) {
             for marker in checkpointMarkers.values {
                 // 既に`.map`が同じ`mapView`のままだと再代入が内部的に無視され、

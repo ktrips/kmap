@@ -67,6 +67,14 @@ struct StampListView: View {
                                 .font(.subheadline.bold())
                                 .foregroundStyle(.brown)
 
+                            CheckpointMapPreview(
+                                overlayMap: group.map,
+                                checkpoints: group.sites,
+                                collectedSiteIDs: collectedSiteIDs
+                            )
+                            .frame(height: 180)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
                             LazyVGrid(columns: cardColumns, spacing: 12) {
                                 stampCells(for: group.sites)
                             }

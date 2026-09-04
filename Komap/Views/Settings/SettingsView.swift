@@ -116,7 +116,7 @@ struct SettingsView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "map")
-                            Text("←マップに戻る")
+                            Text("マップに戻る")
                         }
                     }
                 }
