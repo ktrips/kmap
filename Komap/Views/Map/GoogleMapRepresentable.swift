@@ -131,6 +131,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         private var savedPolylinePairs: [TrailPolylinePair] = []
         private var liveTrailPair: TrailPolylinePair?
+        /// 直近にスムージング・描画済みのライブ軌跡の座標数。GPSの新しい更新が
+        /// 無いのに`applyWalkPaths`が呼ばれた場合に、同じ軌跡を無駄に再計算しないための目印。
+        private var liveRawPathCount = 0
         private var checkpointMarkers: [String: GMSMarker] = [:]
         /// 直近で`applyCheckpoints`に適用した獲得済み状態。GPS更新のたびに呼ばれても、
         /// 変化のないマーカーの`icon`/`opacity`を再設定しない（負荷軽減）ために使う。
@@ -658,8 +661,17 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             guard live.count >= 2 else {
                 liveTrailPair?.remove()
                 liveTrailPair = nil
+                liveRawPathCount = 0
                 return
             }
+
+            // `updateUIView`は、記録中に無関係なUI状態（トースト表示・シート開閉・
+            // Watch側の状態変化など）が変わるたびにも呼ばれる。GPSの新しい座標が
+            // 1件も増えていない場合にまで、蓄積した軌跡全体をスムージングし直して
+            // ポリラインを作り直すのは無駄な負荷（記録が長くなるほど1回あたりの
+            // 計算量が増え続ける）になるため、座標数が変化した時だけ再計算する。
+            guard live.count != liveRawPathCount else { return }
+            liveRawPathCount = live.count
 
             let path = GMSMutablePath()
             Self.smoothedTrailCoordinates(live).forEach { path.add($0) }
