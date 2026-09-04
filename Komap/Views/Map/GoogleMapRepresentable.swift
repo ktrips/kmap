@@ -147,7 +147,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// マーカーが軒並み表示されなくなる（`bringCheckpointMarkersToFront`のコメント
         /// 参照）。上限を超えた分は画像なし（枠だけ）のオーバーレイのままにし、
         /// チェックポイントのマーカー自体は全古地図分きちんと表示されるようにする。
-        private static let maxSimultaneousAllOverlayImages = 8
+        /// 実機・シミュレータでの検証では8枚でもマーカーが表示されないままだったため、
+        /// 十分な余裕を持たせて4枚にしている（同梱の古地図が今後増えても、この値を
+        /// 上げる場合は必ずシミュレータで「全ての古地図を表示」を開いてマーカーが
+        /// 全古地図分ちゃんと出ることを確認すること）。
+        private static let maxSimultaneousAllOverlayImages = 4
         private static let photoPostMarkerZIndex: Int32 = 20
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
