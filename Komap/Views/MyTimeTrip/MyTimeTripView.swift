@@ -460,7 +460,7 @@ private struct TripRow: View {
     /// 一覧では年を省いた「MM/DD HH:MI」の短い表記にする。
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd HH:mm"
+        formatter.dateFormat = "M/d HH:mm"
         return formatter
     }()
 
