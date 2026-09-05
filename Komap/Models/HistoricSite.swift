@@ -498,13 +498,6 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6913, longitude: 139.7457)
         ),
         HistoricSite(
-            id: "kudanshita-tayasumon",
-            overlayMapID: OldMapCatalog.edoCastle.id,
-            name: "田安門",
-            summary: "江戸城北の丸を守った門のひとつ。現存する江戸城の城門としては最古級とされる。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6942, longitude: 139.7499)
-        ),
-        HistoricSite(
             id: "kudanshita-shimizumon",
             overlayMapID: OldMapCatalog.edoCastle.id,
             name: "清水門",

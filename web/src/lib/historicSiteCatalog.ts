@@ -75,7 +75,6 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "nakasendo-itabashi-juku", name: "板橋宿本陣跡", overlayMapID: "nakasendo-edo", coordinate: { lat: 35.7513, lng: 139.7093 } },
   { id: "kudanshita-yasukuni-shrine", name: "靖国神社", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6938, lng: 139.7423 } },
   { id: "kudanshita-chidorigafuchi", name: "千鳥ヶ淵", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6913, lng: 139.7457 } },
-  { id: "kudanshita-tayasumon", name: "田安門", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6942, lng: 139.7499 } },
   { id: "kudanshita-shimizumon", name: "清水門", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6912, lng: 139.7508 } },
   { id: "roppongi-hills-mori-garden", name: "六本木ヒルズ（毛利庭園）", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6604, lng: 139.7292 } },
   { id: "roppongi-nogi-shrine", name: "乃木神社", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6667, lng: 139.7268 } },
