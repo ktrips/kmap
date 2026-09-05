@@ -117,6 +117,14 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     southWest: { lat: 35.685, lng: 139.696 },
     northEast: { lat: 35.712, lng: 139.744 },
   },
+  {
+    id: "kiminona-seichi",
+    title: "「君の名は。」聖地巡礼",
+    era: "現代（映画『君の名は。』の聖地巡礼スポット）",
+    imageUrl: "/old-maps/old_map_kiminona_seichi.jpg",
+    southWest: { lat: 35.655, lng: 139.696 },
+    northEast: { lat: 35.697, lng: 139.733 },
+  },
 ];
 
 /**

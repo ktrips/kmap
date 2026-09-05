@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { findOldMap } from "../lib/oldMapCatalog";
+import { sitesForOverlay } from "../lib/historicSiteCatalog";
 import { saveTripDetails } from "../lib/tripEditing";
 import { useTripComments } from "../lib/useTripComments";
 import { useTripLikes } from "../lib/useTripLikes";
@@ -111,7 +112,12 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   return (
     <div className="trip-detail">
       {trip.latitudes.length > 0 && (
-        <TripMapView latitudes={trip.latitudes} longitudes={trip.longitudes} oldMap={oldMap} />
+        <TripMapView
+          latitudes={trip.latitudes}
+          longitudes={trip.longitudes}
+          oldMap={oldMap}
+          checkpoints={sitesForOverlay(oldMap?.id ?? null)}
+        />
       )}
 
       <p className="place-detail-era">{dateFormatter.format(trip.startedAt)}</p>

@@ -673,6 +673,50 @@ enum HistoricSiteCatalog {
             summary: "江戸時代から続く花街・神楽坂のシンボル的な寺院。石畳の路地に今も花柳界の風情が残る。",
             coordinate: CLLocationCoordinate2D(latitude: 35.7017, longitude: 139.7397)
         ),
+
+        // 「君の名は。」聖地巡礼（新宿・四谷・原宿・渋谷）
+        HistoricSite(
+            id: "kiminona-suga-shrine",
+            overlayMapID: OldMapCatalog.kiminonaSeichi.id,
+            name: "須賀神社",
+            summary: "参道の男坂石段が、映画のラストシーンの舞台として知られる四谷の神社。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6863, longitude: 139.7217)
+        ),
+        HistoricSite(
+            id: "kiminona-yotsuya-station",
+            overlayMapID: OldMapCatalog.kiminonaSeichi.id,
+            name: "四ツ谷駅",
+            summary: "須賀神社に近く、劇中の四谷周辺の風景に重なるターミナル駅。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6858, longitude: 139.7305)
+        ),
+        HistoricSite(
+            id: "kiminona-docomo-tower",
+            overlayMapID: OldMapCatalog.kiminonaSeichi.id,
+            name: "ドコモタワー（NTTドコモ代々木ビル）",
+            summary: "劇中の東京の空を象徴する超高層ビル。代々木・新宿一帯から見渡せる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6844, longitude: 139.7031)
+        ),
+        HistoricSite(
+            id: "kiminona-busta-shinjuku",
+            overlayMapID: OldMapCatalog.kiminonaSeichi.id,
+            name: "バスタ新宿",
+            summary: "新宿駅南口の高速バスターミナル。三葉が東京へ降り立つ場面のモデルとされる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6886, longitude: 139.7008)
+        ),
+        HistoricSite(
+            id: "kiminona-cafe-la-boheme",
+            overlayMapID: OldMapCatalog.kiminonaSeichi.id,
+            name: "カフェ・ラ・ボエム（新宿御苑店）",
+            summary: "瀧のアルバイト先のモデルとされる、新宿御苑そばのカフェ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6903, longitude: 139.7154)
+        ),
+        HistoricSite(
+            id: "kiminona-shibuya-tsutaya",
+            overlayMapID: OldMapCatalog.kiminonaSeichi.id,
+            name: "SHIBUYA TSUTAYA",
+            summary: "渋谷スクランブル交差点に面する複合施設。劇中の渋谷の雑踏シーンのモデル地。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6597, longitude: 139.7016)
+        ),
     ]
 
     static func site(withID id: String) -> HistoricSite? {

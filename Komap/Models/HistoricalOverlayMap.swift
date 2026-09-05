@@ -266,13 +266,56 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.6929946320988, longitude: 139.74609375)
     )
 
+    // 現在の地図（OpenStreetMap）から新宿御苑・四谷・原宿・渋谷一帯を取得し、セピア調フィルターを
+    // かけて古地図風に加工した画像。実際の歴史史料ではなく、映画『君の名は。』の聖地巡礼スポットを
+    // めぐるための現代のチェックポイント集（`akasakaKioicho`等と同じ「現在の地図から加工した
+    // 古地図風画像」の扱い）。
+    static let kiminonaSeichi = HistoricalOverlayMap(
+        id: "kiminona-seichi",
+        title: "「君の名は。」聖地巡礼",
+        era: "現代（映画『君の名は。』の聖地巡礼スポット）",
+        summary: "須賀神社の男坂石段や四ツ谷駅など、映画『君の名は。』の舞台として知られる新宿・四谷・原宿・渋谷一帯の聖地巡礼スポットをめぐります。",
+        imageAssetName: "OldMap_KiminonaSeichi",
+        southWest: CLLocationCoordinate2D(latitude: 35.655, longitude: 139.696),
+        northEast: CLLocationCoordinate2D(latitude: 35.697, longitude: 139.733)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, nihonbashi,
         goshikiFudo, bashoOkuNoHosomichi, akasakaKioicho,
         tokaido, nakasendo,
         meijiJinguOmotesando, oyamaKaido, kagurazakaWasedaShinjuku,
+        kiminonaSeichi,
     ]
+
+    /// 古地図選択シートでの分類（`OldMapPickerSheet`のセクション分けに使う）。
+    enum Category: String, CaseIterable {
+        case historicSites = "旧跡・名所巡り"
+        case kaido = "街道巡り"
+        case animePilgrimage = "アニメ聖地巡礼"
+    }
+
+    private static let categoryByID: [String: Category] = [
+        edoCastle.id: .historicSites,
+        asakusa.id: .historicSites,
+        meijiWriters.id: .historicSites,
+        nihonbashi.id: .historicSites,
+        akasakaKioicho.id: .historicSites,
+        meijiJinguOmotesando.id: .historicSites,
+        kagurazakaWasedaShinjuku.id: .historicSites,
+        tokaido.id: .kaido,
+        nakasendo.id: .kaido,
+        oyamaKaido.id: .kaido,
+        bashoOkuNoHosomichi.id: .kaido,
+        goshikiFudo.id: .kaido,
+        kiminonaSeichi.id: .animePilgrimage,
+    ]
+
+    /// この古地図が属する分類。同梱リストにない（ユーザーが検索して追加した）古地図は`nil`。
+    static func category(of overlay: HistoricalOverlayMap) -> Category? {
+        categoryByID[overlay.id]
+    }
 
     /// 同梱の古地図 + ユーザーが検索して追加した古地図。
     static var allIncludingCustom: [HistoricalOverlayMap] {

@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useGoogleMaps } from "../lib/useGoogleMaps";
 import type { OldMapEntry } from "../lib/oldMapCatalog";
+import type { HistoricSiteEntry } from "../lib/historicSiteCatalog";
 
 interface Props {
   latitudes: number[];
   longitudes: number[];
   /** この時空旅で使っていた古地図（画像・範囲を持つ場合のみ重ねて表示する）。 */
   oldMap?: OldMapEntry;
+  /** この時空旅で使っていた古地図に属する史跡チェックポイント（iOS版と同じ赤いマーカーで表示）。 */
+  checkpoints?: HistoricSiteEntry[];
 }
 
 /**
@@ -18,12 +21,14 @@ interface Props {
  *   サポートしないため、iOS版で回転させて位置合わせしている古地図
  *   （現状`goshiki-fudo-meiji`のみ）は、Web版では回転無しで表示される。
  */
-export function TripMapView({ latitudes, longitudes, oldMap }: Props) {
+export function TripMapView({ latitudes, longitudes, oldMap, checkpoints = [] }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const polylineRef = useRef<google.maps.Polyline | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
   const overlayRef = useRef<google.maps.GroundOverlay | null>(null);
+  const checkpointMarkersRef = useRef<google.maps.Marker[]>([]);
+  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const { isLoaded, error, isConfigured } = useGoogleMaps();
   const [opacity, setOpacity] = useState(0.6);
 
@@ -51,6 +56,24 @@ export function TripMapView({ latitudes, longitudes, oldMap }: Props) {
     markerRef.current = null;
     overlayRef.current?.setMap(null);
     overlayRef.current = null;
+    checkpointMarkersRef.current.forEach((marker) => marker.setMap(null));
+    checkpointMarkersRef.current = [];
+
+    if (checkpoints.length > 0 && !infoWindowRef.current) {
+      infoWindowRef.current = new google.maps.InfoWindow();
+    }
+    checkpointMarkersRef.current = checkpoints.map((checkpoint) => {
+      const marker = new google.maps.Marker({
+        position: checkpoint.coordinate,
+        map,
+        title: checkpoint.name,
+      });
+      marker.addListener("click", () => {
+        infoWindowRef.current?.setContent(checkpoint.name);
+        infoWindowRef.current?.open(map, marker);
+      });
+      return marker;
+    });
 
     if (oldMap?.imageUrl && oldMap.southWest && oldMap.northEast) {
       overlayRef.current = new google.maps.GroundOverlay(oldMap.imageUrl, {
@@ -80,7 +103,7 @@ export function TripMapView({ latitudes, longitudes, oldMap }: Props) {
       map.setCenter(path[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, latitudes, longitudes, oldMap]);
+  }, [isLoaded, latitudes, longitudes, oldMap, checkpoints]);
 
   // 濃度スライダーはオーバーレイの作り直しなしに反映したいので、別のeffectに分けている。
   useEffect(() => {

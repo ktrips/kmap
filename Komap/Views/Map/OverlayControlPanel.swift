@@ -103,19 +103,18 @@ struct OldMapPickerSheet: View {
                     }
                 }
 
-                Section {
-                    ForEach(OldMapCatalog.allIncludingCustom) { overlay in
-                        Button {
-                            isShowingAllOverlays = false
-                            selectedOverlay = overlay
-                            onSelect(overlay)
-                            dismiss()
-                        } label: {
-                            if !isShowingAllOverlays && overlay.id == selectedOverlay?.id {
-                                Label(menuTitle(for: overlay), systemImage: "checkmark")
-                            } else {
-                                Text(menuTitle(for: overlay))
-                            }
+                ForEach(OldMapCatalog.Category.allCases, id: \.self) { category in
+                    Section(category.rawValue) {
+                        ForEach(overlays(in: category)) { overlay in
+                            overlayButton(for: overlay)
+                        }
+                    }
+                }
+
+                if !customOverlays.isEmpty {
+                    Section("追加した古地図") {
+                        ForEach(customOverlays) { overlay in
+                            overlayButton(for: overlay)
                         }
                     }
                 }
@@ -137,6 +136,31 @@ struct OldMapPickerSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("閉じる") { dismiss() }
                 }
+            }
+        }
+    }
+
+    /// 同梱の古地図のうち、指定した分類に属するものだけを返す。
+    private func overlays(in category: OldMapCatalog.Category) -> [HistoricalOverlayMap] {
+        OldMapCatalog.all.filter { OldMapCatalog.category(of: $0) == category }
+    }
+
+    /// ユーザーが検索して追加した古地図（同梱リストの分類には属さない）。
+    private var customOverlays: [HistoricalOverlayMap] {
+        CustomOverlayMapStore.all()
+    }
+
+    private func overlayButton(for overlay: HistoricalOverlayMap) -> some View {
+        Button {
+            isShowingAllOverlays = false
+            selectedOverlay = overlay
+            onSelect(overlay)
+            dismiss()
+        } label: {
+            if !isShowingAllOverlays && overlay.id == selectedOverlay?.id {
+                Label(menuTitle(for: overlay), systemImage: "checkmark")
+            } else {
+                Text(menuTitle(for: overlay))
             }
         }
     }
