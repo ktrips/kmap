@@ -572,13 +572,6 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6672, longitude: 139.7106)
         ),
         HistoricSite(
-            id: "meijijingu-gaien-ginkgo",
-            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
-            name: "神宮外苑いちょう並木",
-            summary: "かつて青山練兵場（陸軍の閲兵式場）があった地。明治神宮外苑として整備され、いちょう並木が名所となった。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6751, longitude: 139.7168)
-        ),
-        HistoricSite(
             id: "meijijingu-gaien-gallery",
             overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
             name: "聖徳記念絵画館",
@@ -637,14 +630,7 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6099, longitude: 139.6262)
         ),
 
-        // 神楽坂・早稲田・新宿
-        HistoricSite(
-            id: "kws-shinjuku-station",
-            overlayMapID: OldMapCatalog.kagurazakaWasedaShinjuku.id,
-            name: "新宿駅",
-            summary: "五街道のひとつ甲州道中の宿場・内藤新宿を起源とする、日本一の乗降客数を誇る駅。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6896, longitude: 139.7006)
-        ),
+        // 神楽坂・早稲田
         HistoricSite(
             id: "kws-hanazono-shrine",
             overlayMapID: OldMapCatalog.kagurazakaWasedaShinjuku.id,

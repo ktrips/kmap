@@ -95,7 +95,7 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
   {
     id: "meiji-jingu-omotesando-meiji",
-    title: "明治神宮・表参道・神宮外苑",
+    title: "明治神宮・表参道",
     era: "明治時代（1891年・明治24年頃、社殿創建前の代々木御料地一帯）",
     imageUrl: "/old-maps/old_map_meijijingu_omotesando.jpg",
     southWest: { lat: 35.65776, lng: 139.69495 },
@@ -111,7 +111,7 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
   {
     id: "kagurazaka-waseda-shinjuku-meiji",
-    title: "神楽坂・早稲田・新宿",
+    title: "神楽坂・早稲田",
     era: "古地図風（現在の地図をもとに加工）",
     imageUrl: "/old-maps/old_map_kagurazaka_waseda_shinjuku.jpg",
     southWest: { lat: 35.685, lng: 139.696 },

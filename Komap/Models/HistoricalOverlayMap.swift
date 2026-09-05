@@ -231,9 +231,9 @@ enum OldMapCatalog {
     // 一帯の町割り）を切り出したもの。位置合わせは地図上の「原宿」等の地名表記を基準にした概算。
     static let meijiJinguOmotesando = HistoricalOverlayMap(
         id: "meiji-jingu-omotesando-meiji",
-        title: "明治神宮・表参道・神宮外苑",
+        title: "明治神宮・表参道",
         era: "明治時代（1891年・明治24年頃、社殿創建前の代々木御料地一帯）",
-        summary: "後に明治神宮・表参道・神宮外苑となる、代々木・原宿・青山練兵場一帯の古地図です。神宮の鎮座は1920年（大正9年）のため、この地図の時点ではまだ深い森と御料地・練兵場が広がっています。",
+        summary: "後に明治神宮・表参道となる、代々木・原宿・青山練兵場一帯の古地図です。神宮の鎮座は1920年（大正9年）のため、この地図の時点ではまだ深い森と御料地・練兵場が広がっています。",
         imageAssetName: "OldMap_MeijiJinguOmotesando",
         southWest: CLLocationCoordinate2D(latitude: 35.65776, longitude: 139.69495),
         northEast: CLLocationCoordinate2D(latitude: 35.68296, longitude: 139.73031)
@@ -244,9 +244,9 @@ enum OldMapCatalog {
     // （`akasakaKioicho`/`oyamaKaido`と同じ扱い）。
     static let kagurazakaWasedaShinjuku = HistoricalOverlayMap(
         id: "kagurazaka-waseda-shinjuku-meiji",
-        title: "神楽坂・早稲田・新宿",
+        title: "神楽坂・早稲田",
         era: "古地図風（現在の地図をもとに加工）",
-        summary: "早稲田大学の学生街と、江戸時代から続く花街・神楽坂、新宿駅周辺をあわせたエリア。現在の地図をもとにした古地図風の画像です。",
+        summary: "早稲田大学の学生街と、江戸時代から続く花街・神楽坂をあわせたエリア。現在の地図をもとにした古地図風の画像です。",
         imageAssetName: "OldMap_KagurazakaWasedaShinjuku",
         southWest: CLLocationCoordinate2D(latitude: 35.685, longitude: 139.696),
         northEast: CLLocationCoordinate2D(latitude: 35.712, longitude: 139.744)
