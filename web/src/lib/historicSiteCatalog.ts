@@ -25,7 +25,6 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "writers-soseki", name: "夏目漱石旧居跡（猫の家）", overlayMapID: "meiji-writers", coordinate: { lat: 35.7215, lng: 139.7654 } },
   { id: "writers-ichiyo", name: "樋口一葉旧居跡", overlayMapID: "meiji-writers", coordinate: { lat: 35.7106, lng: 139.7595 } },
   { id: "writers-takuboku", name: "石川啄木の旧居", overlayMapID: "meiji-writers", coordinate: { lat: 35.7108, lng: 139.7597 } },
-  { id: "ueno-bentendo", name: "不忍池辯天堂", overlayMapID: "meiji-writers", coordinate: { lat: 35.7139, lng: 139.7717 } },
   { id: "ueno-toshogu", name: "上野東照宮", overlayMapID: "meiji-writers", coordinate: { lat: 35.7161, lng: 139.7724 } },
   { id: "nihonbashi-mitsukoshi", name: "三越日本橋本店", overlayMapID: "nihonbashi-edo", coordinate: { lat: 35.6852, lng: 139.7734 } },
   { id: "nihonbashi-uoichiba", name: "日本橋魚市場発祥の地", overlayMapID: "nihonbashi-edo", coordinate: { lat: 35.6837, lng: 139.7738 } },

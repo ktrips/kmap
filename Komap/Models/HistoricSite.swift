@@ -126,13 +126,8 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.7108, longitude: 139.7597)
         ),
         // 上野（寛永寺・不忍池周辺）※「明治の文豪（本郷・上野）」に統合済み
-        HistoricSite(
-            id: "ueno-bentendo",
-            overlayMapID: OldMapCatalog.meijiWriters.id,
-            name: "不忍池辯天堂",
-            summary: "不忍池に浮かぶ中之島に建つ、弁財天を祀るお堂。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.7139, longitude: 139.7717)
-        ),
+        // 「不忍池辯天堂」は谷中七福神の`yanaka7-bentendo`（弁才天）と同座標のため、
+        // 重複を避けてそちらだけ残している。
         HistoricSite(
             id: "ueno-toshogu",
             overlayMapID: OldMapCatalog.meijiWriters.id,
