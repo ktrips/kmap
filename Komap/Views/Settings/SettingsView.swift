@@ -107,6 +107,12 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                Section {
+                    Link(destination: URL(string: "https://github.com/ktrips/kmap#readme")!) {
+                        Label("Komapの使い方", systemImage: "book")
+                    }
+                }
             }
             .navigationTitle("設定")
             .toolbar {

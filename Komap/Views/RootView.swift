@@ -50,8 +50,8 @@ private struct GoogleMapsSetupNoticeView: View {
 }
 
 /// 画面下部のタブバーを使わず、`mapSession.selectedTab`に応じて
-/// マップ・My Trips・設定を切り替える。マップは全画面表示にし、
-/// 左上に浮かせたハンバーガーメニュー（古地図選択・マイ時空旅・セットアップ）から他画面へ移動する。
+/// マップ・My Trips・設定を切り替える。マップは全画面表示にし、左上に浮かせた
+/// 「マイ時空旅」「古地図選択」、右上に浮かせた「セットアップ」のボタンから他画面へ移動する。
 private struct MainTabView: View {
     @EnvironmentObject private var mapSession: MapSessionState
 
@@ -65,6 +65,9 @@ private struct MainTabView: View {
             ZStack(alignment: .topLeading) {
                 MapScreen()
                 MapTopLeftControls()
+            }
+            .overlay(alignment: .top) {
+                MapTopCenterOverlayLabel()
             }
             .overlay(alignment: .topTrailing) {
                 MapTopRightControls()
@@ -81,62 +84,29 @@ private struct MainTabView: View {
     }
 }
 
-/// マップ画面の左上に浮かせる、ハンバーガーメニュー（Komapアイコン表示）。
-/// 「古地図選択」（submenuで古地図を選ぶとその範囲でマップが表示される）・
-/// 「マイ時空旅」・「セットアップ」の3項目をまとめる。
+/// マップ画面の左上に浮かせる、「マイ時空旅」への直接のショートカットボタンと、
+/// その真下に並べた「古地図選択」ボタン（押すとすぐ古地図選択シートを開く）。
 private struct MapTopLeftControls: View {
     @EnvironmentObject private var mapSession: MapSessionState
     @State private var isPresentingOldMapPicker = false
 
     var body: some View {
-        Menu {
-            // アプリ名の行をタップすると、古地図オーバーレイを外した「元のマップ」表示に
-            // 戻る（迷子になった時のホームボタンのような役割）。
-            Button {
-                mapSession.resetToOriginalMap()
-            } label: {
-                Label {
-                    Text("Komap 古地図巡り")
-                } icon: {
-                    Image("KomapIcon")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 20, height: 20)
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                }
-            }
-            Divider()
-            // 「古地図選択」はここでsubmenu（Menu内Menu）にせず、シートを開くボタンにする。
-            // 同梱の古地図が増えた結果、submenuに入り切らない項目がスクロールもできないまま
-            // 表示されなくなる問題があったため（`OldMapPickerSheet`のコメント参照）。
-            Button {
-                isPresentingOldMapPicker = true
-            } label: {
-                // Menu項目はカスタムレイアウトが効かず単純なテキスト+アイコンしか
-                // 描画されないため、「その場で開いて選ぶ」ことが分かるよう
-                // タイトル末尾に下矢印（⌄）を付ける。
-                Label("古地図選択  ⌄", systemImage: "map")
-            }
-            Divider()
+        VStack(spacing: 10) {
             Button {
                 mapSession.selectedTab = .myTimeTrip
             } label: {
-                // 同様に、新しい画面へ遷移することが分かるよう末尾に右矢印（›）を付ける。
-                Label("マイ時空旅  ›", systemImage: "book.closed")
+                Image(systemName: "book.closed.fill")
+                    .roundControlButtonStyle()
             }
-            Divider()
+            .accessibilityLabel("マイ時空旅")
+
             Button {
-                mapSession.selectedTab = .settings
+                isPresentingOldMapPicker = true
             } label: {
-                Label("セットアップ  ›", systemImage: "gearshape")
+                Image(systemName: "map")
+                    .roundControlButtonStyle()
             }
-            Divider()
-            Link(destination: URL(string: "https://github.com/ktrips/kmap#readme")!) {
-                Label("Komapの使い方", systemImage: "book")
-            }
-        } label: {
-            Image(systemName: "line.3.horizontal")
-                .roundControlButtonStyle()
+            .accessibilityLabel("古地図選択")
         }
         .padding(.top, 8)
         .padding(.leading, 16)
@@ -152,22 +122,54 @@ private struct MapTopLeftControls: View {
     }
 }
 
-/// マップ画面の右上に浮かせる、「マイ時空旅」への直接のショートカットボタン。
-/// 左上のハンバーガーメニューからも遷移できるが、記録を見返す操作は頻度が高いため、
-/// メニューを開かずワンタップで移動できるようにする。
+/// マップ画面の右上に浮かせる、「セットアップ」への直接のショートカットボタン
+/// （以前はハンバーガーメニューだったが、押すとすぐセットアップ画面を開く形にした。
+/// 「Komapの使い方」はセットアップ画面の下部に移した）。
 private struct MapTopRightControls: View {
     @EnvironmentObject private var mapSession: MapSessionState
 
     var body: some View {
         Button {
-            mapSession.selectedTab = .myTimeTrip
+            mapSession.selectedTab = .settings
         } label: {
-            Image(systemName: "book.closed.fill")
+            Image(systemName: "line.3.horizontal")
                 .roundControlButtonStyle()
         }
         .padding(.top, 8)
         .padding(.trailing, 16)
-        .accessibilityLabel("マイ時空旅")
+        .accessibilityLabel("セットアップ")
+    }
+}
+
+/// マップ画面の上部中央に浮かせる、選択中の古地図名のラベル。
+/// 押すと、その地域の簡単な説明とチェックポイント一覧をシートで表示する
+/// （`OldMapAreaInfoSheet`）。「全ての古地図を表示」中や、古地図を表示していない間は出さない。
+private struct MapTopCenterOverlayLabel: View {
+    @EnvironmentObject private var mapSession: MapSessionState
+    @State private var isPresentingAreaInfo = false
+
+    var body: some View {
+        if let overlay = mapSession.selectedOverlay, !mapSession.isShowingAllOverlays {
+            Button {
+                isPresentingAreaInfo = true
+            } label: {
+                Text(overlay.shortTitle)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+            }
+            .padding(.top, 8)
+            .sheet(isPresented: $isPresentingAreaInfo) {
+                OldMapAreaInfoSheet(
+                    overlay: overlay,
+                    checkpoints: HistoricSiteCatalog.sites(forOverlayID: overlay.id)
+                )
+            }
+        }
     }
 }
 

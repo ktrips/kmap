@@ -67,6 +67,14 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
         )
     }
 
+    /// 地図上部のラベルなど、短い表示が必要な場所で使う名称。
+    /// 「東海道（日本橋・芝増上寺・品川）」のような、括弧で補足を添えた`title`から
+    /// 括弧部分を取り除いたもの（括弧が無ければ`title`のまま）。
+    var shortTitle: String {
+        guard let openRange = title.range(of: "（") else { return title }
+        return String(title[title.startIndex..<openRange.lowerBound])
+    }
+
     /// 同梱アセット・検索で追加した画像のどちらかから、表示用の画像を読み込む。
     var image: UIImage? {
         if let imageAssetName, let image = UIImage(named: imageAssetName) {

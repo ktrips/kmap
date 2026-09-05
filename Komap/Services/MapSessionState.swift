@@ -61,14 +61,6 @@ final class MapSessionState: ObservableObject {
         cameraMoveRequest = CameraMoveRequest(coordinate)
     }
 
-    /// ハンバーガーメニュー最上部（Komapアイコン・アプリ名）をタップした時に呼ぶ。
-    /// 古地図オーバーレイを外した「元のマップ」表示に戻す。
-    func resetToOriginalMap() {
-        isShowingAllOverlays = false
-        selectedOverlay = nil
-        selectedTab = .map
-    }
-
     /// 「My TimeTrip」の記録から、その時の古地図・不透明度・位置を復元してマップタブへ移動する。
     func resume(overlayMapID: String?, overlayOpacity: Double, cameraTarget: CLLocationCoordinate2D?) {
         isShowingAllOverlays = false
