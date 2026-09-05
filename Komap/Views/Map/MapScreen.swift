@@ -335,12 +335,15 @@ struct MapScreen: View {
                 .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
         }
         .disabled(locationManager.currentLocation == nil)
-        .padding(.trailing, 1)
+        .padding(.trailing, 9) // ほんの少しだけ左に寄せる
     }
 
+    /// 「スタート」などの操作ボタン群を画面幅の中央に、現在地ボタンを右端に配置する。
+    /// 以前は同じ`HStack`に両方を並べていたため、右端の現在地ボタンの分だけ
+    /// 操作ボタン群の見た目の中心が左へずれて見えていた。現在地ボタンを別レイヤーの
+    /// `overlay`にして独立させることで、操作ボタン群を画面の真ん中に置けるようにした。
     private var actionButtonsRow: some View {
         HStack(spacing: 8) {
-            Spacer()
             if isWatchTrackingActive {
                 watchTrackingIndicator
                 photoPostButton
@@ -351,7 +354,9 @@ struct MapScreen: View {
                 }
                 walkRecordButton
             }
-            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .overlay(alignment: .trailing) {
             currentLocationButton
         }
     }
@@ -379,9 +384,9 @@ struct MapScreen: View {
                 locationManager.isRecordingWalk ? "完了" : "スタート",
                 systemImage: locationManager.isRecordingWalk ? "stop.circle.fill" : "play.circle.fill"
             )
-            .font(.subheadline.bold())
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .font(.system(size: 18, weight: .bold)) // subheadline(15)の20%増し
+            .padding(.horizontal, 16.8) // 14の20%増し
+            .padding(.vertical, 12) // 10の20%増し
             .foregroundStyle(locationManager.isRecordingWalk ? .white : .primary)
             .background(
                 locationManager.isRecordingWalk ? AnyShapeStyle(Color.red) : AnyShapeStyle(.regularMaterial),

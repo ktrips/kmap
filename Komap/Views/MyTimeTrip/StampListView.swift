@@ -56,7 +56,7 @@ struct StampListView: View {
                         checkpoints: sites,
                         collectedSiteIDs: collectedSiteIDs
                     )
-                    .frame(height: 220)
+                    .frame(height: 260)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
@@ -72,7 +72,7 @@ struct StampListView: View {
                                 checkpoints: group.sites,
                                 collectedSiteIDs: collectedSiteIDs
                             )
-                            .frame(height: 180)
+                            .frame(height: 220)
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                             LazyVGrid(columns: cardColumns, spacing: 12) {

@@ -66,8 +66,10 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     title: "松尾芭蕉ゆかりの地（深川〜千住）",
     era: "明治時代（1891年・明治24年頃）",
     imageUrl: "/old-maps/old_map_basho_oku_no_hosomichi.jpg",
-    southWest: { lat: 35.6531, lng: 139.7543 },
-    northEast: { lat: 35.755, lng: 139.7967 },
+    // 画像が正方形（内容は横幅の半分弱、左右が余白）のため、iOS版と同様に
+    // 東西の範囲を正方形になるまで広げ、縦方向への引き伸ばしを解消している。
+    southWest: { lat: 35.6531, lng: 139.713 },
+    northEast: { lat: 35.755, lng: 139.838 },
   },
   {
     id: "akasaka-kioicho-meiji",

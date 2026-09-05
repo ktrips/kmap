@@ -193,8 +193,14 @@ enum OldMapCatalog {
         era: "明治時代（1891年・明治24年頃）",
         summary: "松尾芭蕉が『おくのほそ道』へ旅立った深川の芭蕉庵から、矢立初めの地とされる千住までをたどる古地図です。",
         imageAssetName: "OldMap_BashoOkuNoHosomichi",
-        southWest: CLLocationCoordinate2D(latitude: 35.6531, longitude: 139.7543),
-        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.7967)
+        // 画像本体は正方形（1024×1024）のキャンバスに、実際の地図内容を横幅の半分弱に
+        // 収めた状態（左右が白く余白）で書き出されている。以前は内容部分だけの
+        // 実測に近い緯度経度（南北に長い、正方形とはかけ離れた範囲）を指定していたため、
+        // GMSGroundOverlayが正方形画像をその細長い範囲へ引き伸ばし、地図が縦に
+        // 間延びして見える不具合があった。南北の範囲はそのまま、東西の範囲を
+        // 画像の余白比率に合わせて正方形になるまで広げ、引き伸ばしを解消している。
+        southWest: CLLocationCoordinate2D(latitude: 35.6531, longitude: 139.7130),
+        northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.8380)
     )
 
     // 赤坂・紀尾井町も同様に、現在の地図のスクリーンショットからピンアイコンを除去して
