@@ -82,6 +82,12 @@ struct PrinterLinkService {
         request.httpMethod = "POST"
         request.setValue(format.mimeType, forHTTPHeaderField: "Content-Type")
         request.setValue("close", forHTTPHeaderField: "Connection")
+        // URLSessionはボディ付きPOSTに自動で`Expect: 100-continue`を付けることがあるが、
+        // M5Stack/ESP32系のごく簡易なHTTPサーバーはこれに正しく応答できず、
+        // サーバー側が接続を切ってしまい`networkConnectionLost`の原因になることが多い。
+        // 「Expect」ヘッダーを（空でも）自分で明示しておくと、URLSessionは自動付与を
+        // 行わなくなるため、これを付けて回避する。
+        request.setValue("", forHTTPHeaderField: "Expect")
         request.httpBody = data
         // サーマルプリンターなどは、実際に印刷し終えるまで応答を返さない
         // （同期処理の）実装になっていることが多く、印刷自体に数十秒かかることもあるため、
