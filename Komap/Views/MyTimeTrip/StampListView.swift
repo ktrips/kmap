@@ -1,4 +1,4 @@
-import GoogleMaps
+import CoreLocation
 import SwiftData
 import SwiftUI
 
@@ -119,60 +119,53 @@ struct StampListView: View {
 
 /// 古地図の上にチェックポイントを重ねた、操作不要の小さな地図。
 /// 獲得済みのチェックポイントは濃く、未獲得は薄く表示する。
-private struct CheckpointMapPreview: UIViewRepresentable {
+///
+/// - Important: 以前はこのプレビュー1件ごとに`GMSMapView`（Google Maps
+///   SDKの動的地図）を生成していたが、「すべての御朱印」表示では古地図の数だけ
+///   このプレビューが同時に並ぶため、開くたびにその数だけ「地図の読み込み」が
+///   発生し、Google Maps Platformの従量課金（読み込み回数に応じた課金）を
+///   無駄に積み増していた。この画面のプレビューは操作不要（パン・ズームしない）
+///   なので、同梱の古地図画像の上に自前でチェックポイントのピンを描画する、
+///   ただのSwiftUIビューに置き換え、Google Maps SDKを一切呼び出さないようにした
+///   （地図の読み込み回数はゼロになる）。
+private struct CheckpointMapPreview: View {
     let overlayMap: HistoricalOverlayMap
     let checkpoints: [HistoricSite]
     let collectedSiteIDs: Set<String>
 
-    func makeUIView(context: Context) -> GMSMapView {
-        let initialCamera = GMSCameraPosition.camera(
-            withLatitude: overlayMap.center.latitude,
-            longitude: overlayMap.center.longitude,
-            zoom: 14
-        )
-        let mapView = GMSMapView()
-        mapView.camera = initialCamera
-        mapView.settings.scrollGestures = false
-        mapView.settings.zoomGestures = false
-        mapView.settings.tiltGestures = false
-        mapView.settings.rotateGestures = false
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                if let image = Self.previewImage(for: overlayMap) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                } else {
+                    Color(.systemGray5)
+                }
 
-        let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
-        let overlay = GMSGroundOverlay(bounds: bounds, icon: Self.downsampledImage(for: overlayMap))
-        // `bearing`（画像の回転）を設定し忘れると、回転が必要な古地図（例:
-        // 五色不動めぐり）だけ実際のチェックポイント位置と古地図の絵柄がずれて
-        // 表示されてしまう（`GoogleMapRepresentable`側では設定済み）。
-        overlay.bearing = overlayMap.bearing
-        overlay.opacity = 0.85
-        overlay.map = mapView
-
-        var fitBounds = bounds
-        for site in checkpoints {
-            let marker = GMSMarker(position: site.coordinate)
-            marker.title = site.name
-            marker.icon = GMSMarker.markerImage(with: .shuiro)
-            marker.opacity = collectedSiteIDs.contains(site.id) ? 1.0 : 0.5
-            marker.map = mapView
-            fitBounds = fitBounds.includingCoordinate(site.coordinate)
+                ForEach(checkpoints) { site in
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.red)
+                        .shadow(color: .black.opacity(0.4), radius: 1.5, y: 1)
+                        .opacity(collectedSiteIDs.contains(site.id) ? 1.0 : 0.45)
+                        .position(Self.point(for: site.coordinate, in: overlayMap, canvasSize: geometry.size))
+                }
+            }
         }
-        mapView.moveCamera(GMSCameraUpdate.fit(fitBounds, withPadding: 20))
-
-        return mapView
+        .background(Color(.systemGray6))
     }
 
-    func updateUIView(_ uiView: GMSMapView, context: Context) {}
-
     /// この小さなプレビュー用に画像を縮小したものを、古地図ごとにキャッシュして使い回す。
-    /// 「すべての御朱印」表示では古地図の数だけこのプレビューが同時に並ぶため、
-    /// 実寸（実在の史料画像は3500×2610pxなど）のまま`GMSGroundOverlay`に渡すと
-    /// 読み込みが遅く、Google Maps SDKのテクスチャアトラス上限にも達しやすい
-    /// （`GoogleMapRepresentable.applyAllOverlays`と同じ問題）。同じく1024pxへ
-    /// 縮小する（同梱のイラスト画像は元々1024x1024で、1024より縮小すると
-    /// `GMSGroundOverlay`が描画しなくなる不具合があるため、それより小さくはしない）。
+    /// 画面に表示するだけの小さなプレビューに実寸（実在の史料画像は3500×2610pxなど）の
+    /// 画像をそのまま使うと無駄にメモリ・描画コストがかかるため、縮小したものを使う。
     private static var downsampledImageCache: [String: UIImage] = [:]
-    private static let maxDimension: CGFloat = 1024
+    private static let maxDimension: CGFloat = 600
 
-    private static func downsampledImage(for overlayMap: HistoricalOverlayMap) -> UIImage? {
+    private static func previewImage(for overlayMap: HistoricalOverlayMap) -> UIImage? {
         let cacheKey = overlayMap.imageAssetName ?? overlayMap.imageFileName ?? overlayMap.id
         if let cached = downsampledImageCache[cacheKey] {
             return cached
@@ -192,6 +185,43 @@ private struct CheckpointMapPreview: UIViewRepresentable {
         }
         downsampledImageCache[cacheKey] = resized
         return resized
+    }
+
+    /// 史跡の実際の緯度経度を、古地図画像上の座標（キャンバスのピクセル位置）へ変換する。
+    /// `overlayMap.bearing`（画像の回転）が0でない場合（例: 五色不動めぐり）も、
+    /// 画像の向きに合わせて正しい位置に投影されるよう、回転を打ち消してから計算する。
+    private static func point(for coordinate: CLLocationCoordinate2D, in overlayMap: HistoricalOverlayMap, canvasSize: CGSize) -> CGPoint {
+        let sw = overlayMap.southWest
+        let ne = overlayMap.northEast
+        let centerLat = (sw.latitude + ne.latitude) / 2
+        let centerLng = (sw.longitude + ne.longitude) / 2
+        let metersPerDegreeLat = 111_320.0
+        let metersPerDegreeLng = 111_320.0 * cos(centerLat * .pi / 180)
+
+        // 中心からの実距離（東西・南北、メートル）。
+        let eastMeters = (coordinate.longitude - centerLng) * metersPerDegreeLng
+        let northMeters = (coordinate.latitude - centerLat) * metersPerDegreeLat
+
+        // 画像は`bearing`度だけ真北から時計回りに回転して表示されるため、
+        // 画像自身の座標系に合わせて実距離を逆回転させる。
+        let bearingRad = overlayMap.bearing * .pi / 180
+        let uMeters = eastMeters * cos(bearingRad) - northMeters * sin(bearingRad)
+        let vMeters = -eastMeters * sin(bearingRad) - northMeters * cos(bearingRad)
+
+        let widthMeters = (ne.longitude - sw.longitude) * metersPerDegreeLng
+        let heightMeters = (ne.latitude - sw.latitude) * metersPerDegreeLat
+        guard widthMeters != 0, heightMeters != 0 else {
+            return CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
+        }
+
+        let uFraction = 0.5 + uMeters / widthMeters
+        let vFraction = 0.5 + vMeters / heightMeters
+        // 古地図の範囲からわずかにはみ出すチェックポイントも、プレビュー内に収まるよう
+        // 端に寄せる（実際の地図タブでは範囲外でも正しい位置に表示される）。
+        let clampedU = min(max(uFraction, 0.04), 0.96)
+        let clampedV = min(max(vFraction, 0.04), 0.96)
+
+        return CGPoint(x: clampedU * canvasSize.width, y: clampedV * canvasSize.height)
     }
 }
 
