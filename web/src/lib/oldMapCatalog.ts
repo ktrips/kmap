@@ -124,8 +124,16 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     title: "「君の名は。」聖地巡礼",
     era: "現代（映画『君の名は。』の聖地巡礼スポット）",
     imageUrl: "/old-maps/old_map_kiminona_seichi.jpg",
-    southWest: { lat: 35.655, lng: 139.696 },
-    northEast: { lat: 35.697, lng: 139.733 },
+    southWest: { lat: 35.6535, lng: 139.6881 },
+    northEast: { lat: 35.6985, lng: 139.7433 },
+  },
+  {
+    id: "ghibli-seichi",
+    title: "ジブリ映画の聖地巡り",
+    era: "現代（スタジオジブリ作品の聖地巡礼スポット）",
+    imageUrl: "/old-maps/old_map_ghibli_seichi.jpg",
+    southWest: { lat: 35.5439, lng: 139.44 },
+    northEast: { lat: 35.8112, lng: 139.768 },
   },
 ];
 

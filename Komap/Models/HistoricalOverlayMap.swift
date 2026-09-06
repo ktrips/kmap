@@ -280,18 +280,32 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.6929946320988, longitude: 139.74609375)
     )
 
-    // 現在の地図（OpenStreetMap）から新宿御苑・四谷・原宿・渋谷一帯を取得し、セピア調フィルターを
-    // かけて古地図風に加工した画像。実際の歴史史料ではなく、映画『君の名は。』の聖地巡礼スポットを
-    // めぐるための現代のチェックポイント集（`akasakaKioicho`等と同じ「現在の地図から加工した
-    // 古地図風画像」の扱い）。
+    // 「アニメ聖地巡礼」向けは、他の古地図（史実の古地図・現在の地図をセピア加工したもの）と
+    // 区別するため、現在の地図（OpenStreetMap）から作った「ファンタジー地図」風の画像を使う。
+    // 深緑〜クリーム〜淡い金の配色、紙の質感、雲・木・コンパスローズ・二重線の縁飾りを加えた、
+    // 特定の作品のキャラクター・場面を再現しない汎用の冒険地図風デザイン。位置合わせ座標は、
+    // 実際の緯度経度に対して正方形（縦横比1:1、GMSGroundOverlayの引き伸ばしを避けるため）
+    // になるよう計算している。
     static let kiminonaSeichi = HistoricalOverlayMap(
         id: "kiminona-seichi",
         title: "「君の名は。」聖地巡礼",
         era: "現代（映画『君の名は。』の聖地巡礼スポット）",
         summary: "須賀神社の男坂石段や四ツ谷駅など、映画『君の名は。』の舞台として知られる新宿・四谷・原宿・渋谷一帯の聖地巡礼スポットをめぐります。",
         imageAssetName: "OldMap_KiminonaSeichi",
-        southWest: CLLocationCoordinate2D(latitude: 35.655, longitude: 139.696),
-        northEast: CLLocationCoordinate2D(latitude: 35.697, longitude: 139.733)
+        southWest: CLLocationCoordinate2D(latitude: 35.6535, longitude: 139.6881),
+        northEast: CLLocationCoordinate2D(latitude: 35.6985, longitude: 139.7433)
+    )
+
+    // ジブリ作品の聖地は三鷹・小金井・多摩・港区など東京都内に広く点在するため、
+    // `goshikiFudo`と同様に広域を1枚でカバーするファンタジー地図にしている。
+    static let ghibliSeichi = HistoricalOverlayMap(
+        id: "ghibli-seichi",
+        title: "ジブリ映画の聖地巡り",
+        era: "現代（スタジオジブリ作品の聖地巡礼スポット）",
+        summary: "三鷹の森ジブリ美術館や「耳をすませば」の聖蹟桜ヶ丘、「千と千尋の神隠し」の参考地とされる江戸東京たてもの園など、東京都内に点在するジブリ作品ゆかりのスポットをめぐります。",
+        imageAssetName: "OldMap_GhibliSeichi",
+        southWest: CLLocationCoordinate2D(latitude: 35.5439, longitude: 139.440),
+        northEast: CLLocationCoordinate2D(latitude: 35.8112, longitude: 139.768)
     )
 
     /// 選択可能な古地図の一覧
@@ -300,7 +314,7 @@ enum OldMapCatalog {
         goshikiFudo, bashoOkuNoHosomichi, akasakaKioicho,
         tokaido, nakasendo,
         meijiJinguOmotesando, oyamaKaido, kagurazakaWasedaShinjuku,
-        kiminonaSeichi,
+        kiminonaSeichi, ghibliSeichi,
     ]
 
     /// 古地図選択シートでの分類（`OldMapPickerSheet`のセクション分けに使う）。
@@ -324,6 +338,7 @@ enum OldMapCatalog {
         bashoOkuNoHosomichi.id: .kaido,
         goshikiFudo.id: .kaido,
         kiminonaSeichi.id: .animePilgrimage,
+        ghibliSeichi.id: .animePilgrimage,
     ]
 
     /// この古地図が属する分類。同梱リストにない（ユーザーが検索して追加した）古地図は`nil`。

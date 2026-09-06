@@ -101,6 +101,11 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "kiminona-busta-shinjuku", name: "バスタ新宿", overlayMapID: "kiminona-seichi", coordinate: { lat: 35.6886, lng: 139.7008 } },
   { id: "kiminona-cafe-la-boheme", name: "カフェ・ラ・ボエム（新宿御苑店）", overlayMapID: "kiminona-seichi", coordinate: { lat: 35.6903, lng: 139.7154 } },
   { id: "kiminona-shibuya-tsutaya", name: "SHIBUYA TSUTAYA", overlayMapID: "kiminona-seichi", coordinate: { lat: 35.6597, lng: 139.7016 } },
+  { id: "ghibli-museum-mitaka", name: "三鷹の森ジブリ美術館", overlayMapID: "ghibli-seichi", coordinate: { lat: 35.6960, lng: 139.5704 } },
+  { id: "ghibli-inokashira-park", name: "井の頭恩賜公園", overlayMapID: "ghibli-seichi", coordinate: { lat: 35.7024, lng: 139.5738 } },
+  { id: "ghibli-edo-tokyo-open-air-museum", name: "江戸東京たてもの園", overlayMapID: "ghibli-seichi", coordinate: { lat: 35.7168, lng: 139.5083 } },
+  { id: "ghibli-seiseki-sakuragaoka", name: "聖蹟桜ヶ丘駅前", overlayMapID: "ghibli-seichi", coordinate: { lat: 35.6390, lng: 139.4487 } },
+  { id: "ghibli-shiodome-clock", name: "日テレ大時計", overlayMapID: "ghibli-seichi", coordinate: { lat: 35.6607, lng: 139.7597 } },
 ];
 
 export function findHistoricSite(id: string | null): HistoricSiteEntry | undefined {

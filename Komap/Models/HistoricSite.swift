@@ -691,6 +691,43 @@ enum HistoricSiteCatalog {
             summary: "渋谷スクランブル交差点に面する複合施設。劇中の渋谷の雑踏シーンのモデル地。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6597, longitude: 139.7016)
         ),
+
+        // ジブリ映画の聖地巡り（東京都内）
+        HistoricSite(
+            id: "ghibli-museum-mitaka",
+            overlayMapID: OldMapCatalog.ghibliSeichi.id,
+            name: "三鷹の森ジブリ美術館",
+            summary: "スタジオジブリが手がけた、映画の世界観をそのまま体感できる美術館。井の頭恩賜公園の南側にある。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6960, longitude: 139.5704)
+        ),
+        HistoricSite(
+            id: "ghibli-inokashira-park",
+            overlayMapID: OldMapCatalog.ghibliSeichi.id,
+            name: "井の頭恩賜公園",
+            summary: "三鷹の森ジブリ美術館に隣接する緑豊かな公園。池のボート乗り場は散策の定番コース。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7024, longitude: 139.5738)
+        ),
+        HistoricSite(
+            id: "ghibli-edo-tokyo-open-air-museum",
+            overlayMapID: OldMapCatalog.ghibliSeichi.id,
+            name: "江戸東京たてもの園",
+            summary: "移築復元された昭和期の建物群。「千と千尋の神隠し」の油屋の参考になった地としてスタジオジブリも認めている。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7168, longitude: 139.5083)
+        ),
+        HistoricSite(
+            id: "ghibli-seiseki-sakuragaoka",
+            overlayMapID: OldMapCatalog.ghibliSeichi.id,
+            name: "聖蹟桜ヶ丘駅前",
+            summary: "「耳をすませば」の舞台。夕暮れ時の「耳丘」からの眺めは、物語のクライマックスと同じ景色。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6390, longitude: 139.4487)
+        ),
+        HistoricSite(
+            id: "ghibli-shiodome-clock",
+            overlayMapID: OldMapCatalog.ghibliSeichi.id,
+            name: "日テレ大時計",
+            summary: "日本テレビタワー2階に設置された、宮崎駿監督デザインのからくり時計。1日に数回、仕掛けが動き出す。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6607, longitude: 139.7597)
+        ),
     ]
 
     static func site(withID id: String) -> HistoricSite? {
