@@ -8,6 +8,9 @@ enum AppSettings {
     private static let printerLinkHostKey = "printerLinkHost"
     private static let printerSyncStampsKey = "printerSyncStamps"
     private static let printerSyncPhotoPostsKey = "printerSyncPhotoPosts"
+    private static let printerImageSizeKey = "printerImageSize"
+    private static let printerImageQualityKey = "printerImageQuality"
+    private static let printerIsGrayscaleKey = "printerIsGrayscale"
 
     /// 撮影・追加した写真に適用する加工スタイル。
     static var photoFilterStyle: PhotoFilterStyle {
@@ -40,6 +43,30 @@ enum AppSettings {
     static var printerSyncPhotoPosts: Bool {
         get { UserDefaults.standard.bool(forKey: printerSyncPhotoPostsKey) }
         set { UserDefaults.standard.set(newValue, forKey: printerSyncPhotoPostsKey) }
+    }
+
+    /// 連携プリンターへ転送する画像の大きさ（データ量）。
+    static var printerImageSize: PrinterImageSize {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: printerImageSizeKey) else { return .large }
+            return PrinterImageSize(rawValue: raw) ?? .large
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: printerImageSizeKey) }
+    }
+
+    /// 連携プリンターへ転送する画像のJPEG圧縮率。
+    static var printerImageQuality: PrinterImageQuality {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: printerImageQualityKey) else { return .medium }
+            return PrinterImageQuality(rawValue: raw) ?? .medium
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: printerImageQualityKey) }
+    }
+
+    /// 連携プリンターへ転送する画像を白黒に変換するか。
+    static var printerIsGrayscale: Bool {
+        get { UserDefaults.standard.bool(forKey: printerIsGrayscaleKey) }
+        set { UserDefaults.standard.set(newValue, forKey: printerIsGrayscaleKey) }
     }
 
     private static func nonEmpty(_ value: String?) -> String? {

@@ -18,6 +18,9 @@ struct SettingsView: View {
     @State private var printerLinkHost: String = AppSettings.printerLinkHost ?? ""
     @State private var printerSyncStamps: Bool = AppSettings.printerSyncStamps
     @State private var printerSyncPhotoPosts: Bool = AppSettings.printerSyncPhotoPosts
+    @State private var printerImageSize: PrinterImageSize = AppSettings.printerImageSize
+    @State private var printerImageQuality: PrinterImageQuality = AppSettings.printerImageQuality
+    @State private var printerIsGrayscale: Bool = AppSettings.printerIsGrayscale
     @State private var printerLinkSavedMessage: String?
 
     @State private var isShowingAdvancedSettings = false
@@ -212,6 +215,28 @@ struct SettingsView: View {
                 .onChange(of: printerSyncPhotoPosts) { _, newValue in
                     AppSettings.printerSyncPhotoPosts = newValue
                 }
+            Picker("写真の大きさ", selection: $printerImageSize) {
+                ForEach(PrinterImageSize.allCases) { size in
+                    Text(size.title).tag(size)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: printerImageSize) { _, newValue in
+                AppSettings.printerImageSize = newValue
+            }
+            Picker("画質", selection: $printerImageQuality) {
+                ForEach(PrinterImageQuality.allCases) { quality in
+                    Text(quality.title).tag(quality)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: printerImageQuality) { _, newValue in
+                AppSettings.printerImageQuality = newValue
+            }
+            Toggle("白黒で転送する", isOn: $printerIsGrayscale)
+                .onChange(of: printerIsGrayscale) { _, newValue in
+                    AppSettings.printerIsGrayscale = newValue
+                }
             Button("保存する") {
                 AppSettings.printerLinkHost = printerLinkHost
                 printerLinkSavedMessage = "保存しました"
@@ -224,7 +249,7 @@ struct SettingsView: View {
         } header: {
             Text("連携プリンター")
         } footer: {
-            Text("同じWi-Fi上で写真を受け取れるプリンターのURLを設定すると、チェックをつけた種類の写真が撮影・追加のたびに自動で転送されます。")
+            Text("同じWi-Fi上で写真を受け取れるプリンターのURLを設定すると、チェックをつけた種類の写真が撮影・追加のたびに自動で転送されます。大きさ・画質・白黒の設定は転送する写真にだけ適用され、端末やクラウドに保存される写真は変わりません。")
         }
     }
 
