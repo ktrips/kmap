@@ -83,7 +83,10 @@ struct PrinterLinkService {
         request.setValue(format.mimeType, forHTTPHeaderField: "Content-Type")
         request.setValue("close", forHTTPHeaderField: "Connection")
         request.httpBody = data
-        request.timeoutInterval = 10
+        // サーマルプリンターなどは、実際に印刷し終えるまで応答を返さない
+        // （同期処理の）実装になっていることが多く、印刷自体に数十秒かかることもあるため、
+        // 通常のAPI通信より長めのタイムアウトを取る。
+        request.timeoutInterval = 60
         try await Self.perform(request)
     }
 
@@ -106,7 +109,9 @@ struct PrinterLinkService {
         var request = URLRequest(url: finalURL)
         request.httpMethod = "GET"
         request.setValue("close", forHTTPHeaderField: "Connection")
-        request.timeoutInterval = 15
+        // 方式1と同様、プリンター側が画像の取得＋印刷を終えるまで応答しない
+        // 実装を想定し、長めのタイムアウトを取る。
+        request.timeoutInterval = 60
         try await Self.perform(request)
     }
 
