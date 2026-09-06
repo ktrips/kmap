@@ -162,12 +162,10 @@ private struct MapTopCenterOverlayLabel: View {
                     .background(.regularMaterial, in: Capsule())
                     .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
             }
-            // マップ画面自体が上部中央に出す「連携カメラで撮る」等の完了・失敗メッセージ
-            // （`MapScreen`内の`pointsToastMessage`/`photoSyncErrorMessage`、
-            // どちらも上部中央にpadding.top 8で表示される）と同じ位置に重なって
-            // どちらも読めなくなっていたため、この古地図名ラベルはその下に来るよう
-            // 大きめの上余白を取る（メッセージの方を一番上に見せる）。
-            .padding(.top, 56)
+            // 古地図名ラベルを最上部に表示する。`MapScreen`内の完了・失敗メッセージ
+            // （`pointsToastMessage`/`photoSyncErrorMessage`）はこのラベルの下に
+            // 来るよう、`MapScreen`側で余白を広げてある（`Self.toastTopPadding`参照）。
+            .padding(.top, 8)
             .sheet(isPresented: $isPresentingAreaInfo) {
                 OldMapAreaInfoSheet(
                     overlay: overlay,

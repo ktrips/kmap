@@ -79,6 +79,11 @@ struct MapScreen: View {
     /// `GoogleMapRepresentable` にこの分の下余白を持たせる。
     private let bottomPanelHeight: CGFloat = 100
 
+    /// 完了・失敗のトーストメッセージの上余白。`RootView`が上部中央に重ねている
+    /// 選択中の古地図名ラベル（padding.top 8、高さ含めて約40pt）の下に来るよう、
+    /// それより大きい値にして重ならないようにする。
+    private static let toastTopPadding: CGFloat = 56
+
     private var collectedSiteIDs: Set<String> {
         Set(collectedStamps.map(\.siteID))
     }
@@ -191,7 +196,7 @@ struct MapScreen: View {
                     .padding(.vertical, 10)
                     .background(Color(red: 0.72, green: 0.53, blue: 0.15), in: Capsule())
                     .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
-                    .padding(.top, 8)
+                    .padding(.top, Self.toastTopPadding)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .allowsHitTesting(false)
             } else if let photoSyncErrorMessage {
@@ -202,7 +207,7 @@ struct MapScreen: View {
                     .padding(.vertical, 10)
                     .background(Color.red, in: Capsule())
                     .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
-                    .padding(.top, 8)
+                    .padding(.top, Self.toastTopPadding)
                     .multilineTextAlignment(.center)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .allowsHitTesting(false)
