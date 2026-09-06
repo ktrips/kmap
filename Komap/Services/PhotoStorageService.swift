@@ -50,6 +50,16 @@ struct PhotoStorageService {
         try? await storage.reference().child(path).delete()
     }
 
+    /// 指定したフォルダ配下の画像をすべて削除する。「みんなの時空旅」への公開を
+    /// 取り消した時、コピーしておいた共有写真を残さず消すために使う。
+    func deleteFolder(_ path: String) async {
+        guard let storage else { return }
+        guard let result = try? await storage.reference().child(path).listAll() else { return }
+        for item in result.items {
+            try? await item.delete()
+        }
+    }
+
     /// 自分の画像（`users/{uid}/...`）を、みんなの時空旅で見られる公開パスへコピーする。
     func copyToShared(from sourcePath: String, to destinationPath: String) async throws -> URL {
         guard let storage else { throw StorageServiceError.firebaseNotConfigured }

@@ -1,4 +1,5 @@
 import PhotosUI
+import SwiftData
 import SwiftUI
 
 /// 御朱印を獲得した直後、または御朱印帳から後で開いた時に、
@@ -176,16 +177,45 @@ struct StampCheckInSheet: View {
         try? modelContext.save()
         photoSyncErrorMessage = nil
 
-        guard image != nil, let userID = authService.userID else { return }
+        guard let userID = authService.userID else { return }
+        guard let image else {
+            // 写真を削除した場合も、クラウド側の削除が終わってから公開データに反映する。
+            Task {
+                await resyncSharedTripIfNeeded()
+            }
+            return
+        }
         Task {
             do {
                 try await syncService.uploadStampPhoto(stamp, userID: userID)
                 try? modelContext.save()
+                await resyncSharedTripIfNeeded()
             } catch {
                 // 端末には保存済みだが、Webでも見られるようにするアップロードには失敗した。
                 photoSyncErrorMessage = "写真をWebでも見られるようにする処理に失敗しました: \(error.localizedDescription)"
             }
         }
+    }
+
+    /// この御朱印が属する時間旅が既に「みんなの時空旅」に公開済みなら、
+    /// 今追加・変更した写真を公開データにも反映する。
+    private func resyncSharedTripIfNeeded() async {
+        guard let walkRouteID = stamp.walkRouteID else { return }
+        let routeDescriptor = FetchDescriptor<WalkRoute>(predicate: #Predicate { $0.id == walkRouteID })
+        guard let route = try? modelContext.fetch(routeDescriptor).first, route.isSharedPublicly else { return }
+
+        let stampsDescriptor = FetchDescriptor<CollectedStamp>(predicate: #Predicate { $0.walkRouteID == walkRouteID })
+        let postsDescriptor = FetchDescriptor<WalkPhotoPost>(predicate: #Predicate { $0.walkRouteID == walkRouteID })
+        let stamps = (try? modelContext.fetch(stampsDescriptor)) ?? []
+        let photoPosts = (try? modelContext.fetch(postsDescriptor)) ?? []
+
+        await syncService.resyncSharedTripIfNeeded(
+            route,
+            userID: authService.userID,
+            ownerDisplayName: authService.displayName,
+            stamps: stamps,
+            photoPosts: photoPosts
+        )
     }
 
     private func loadStoryIfNeeded(force: Bool = false) async {

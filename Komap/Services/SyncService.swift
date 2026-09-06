@@ -268,8 +268,37 @@ struct SyncService {
             ]
             try await sharedTripsCollection.document(route.id.uuidString).setData(data, merge: true)
         } else {
-            try await sharedTripsCollection.document(route.id.uuidString).delete()
+            try await unpublishSharedTrip(tripID: route.id)
         }
+    }
+
+    /// 「みんなの時空旅」から、idだけを指定して取り除く（コピーした写真ごと削除する）。
+    /// 非公開への切り替え、および公開中の時空旅そのものを削除する時に使う。
+    func unpublishSharedTrip(tripID: UUID) async throws {
+        // Firestoreのドキュメントを消す前に写真を削除する。ドキュメントを先に消すと
+        // Storageルールの書き込み判定（sharedTripsのownerUserID照合）が失敗するため。
+        await photoStorage.deleteFolder("sharedPhotos/\(tripID.uuidString)")
+        try await sharedTripsCollection.document(tripID.uuidString).delete()
+    }
+
+    /// 既に「みんなの時空旅」に公開済みの時空旅であれば、後から追加・変更した写真などの
+    /// 最新の内容を公開データにも反映する。公開していない時空旅であれば何もしない。
+    func resyncSharedTripIfNeeded(
+        _ route: WalkRoute,
+        userID: String?,
+        ownerDisplayName: String?,
+        stamps: [CollectedStamp],
+        photoPosts: [WalkPhotoPost]
+    ) async {
+        guard route.isSharedPublicly else { return }
+        try? await setPubliclyShared(
+            route,
+            isShared: true,
+            userID: userID,
+            ownerDisplayName: ownerDisplayName,
+            stamps: stamps,
+            photoPosts: photoPosts
+        )
     }
 
     // MARK: - いいね・コメント（Webアプリと同じ`sharedTrips/{tripId}/likes`・`/comments`を共有）

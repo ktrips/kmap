@@ -5,6 +5,7 @@ import SwiftUI
 /// それぞれカードでまとめて表示する「My TimeTrip」タブ。
 struct MyTimeTripView: View {
     @EnvironmentObject private var mapSession: MapSessionState
+    @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SavedPlace.createdAt, order: .reverse) private var places: [SavedPlace]
     @Query(sort: \WalkRoute.startedAt, order: .reverse) private var walkRoutes: [WalkRoute]
@@ -17,6 +18,7 @@ struct MyTimeTripView: View {
     @State private var selectedPhotoPost: WalkPhotoPost?
 
     private let cardColumns = [GridItem(.adaptive(minimum: 140), spacing: 12)]
+    private let syncService = SyncService()
 
     private var collectedSiteIDs: Set<String> {
         Set(collectedStamps.map(\.siteID))
@@ -276,12 +278,26 @@ struct MyTimeTripView: View {
         )
     }
 
+    /// 時間旅を削除する。公開中だった場合は「みんなの時空旅」からも取り除き、
+    /// クラウド側（`users/{uid}/walkRoutes/{id}`）のコピーも削除する。
     private func delete(_ route: WalkRoute) {
+        let routeID = route.id
+        let wasPublic = route.isSharedPublicly
+        let userID = authService.userID
         modelContext.delete(route)
+        Task {
+            if wasPublic {
+                try? await syncService.unpublishSharedTrip(tripID: routeID)
+            }
+            try? await syncService.delete(walkRouteID: routeID, userID: userID)
+        }
     }
 
     private func delete(_ place: SavedPlace) {
+        let placeID = place.id
+        let userID = authService.userID
         modelContext.delete(place)
+        Task { try? await syncService.delete(placeID: placeID, userID: userID) }
     }
 
     /// `.sheet(item:)` に渡すための、UIImageをIdentifiableでラップした値。

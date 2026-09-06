@@ -160,6 +160,7 @@ struct WalkRouteDetailView: View {
                 let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                 route.title = trimmed.isEmpty ? nil : trimmed
                 try? modelContext.save()
+                Task { await resyncSharedTripIfNeeded() }
             }
             Button("キャンセル", role: .cancel) {}
         }
@@ -169,9 +170,7 @@ struct WalkRouteDetailView: View {
             titleVisibility: .visible
         ) {
             Button("削除する", role: .destructive) {
-                modelContext.delete(route)
-                try? modelContext.save()
-                dismiss()
+                deleteRoute()
             }
             Button("キャンセル", role: .cancel) {}
         } message: {
@@ -199,6 +198,7 @@ struct WalkRouteDetailView: View {
                                 route.notes = trimmed.isEmpty ? nil : trimmed
                                 try? modelContext.save()
                                 isEditingNotes = false
+                                Task { await resyncSharedTripIfNeeded() }
                             }
                         }
                     }
@@ -304,6 +304,34 @@ struct WalkRouteDetailView: View {
                 }
             }
         }
+    }
+
+    /// この時間旅を削除する。公開中だった場合は「みんなの時空旅」からも取り除き、
+    /// クラウド側（`users/{uid}/walkRoutes/{id}`）のコピーも削除する。
+    private func deleteRoute() {
+        let routeID = route.id
+        let wasPublic = route.isSharedPublicly
+        let userID = authService.userID
+        modelContext.delete(route)
+        try? modelContext.save()
+        dismiss()
+        Task {
+            if wasPublic {
+                try? await syncService.unpublishSharedTrip(tripID: routeID)
+            }
+            try? await syncService.delete(walkRouteID: routeID, userID: userID)
+        }
+    }
+
+    /// 既に「みんなの時空旅」に公開済みなら、名前・感想の変更を公開データにも反映する。
+    private func resyncSharedTripIfNeeded() async {
+        await syncService.resyncSharedTripIfNeeded(
+            route,
+            userID: authService.userID,
+            ownerDisplayName: authService.displayName,
+            stamps: stampsForRoute,
+            photoPosts: photoPostsForRoute
+        )
     }
 
     /// 現在の公開状態（公開・自分だけ・非表示の3段階）。
