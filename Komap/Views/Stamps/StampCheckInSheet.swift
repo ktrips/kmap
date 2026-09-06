@@ -115,6 +115,15 @@ struct StampCheckInSheet: View {
                 Label("カメラで撮る", systemImage: "camera.fill")
             }
             .disabled(isLoadingPhoto)
+
+            if AppSettings.cameraLinkHost != nil {
+                Button {
+                    Task { await captureFromLinkedCamera() }
+                } label: {
+                    Label("連携カメラで撮る", systemImage: "network")
+                }
+                .disabled(isLoadingPhoto)
+            }
         }
     }
 
@@ -168,14 +177,32 @@ struct StampCheckInSheet: View {
         }
     }
 
-    /// 写真を差し替え、Firebaseが設定済みでサインイン中ならクラウドにも
+    /// 連携カメラのURLに写真を撮ってもらい、この御朱印の写真として取り込む。
+    private func captureFromLinkedCamera() async {
+        isLoadingPhoto = true
+        defer { isLoadingPhoto = false }
+        do {
+            let image = try await CameraLinkService().fetchLatestPhoto()
+            applyPhotoUpdate(image)
+        } catch {
+            photoSyncErrorMessage = error.localizedDescription
+        }
+    }
+
+    /// 写真を差し替える。「設定」で選んだ加工を適用し、連携プリンターが設定されていれば
+    /// そちらへも転送してから、Firebaseが設定済みでサインイン中ならクラウドにも
     /// （スマホできれいに見える範囲まで圧縮して）アップロードする。
-    private func applyPhotoUpdate(_ image: UIImage?) {
+    private func applyPhotoUpdate(_ rawImage: UIImage?) {
+        let image = rawImage.map { AppSettings.photoFilterStyle.apply(to: $0) }
         let previousStamp = stamp
         Task { await syncService.deleteStampPhoto(previousStamp, userID: authService.userID) }
         stamp.updatePhoto(image)
         try? modelContext.save()
         photoSyncErrorMessage = nil
+
+        if let image {
+            Task { await PrinterLinkService().printStampPhotoIfEnabled(image) }
+        }
 
         guard let userID = authService.userID else { return }
         guard let image else {

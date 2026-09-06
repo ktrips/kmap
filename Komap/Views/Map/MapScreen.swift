@@ -434,6 +434,13 @@ struct MapScreen: View {
             } label: {
                 Label("ライブラリから選ぶ", systemImage: "photo.on.rectangle")
             }
+            if AppSettings.cameraLinkHost != nil {
+                Button {
+                    Task { await postPhotoFromLinkedCamera() }
+                } label: {
+                    Label("連携カメラで撮る", systemImage: "network")
+                }
+            }
         } label: {
             Group {
                 if isPostingPhoto {
@@ -665,14 +672,31 @@ struct MapScreen: View {
         }
     }
 
+    /// 連携カメラのURLに写真を撮ってもらい、そのまま投稿する。
+    private func postPhotoFromLinkedCamera() async {
+        isPostingPhoto = true
+        defer { isPostingPhoto = false }
+        do {
+            let image = try await CameraLinkService().fetchLatestPhoto()
+            postPhoto(image)
+        } catch {
+            withAnimation {
+                photoSyncErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
     /// 撮影・選択した写真を保存し、ポイントを付与した`WalkPhotoPost`を作成する。
+    /// 「設定」で選んだ加工を適用し、連携プリンターが設定されていればそちらへも転送する。
     /// Apple Watch側にもトーストで知らせる。
-    private func postPhoto(_ uiImage: UIImage) {
+    private func postPhoto(_ rawImage: UIImage) {
+        let uiImage = AppSettings.photoFilterStyle.apply(to: rawImage)
         guard let filename = StampPhotoStore.save(uiImage),
               let coordinate = locationManager.currentLocation ?? locationManager.walkPath.last ?? watchTrackedPath.last
         else { return }
 
         photoSyncErrorMessage = nil
+        Task { await PrinterLinkService().printPhotoPostIfEnabled(uiImage) }
         let post = WalkPhotoPost(
             photoFileName: filename,
             coordinate: coordinate,

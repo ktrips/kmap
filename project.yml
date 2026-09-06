@@ -46,6 +46,9 @@ targets:
         NSHealthShareUsageDescription: "Apple Watchと連携して記録した際、より正確な歩数を表示するためにヘルスケアの歩数データを使用します。"
         NSHealthUpdateUsageDescription: "ウォーキング記録に関するデータをヘルスケアと正しくやり取りするために使用します。"
         NSCameraUsageDescription: "写真投稿やチェックインでその場の写真を撮影するために、カメラを使用します。"
+        NSLocalNetworkUsageDescription: "設定した連携カメラ・連携プリンターと、同じWi-Fi上で通信するために使用します。"
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         ITSAppUsesNonExemptEncryption: false
         LSApplicationQueriesSchemes:
           - comgooglemaps

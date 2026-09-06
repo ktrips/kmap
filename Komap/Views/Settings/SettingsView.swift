@@ -1,20 +1,31 @@
 import SwiftData
 import SwiftUI
 
-/// OpenAIのAPIキー入力・Googleサインイン・古地図データなど、アプリの設定を行う画面。
+/// アカウント連携・写真の加工・外部機器連携・アドバンス設定（APIキー類）をまとめた設定画面。
 struct SettingsView: View {
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
 
+    @State private var isSyncing = false
+    @State private var syncMessage: String?
+    @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
+    @State private var photoFilterStyle: PhotoFilterStyle = AppSettings.photoFilterStyle
+
+    @State private var cameraLinkHost: String = AppSettings.cameraLinkHost ?? ""
+    @State private var cameraLinkSavedMessage: String?
+
+    @State private var printerLinkHost: String = AppSettings.printerLinkHost ?? ""
+    @State private var printerSyncStamps: Bool = AppSettings.printerSyncStamps
+    @State private var printerSyncPhotoPosts: Bool = AppSettings.printerSyncPhotoPosts
+    @State private var printerLinkSavedMessage: String?
+
+    @State private var isShowingAdvancedSettings = false
     @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
     @State private var savedMessage: String?
     @State private var customSearchAPIKey: String = SecretsConfig.googleCustomSearchAPIKey ?? ""
     @State private var customSearchEngineID: String = SecretsConfig.googleCustomSearchEngineID ?? ""
     @State private var customSearchSavedMessage: String?
-    @State private var isSyncing = false
-    @State private var syncMessage: String?
-    @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
 
     private let syncService = SyncService()
 
@@ -22,85 +33,10 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 accountSection
-
-                Section {
-                    SecureField("sk-...", text: $openAIKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("保存する") {
-                        SecretsConfig.saveOpenAIAPIKey(openAIKey)
-                        savedMessage = "保存しました"
-                    }
-                    if let savedMessage {
-                        Text(savedMessage)
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-                } header: {
-                    Text("OpenAI APIキー")
-                } footer: {
-                    Text("地点をタップした際にAIが昔の物語を生成するために使用します。キーはこの端末のKeychainに安全に保存され、外部には送信されません。")
-                }
-
-                Section {
-                    SecureField("AIzaSy...", text: $customSearchAPIKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("検索エンジンID（cx）", text: $customSearchEngineID)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("保存する") {
-                        SecretsConfig.saveGoogleCustomSearchAPIKey(customSearchAPIKey)
-                        SecretsConfig.saveGoogleCustomSearchEngineID(customSearchEngineID)
-                        customSearchSavedMessage = "保存しました"
-                    }
-                    if let customSearchSavedMessage {
-                        Text(customSearchSavedMessage)
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-                } header: {
-                    Text("Googleカスタム検索（古地図検索用）")
-                } footer: {
-                    Text("マップ画面の「古地図を選択」から新しい古地図をWeb検索して追加する機能で使用します。両方設定するとメニューに追加項目が表示されます。APIキーはCloud Console、検索エンジンIDはProgrammable Search Engineで取得できます。")
-                }
-
-                Section {
-                    HStack(spacing: 10) {
-                        Text("現在")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                        Slider(
-                            value: $defaultOverlayOpacity,
-                            in: 0...1,
-                            onEditingChanged: { isEditing in
-                                if !isEditing {
-                                    mapSession.updateDefaultOverlayOpacity(defaultOverlayOpacity)
-                                }
-                            }
-                        )
-                        Text("古地図")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                    }
-                    Text("\(Int(defaultOverlayOpacity * 100))%")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } header: {
-                    Text("古地図のデフォルト濃度")
-                } footer: {
-                    Text("マップ画面で古地図を選んだ時に最初から使われる濃度です。マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
-                }
-
-                Section("Google Maps") {
-                    LabeledContent("APIキー設定状況") {
-                        Text(SecretsConfig.isGoogleMapsAPIKeyConfigured ? "設定済み" : "未設定")
-                            .foregroundStyle(SecretsConfig.isGoogleMapsAPIKeyConfigured ? .green : .red)
-                    }
-                    Text("Google MapsのAPIキーはビルド時に Config/Secrets.xcconfig から読み込まれます。変更した場合は再ビルドが必要です。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                overlayOpacitySection
+                photoFilterSection
+                cameraLinkSection
+                printerLinkSection
 
                 Section("このアプリについて") {
                     Text("Komap 古地図巡りは、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」をAIの解説とともに旅できるアプリです。同梱の古地図はサンプルの位置合わせデータです。実際の史料に基づく正確な位置合わせではありません。")
@@ -113,6 +49,8 @@ struct SettingsView: View {
                         Label("Komapの使い方", systemImage: "book")
                     }
                 }
+
+                advancedSettingsSection
             }
             .navigationTitle("設定")
             .toolbar {
@@ -188,6 +126,175 @@ struct SettingsView: View {
             Text("アカウント / Web連携")
         } footer: {
             Text("Googleでサインインすると、保存した地点・私の時空旅（歩いたルート）が新しく記録するたびにクラウドへ同期され、Webアプリで同じGoogleアカウントでログインした際に「My Trips」として見られるようになります。サインインより前に記録していたものは、上のボタンでまとめて同期してください。")
+        }
+    }
+
+    private var overlayOpacitySection: some View {
+        Section {
+            HStack(spacing: 10) {
+                Text("現在")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                Slider(
+                    value: $defaultOverlayOpacity,
+                    in: 0...1,
+                    onEditingChanged: { isEditing in
+                        if !isEditing {
+                            mapSession.updateDefaultOverlayOpacity(defaultOverlayOpacity)
+                        }
+                    }
+                )
+                Text("古地図")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+            }
+            Text("\(Int(defaultOverlayOpacity * 100))%")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } header: {
+            Text("古地図のデフォルト濃度")
+        } footer: {
+            Text("マップ画面で古地図を選んだ時に最初から使われる濃度です。マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
+        }
+    }
+
+    private var photoFilterSection: some View {
+        Section {
+            Picker("写真の加工", selection: $photoFilterStyle) {
+                ForEach(PhotoFilterStyle.allCases) { style in
+                    Text(style.title).tag(style)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: photoFilterStyle) { _, newValue in
+                AppSettings.photoFilterStyle = newValue
+            }
+        } header: {
+            Text("写真の加工")
+        } footer: {
+            Text("御朱印・投稿写真を撮影・追加するたびに、選んだ加工が自動で適用されます。")
+        }
+    }
+
+    private var cameraLinkSection: some View {
+        Section {
+            TextField("例: m5web.local", text: $cameraLinkHost)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .keyboardType(.URL)
+            Button("保存する") {
+                AppSettings.cameraLinkHost = cameraLinkHost
+                cameraLinkSavedMessage = "保存しました"
+            }
+            if let cameraLinkSavedMessage {
+                Text(cameraLinkSavedMessage)
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            }
+        } header: {
+            Text("カメラ連携")
+        } footer: {
+            Text("同じWi-Fi上で写真を撮れるURL（例: M5Stackなどのカメラ端末）を設定すると、御朱印・写真投稿の画面に「連携カメラで撮る」が追加されます。")
+        }
+    }
+
+    private var printerLinkSection: some View {
+        Section {
+            TextField("例: m5web.local", text: $printerLinkHost)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .keyboardType(.URL)
+            Toggle("御朱印の写真を連携する", isOn: $printerSyncStamps)
+                .onChange(of: printerSyncStamps) { _, newValue in
+                    AppSettings.printerSyncStamps = newValue
+                }
+            Toggle("投稿写真を連携する", isOn: $printerSyncPhotoPosts)
+                .onChange(of: printerSyncPhotoPosts) { _, newValue in
+                    AppSettings.printerSyncPhotoPosts = newValue
+                }
+            Button("保存する") {
+                AppSettings.printerLinkHost = printerLinkHost
+                printerLinkSavedMessage = "保存しました"
+            }
+            if let printerLinkSavedMessage {
+                Text(printerLinkSavedMessage)
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            }
+        } header: {
+            Text("連携プリンター")
+        } footer: {
+            Text("同じWi-Fi上で写真を受け取れるプリンターのURLを設定すると、チェックをつけた種類の写真が撮影・追加のたびに自動で転送されます。")
+        }
+    }
+
+    @ViewBuilder
+    private var advancedSettingsSection: some View {
+        Section {
+            DisclosureGroup("アドバンス設定を表示", isExpanded: $isShowingAdvancedSettings) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("OpenAI APIキー")
+                        .font(.subheadline.bold())
+                    SecureField("sk-...", text: $openAIKey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button("保存する") {
+                        SecretsConfig.saveOpenAIAPIKey(openAIKey)
+                        savedMessage = "保存しました"
+                    }
+                    if let savedMessage {
+                        Text(savedMessage)
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                    Text("地点をタップした際にAIが昔の物語を生成するために使用します。キーはこの端末のKeychainに安全に保存され、外部には送信されません。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 6)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Googleカスタム検索（古地図検索用）")
+                        .font(.subheadline.bold())
+                    SecureField("AIzaSy...", text: $customSearchAPIKey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    TextField("検索エンジンID（cx）", text: $customSearchEngineID)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button("保存する") {
+                        SecretsConfig.saveGoogleCustomSearchAPIKey(customSearchAPIKey)
+                        SecretsConfig.saveGoogleCustomSearchEngineID(customSearchEngineID)
+                        customSearchSavedMessage = "保存しました"
+                    }
+                    if let customSearchSavedMessage {
+                        Text(customSearchSavedMessage)
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                    Text("マップ画面の「古地図を選択」から新しい古地図をWeb検索して追加する機能で使用します。両方設定するとメニューに追加項目が表示されます。APIキーはCloud Console、検索エンジンIDはProgrammable Search Engineで取得できます。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 6)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Google Maps")
+                        .font(.subheadline.bold())
+                    LabeledContent("APIキー設定状況") {
+                        Text(SecretsConfig.isGoogleMapsAPIKeyConfigured ? "設定済み" : "未設定")
+                            .foregroundStyle(SecretsConfig.isGoogleMapsAPIKeyConfigured ? .green : .red)
+                    }
+                    Text("Google MapsのAPIキーはビルド時に Config/Secrets.xcconfig から読み込まれます。変更した場合は再ビルドが必要です。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 6)
+            }
+        } header: {
+            Text("アドバンス設定")
+        } footer: {
+            Text("OpenAI・Googleカスタム検索・Google MapsのAPIキーなど、通常は初回セットアップ時にしか使わない項目をまとめています。")
         }
     }
 
