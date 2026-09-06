@@ -25,14 +25,15 @@ struct PrinterLinkService {
         case notConfigured
         case encodingFailed
         case uploadFailed
-        case requestFailed
+        case requestFailed(String)
 
         var errorDescription: String? {
             switch self {
             case .notConfigured: return "連携プリンターのURLが設定されていません。"
             case .encodingFailed: return "画像の変換に失敗しました。"
             case .uploadFailed: return "写真のアップロードに失敗しました（サインインが必要な場合があります）。"
-            case .requestFailed: return "連携プリンターへの送信に失敗しました。電源やWi-Fi接続を確認してください。"
+            case .requestFailed(let reason):
+                return "連携プリンターへの送信に失敗しました（\(reason)）。電源・Wi-Fi接続・設定したURLをご確認ください。"
             }
         }
     }
@@ -82,7 +83,7 @@ struct PrinterLinkService {
         request.setValue(format.mimeType, forHTTPHeaderField: "Content-Type")
         request.httpBody = data
         request.timeoutInterval = 10
-        guard (try? await URLSession.shared.data(for: request)) != nil else { throw PrintError.requestFailed }
+        try await Self.perform(request)
     }
 
     /// 方式2: 画像を一度Firebase Storageへアップロードし、公開URLを`photo=`の後ろに
@@ -104,7 +105,24 @@ struct PrinterLinkService {
         var request = URLRequest(url: finalURL)
         request.httpMethod = "GET"
         request.timeoutInterval = 15
-        guard (try? await URLSession.shared.data(for: request)) != nil else { throw PrintError.requestFailed }
+        try await Self.perform(request)
+    }
+
+    /// 実際にリクエストを送り、通信エラーやプリンター側からの異常応答（2xx以外）を
+    /// `requestFailed`にまとめて詰め直す。原因（DNS解決失敗・接続拒否・HTTPステータス等）を
+    /// そのままメッセージに含めることで、「送信に失敗しました」とだけ出るのを避け、
+    /// ユーザー自身が設定を見直せるようにする。
+    private static func perform(_ request: URLRequest) async throws {
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                throw PrintError.requestFailed("HTTPステータス \(http.statusCode)")
+            }
+        } catch let error as PrintError {
+            throw error
+        } catch {
+            throw PrintError.requestFailed(error.localizedDescription)
+        }
     }
 
     /// `users/{uid}/printerTransfers/` 配下へ一時的にアップロードし、ダウンロードURLを返す。
