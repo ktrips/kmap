@@ -65,11 +65,8 @@ struct PrinterLinkService {
 
     private func send(_ image: UIImage, cloudURL: URL?) async throws {
         guard let host = AppSettings.printerLinkHost,
-              let baseURL = DeviceLinkURL.resolve(from: host, defaultPath: "")
+              let base = Self.hostBase(from: host)
         else { throw PrintError.notConfigured }
-        // ホスト部分だけを使う（末尾に付いているかもしれない"/"は取り除き、
-        // 固定のAPIパスをこちらで組み立てる）。
-        let base = baseURL.absoluteString.hasSuffix("/") ? String(baseURL.absoluteString.dropLast()) : baseURL.absoluteString
 
         let format = AppSettings.printerImageFormat
         let prepared = Self.prepareForPrint(image)
@@ -189,6 +186,26 @@ struct PrinterLinkService {
         } catch {
             return nil
         }
+    }
+
+    /// 設定欄の入力から、スキーム＋ホスト＋ポートだけを取り出す（パス・クエリは
+    /// すべて捨てる）。API仕様の変更前に保存された古い値（例:
+    /// "http://m5web.local/api/print?photo="）が端末に残っていても、パス部分は
+    /// 無視して確実にホストだけを使うようにするため、単純な文字列結合ではなく
+    /// `URLComponents`で一度分解してから組み立て直す。
+    private static func hostBase(from input: String) -> String? {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let withScheme = (trimmed.lowercased().hasPrefix("http://") || trimmed.lowercased().hasPrefix("https://"))
+            ? trimmed
+            : "http://\(trimmed)"
+        guard let components = URLComponents(string: withScheme), let host = components.host, !host.isEmpty else { return nil }
+
+        var base = "\(components.scheme ?? "http")://\(host)"
+        if let port = components.port {
+            base += ":\(port)"
+        }
+        return base
     }
 
     /// URLの値としてクエリに埋め込むため、RFC3986の非予約文字以外はすべて
