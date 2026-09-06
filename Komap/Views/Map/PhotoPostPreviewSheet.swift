@@ -12,6 +12,8 @@ struct PhotoPostPreviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isLoadingInfo = false
     @State private var infoErrorMessage: String?
+    @State private var isPrintingToLinkedPrinter = false
+    @State private var printMessage: String?
 
     private let geocoder = CLGeocoder()
     private let historyService = AIHistoryService()
@@ -35,6 +37,25 @@ struct PhotoPostPreviewSheet: View {
                     Text(post.postedAt, format: .dateTime.year().month().day().hour().minute())
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+
+                    if post.photo != nil && AppSettings.printerLinkHost != nil {
+                        Button {
+                            Task { await printToLinkedPrinter() }
+                        } label: {
+                            if isPrintingToLinkedPrinter {
+                                ProgressView()
+                            } else {
+                                Label("連携プリント", systemImage: "printer.fill")
+                            }
+                        }
+                        .disabled(isPrintingToLinkedPrinter)
+                    }
+
+                    if let printMessage {
+                        Text(printMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 
                     Divider()
 
@@ -77,6 +98,20 @@ struct PhotoPostPreviewSheet: View {
             .task {
                 await loadInfoIfNeeded()
             }
+        }
+    }
+
+    /// 「連携プリント」ボタンから、この投稿写真をその場で連携プリンターへ転送する。
+    private func printToLinkedPrinter() async {
+        guard let photo = post.photo else { return }
+        isPrintingToLinkedPrinter = true
+        printMessage = nil
+        defer { isPrintingToLinkedPrinter = false }
+        do {
+            try await PrinterLinkService().printOnDemand(photo, cloudURL: post.cloudPhotoURL.flatMap(URL.init))
+            printMessage = "連携プリンターへ送信しました"
+        } catch {
+            printMessage = error.localizedDescription
         }
     }
 

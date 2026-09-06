@@ -17,6 +17,8 @@ struct StampCheckInSheet: View {
     /// クラウド（Webでも見られるようにするため）へのアップロードに失敗した時のメッセージ。
     /// 失敗しても端末には保存されているが、原因がわかるよう表示しておく。
     @State private var photoSyncErrorMessage: String?
+    @State private var isPrintingToLinkedPrinter = false
+    @State private var printMessage: String?
 
     @State private var isLoadingStory = true
     @State private var story: GeneratedStory?
@@ -54,6 +56,19 @@ struct StampCheckInSheet: View {
 
                     photoButtons
 
+                    if stamp.photo != nil && AppSettings.printerLinkHost != nil {
+                        Button {
+                            Task { await printToLinkedPrinter() }
+                        } label: {
+                            if isPrintingToLinkedPrinter {
+                                ProgressView()
+                            } else {
+                                Label("連携プリント", systemImage: "printer.fill")
+                            }
+                        }
+                        .disabled(isPrintingToLinkedPrinter)
+                    }
+
                     if stamp.photo != nil {
                         Button("写真を削除", role: .destructive) {
                             applyPhotoUpdate(nil)
@@ -64,6 +79,12 @@ struct StampCheckInSheet: View {
                         Text(photoSyncErrorMessage)
                             .font(.caption)
                             .foregroundStyle(.red)
+                    }
+
+                    if let printMessage {
+                        Text(printMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
 
                     Divider()
@@ -174,6 +195,20 @@ struct StampCheckInSheet: View {
                   let uiImage = UIImage(data: data)
             else { return }
             applyPhotoUpdate(uiImage)
+        }
+    }
+
+    /// 「連携プリント」ボタンから、この御朱印の写真をその場で連携プリンターへ転送する。
+    private func printToLinkedPrinter() async {
+        guard let photo = stamp.photo else { return }
+        isPrintingToLinkedPrinter = true
+        printMessage = nil
+        defer { isPrintingToLinkedPrinter = false }
+        do {
+            try await PrinterLinkService().printOnDemand(photo, cloudURL: stamp.cloudPhotoURL.flatMap(URL.init))
+            printMessage = "連携プリンターへ送信しました"
+        } catch {
+            printMessage = error.localizedDescription
         }
     }
 

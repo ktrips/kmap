@@ -21,61 +21,90 @@ import UIKit
 /// （JPEG／PNG）を画像に適用する（プリンターの通信量・印刷向けの見た目に合わせて、
 /// クラウド保存用の圧縮とは別に調整できるようにするため）。
 struct PrinterLinkService {
+    enum PrintError: LocalizedError {
+        case notConfigured
+        case encodingFailed
+        case uploadFailed
+        case requestFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .notConfigured: return "連携プリンターのURLが設定されていません。"
+            case .encodingFailed: return "画像の変換に失敗しました。"
+            case .uploadFailed: return "写真のアップロードに失敗しました（サインインが必要な場合があります）。"
+            case .requestFailed: return "連携プリンターへの送信に失敗しました。電源やWi-Fi接続を確認してください。"
+            }
+        }
+    }
+
     /// 御朱印の写真を、「設定」画面の連携設定に応じて連携プリンターへ転送する。
-    /// 未設定・転送オフの場合は何もしない。
+    /// 未設定・転送オフの場合は何もしない（撮影・変更のたびに自動で行う分の転送）。
     func printStampPhotoIfEnabled(_ image: UIImage) async {
         guard AppSettings.printerSyncStamps else { return }
-        await send(image)
+        _ = try? await send(image, cloudURL: nil)
     }
 
     /// 投稿写真を、「設定」画面の連携設定に応じて連携プリンターへ転送する。
-    /// 未設定・転送オフの場合は何もしない。
+    /// 未設定・転送オフの場合は何もしない（投稿のたびに自動で行う分の転送）。
     func printPhotoPostIfEnabled(_ image: UIImage) async {
         guard AppSettings.printerSyncPhotoPosts else { return }
-        await send(image)
+        _ = try? await send(image, cloudURL: nil)
     }
 
-    private func send(_ image: UIImage) async {
+    /// 御朱印一覧・投稿写真プレビューの「連携プリント」ボタンから、その場で1枚だけ
+    /// 転送する。自動転送のON/OFF設定（`printerSyncStamps`等）とは関係なく、常に試みる。
+    /// - Parameter cloudURL: 既にFirebase Storageへアップロード済みならその公開URL。
+    ///   渡しておくと、`photo=`方式のときに転送専用の再アップロードを省略できる。
+    func printOnDemand(_ image: UIImage, cloudURL: URL?) async throws {
+        try await send(image, cloudURL: cloudURL)
+    }
+
+    private func send(_ image: UIImage, cloudURL: URL?) async throws {
         guard let host = AppSettings.printerLinkHost,
               let url = DeviceLinkURL.resolve(from: host, defaultPath: "/print")
-        else { return }
+        else { throw PrintError.notConfigured }
 
         let format = AppSettings.printerImageFormat
         let prepared = Self.prepareForPrint(image)
-        guard let data = Self.encodedData(prepared, format: format) else { return }
+        guard let data = Self.encodedData(prepared, format: format) else { throw PrintError.encodingFailed }
 
-        // 印刷できてもできなくても、ここでの失敗はユーザー操作をブロックしない
-        // (ベストエフォート。プリンターの電源が入っていない等はよくあるため)。
         if let queryPrefix = Self.photoQueryPrefix(in: url.absoluteString) {
-            await sendViaHostedURL(data: data, format: format, queryPrefix: queryPrefix)
+            try await sendViaHostedURL(data: data, format: format, queryPrefix: queryPrefix, existingURL: cloudURL)
         } else {
-            await sendViaRequestBody(data: data, format: format, to: url)
+            try await sendViaRequestBody(data: data, format: format, to: url)
         }
     }
 
     /// 方式1: 画像データをそのままリクエストボディに入れて`POST`する。
-    private func sendViaRequestBody(data: Data, format: PrinterImageFormat, to url: URL) async {
+    private func sendViaRequestBody(data: Data, format: PrinterImageFormat, to url: URL) async throws {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(format.mimeType, forHTTPHeaderField: "Content-Type")
         request.httpBody = data
         request.timeoutInterval = 10
-        _ = try? await URLSession.shared.data(for: request)
+        guard (try? await URLSession.shared.data(for: request)) != nil else { throw PrintError.requestFailed }
     }
 
     /// 方式2: 画像を一度Firebase Storageへアップロードし、公開URLを`photo=`の後ろに
     /// 続けたURLへ`GET`する（プリンター自身がそのURLを取得しにいく想定）。
-    /// サインインしていない・Firebase未設定の場合はアップロードできないため何もしない。
-    private func sendViaHostedURL(data: Data, format: PrinterImageFormat, queryPrefix: String) async {
-        guard let hostedURL = await uploadForHostedPrint(data: data, format: format) else { return }
+    /// `existingURL`が渡されていれば、既にアップロード済みとしてそれをそのまま使う。
+    /// サインインしていない・Firebase未設定でアップロードもできない場合は失敗を投げる。
+    private func sendViaHostedURL(data: Data, format: PrinterImageFormat, queryPrefix: String, existingURL: URL?) async throws {
+        let resolvedURL: URL?
+        if let existingURL {
+            resolvedURL = existingURL
+        } else {
+            resolvedURL = await uploadForHostedPrint(data: data, format: format)
+        }
+        guard let hostedURL = resolvedURL else { throw PrintError.uploadFailed }
         guard let encodedImageURL = hostedURL.absoluteString.addingPercentEncoding(withAllowedCharacters: Self.urlValueAllowedCharacters),
               let finalURL = URL(string: queryPrefix + encodedImageURL)
-        else { return }
+        else { throw PrintError.encodingFailed }
 
         var request = URLRequest(url: finalURL)
         request.httpMethod = "GET"
         request.timeoutInterval = 15
-        _ = try? await URLSession.shared.data(for: request)
+        guard (try? await URLSession.shared.data(for: request)) != nil else { throw PrintError.requestFailed }
     }
 
     /// `users/{uid}/printerTransfers/` 配下へ一時的にアップロードし、ダウンロードURLを返す。
