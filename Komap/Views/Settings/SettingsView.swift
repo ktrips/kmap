@@ -27,7 +27,6 @@ struct SettingsView: View {
                 accountSection
                 overlayOpacitySection
                 photoFilterSection
-                linkedDevicesSection
 
                 Section("このアプリについて") {
                     Text("Komap 古地図巡りは、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」をAIの解説とともに旅できるアプリです。同梱の古地図はサンプルの位置合わせデータです。実際の史料に基づく正確な位置合わせではありません。")
@@ -72,22 +71,6 @@ struct SettingsView: View {
                 LabeledContent("サインイン中") {
                     Text(authService.displayName ?? "アカウント")
                 }
-                Button {
-                    Task { await syncAllToCloud() }
-                } label: {
-                    if isSyncing {
-                        ProgressView()
-                    } else {
-                        Label("保存済みの地点・私の時空旅をすべてクラウドに同期", systemImage: "icloud.and.arrow.up")
-                    }
-                }
-                .disabled(isSyncing)
-
-                if let syncMessage {
-                    Text(syncMessage)
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                }
 
                 Button("サインアウト", role: .destructive) {
                     authService.signOut()
@@ -113,7 +96,32 @@ struct SettingsView: View {
         } header: {
             Text("アカウント / Web連携")
         } footer: {
-            Text("Googleでサインインすると、保存した地点・私の時空旅（歩いたルート）が新しく記録するたびにクラウドへ同期され、Webアプリで同じGoogleアカウントでログインした際に「My Trips」として見られるようになります。サインインより前に記録していたものは、上のボタンでまとめて同期してください。")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Googleでサインインすると、保存した地点・私の時空旅（歩いたルート）が新しく記録するたびにクラウドへ同期され、Webアプリで同じGoogleアカウントでログインした際に「My Trips」として見られるようになります。")
+
+                if authService.isSignedIn {
+                    Group {
+                        if isSyncing {
+                            Text("サインインより前に記録していたものを同期しています…")
+                        } else {
+                            Text("サインインより前に記録していたものは、")
+                                + Text("保存済みの地点・私の時空旅をすべてクラウドに同期")
+                                    .foregroundStyle(.blue)
+                                    .underline()
+                                + Text("してください。")
+                        }
+                    }
+                    .onTapGesture {
+                        guard !isSyncing else { return }
+                        Task { await syncAllToCloud() }
+                    }
+
+                    if let syncMessage {
+                        Text(syncMessage)
+                            .foregroundStyle(.green)
+                    }
+                }
+            }
         }
     }
 
@@ -164,22 +172,17 @@ struct SettingsView: View {
         }
     }
 
-    private var linkedDevicesSection: some View {
-        Section {
-            NavigationLink {
-                LinkedDevicesSettingsView()
-            } label: {
-                Label("連携機能", systemImage: "network")
-            }
-        } footer: {
-            Text("同じWi-Fi上のカメラ端末・プリンターとの連携をまとめて設定します。")
-        }
-    }
-
     @ViewBuilder
     private var advancedSettingsSection: some View {
         Section {
             DisclosureGroup("アドバンス設定を表示", isExpanded: $isShowingAdvancedSettings) {
+                NavigationLink {
+                    LinkedDevicesSettingsView()
+                } label: {
+                    Label("連携機能", systemImage: "network")
+                }
+                .padding(.vertical, 6)
+
                 VStack(alignment: .leading, spacing: 10) {
                     Text("OpenAI APIキー")
                         .font(.subheadline.bold())
@@ -242,7 +245,7 @@ struct SettingsView: View {
         } header: {
             Text("アドバンス設定")
         } footer: {
-            Text("OpenAI・Googleカスタム検索・Google MapsのAPIキーなど、通常は初回セットアップ時にしか使わない項目をまとめています。")
+            Text("カメラ・プリンター連携、OpenAI・Googleカスタム検索・Google MapsのAPIキーなど、通常は初回セットアップ時にしか使わない項目をまとめています。")
         }
     }
 
