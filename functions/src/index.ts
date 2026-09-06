@@ -210,6 +210,139 @@ async function inviteToTestFlight(params: {
  * サインイン済みユーザー本人のメールアドレスにだけ、TestFlightの外部テスト招待を送る
  * （なりすまし防止のため、リクエストで渡されたメールではなく`request.auth`のメールを使う）。
  */
+/**
+ * 管理者レポート（`getAdminFunnelReport`）の利用を許可するメールアドレス。
+ * 個人開発の1人プロジェクトのため、複数管理者を想定した仕組み（Firestoreの
+ * 管理者フラグなど）は導入せず、固定のメールアドレス比較で十分とした。
+ */
+const ADMIN_EMAIL = "kenichiyoshida13@gmail.com";
+
+/** 生存確認（`presence`）がこれより古い場合は「もういない」とみなす（`usePresence.ts`と同じ基準）。 */
+const PRESENCE_STALE_AFTER_MS = 45_000;
+
+interface FunnelPhase {
+  key: "signedInOnly" | "startedTrip" | "collectedStamp" | "shared";
+  label: string;
+  count: number;
+  suggestion: string;
+}
+
+/**
+ * Web経由でアクセスしたユーザーが、利用のどの段階（フェーズ）にいるかを
+ * 既存のFirestoreデータから集計する管理者向けレポート。新しい計測の仕込みは
+ * 行わず、今すでに保存されているデータ（Firebase Authのユーザー一覧、
+ * `users/{uid}/walkRoutes`・`stamps`・`sharedTrips`）から判定する。
+ *
+ * フェーズは次の4段階（後の段階に該当すればそちらを優先）:
+ *   1. サインインのみ（時空旅未開始）
+ *   2. 時空旅を開始（御朱印未収集）
+ *   3. 御朱印を収集（時空旅は未共有）
+ *   4. 時空旅を共有済み
+ *
+ * 呼び出し元の`request.auth.token.email`が{@link ADMIN_EMAIL}と一致する場合のみ
+ * 結果を返す（なりすまし防止のため、クライアントから渡された値ではなく
+ * Firebase Authが検証済みのトークンの中身を使う）。
+ */
+export const getAdminFunnelReport = onCall(async (request) => {
+  if (request.auth?.token.email !== ADMIN_EMAIL) {
+    throw new HttpsError("permission-denied", "管理者のみ利用できます。");
+  }
+
+  const db = admin.firestore();
+
+  let totalUsers = 0;
+  let pageToken: string | undefined;
+  do {
+    const page = await admin.auth().listUsers(1000, pageToken);
+    totalUsers += page.users.length;
+    pageToken = page.pageToken;
+  } while (pageToken);
+
+  const countDocsByOwnerUID = async (collectionGroupId: string): Promise<Map<string, number>> => {
+    const counts = new Map<string, number>();
+    const snapshot = await db.collectionGroup(collectionGroupId).get();
+    snapshot.forEach((doc) => {
+      const uid = doc.ref.parent.parent?.id;
+      if (!uid) return;
+      counts.set(uid, (counts.get(uid) ?? 0) + 1);
+    });
+    return counts;
+  };
+
+  const [walkRouteCountsByUID, stampCountsByUID, sharedTripsSnapshot, presenceCountSnapshot] = await Promise.all([
+    countDocsByOwnerUID("walkRoutes"),
+    countDocsByOwnerUID("stamps"),
+    db.collection("sharedTrips").get(),
+    db
+      .collection("presence")
+      .where("lastSeen", ">", admin.firestore.Timestamp.fromMillis(Date.now() - PRESENCE_STALE_AFTER_MS))
+      .count()
+      .get(),
+  ]);
+
+  const sharedTripCountsByUID = new Map<string, number>();
+  sharedTripsSnapshot.forEach((doc) => {
+    const ownerUID = doc.data().ownerUserID as string | undefined;
+    if (!ownerUID) return;
+    sharedTripCountsByUID.set(ownerUID, (sharedTripCountsByUID.get(ownerUID) ?? 0) + 1);
+  });
+
+  const activeUIDs = new Set<string>([
+    ...walkRouteCountsByUID.keys(),
+    ...stampCountsByUID.keys(),
+    ...sharedTripCountsByUID.keys(),
+  ]);
+
+  let startedTripCount = 0;
+  let collectedStampCount = 0;
+  let sharedCount = 0;
+  for (const uid of activeUIDs) {
+    if ((sharedTripCountsByUID.get(uid) ?? 0) > 0) {
+      sharedCount += 1;
+    } else if ((stampCountsByUID.get(uid) ?? 0) > 0) {
+      collectedStampCount += 1;
+    } else if ((walkRouteCountsByUID.get(uid) ?? 0) > 0) {
+      startedTripCount += 1;
+    }
+  }
+  // Firebase Authには登録済みだが、上記のどのアクティビティも無いユーザー
+  // （サインインしただけで時空旅を始めていない層）。
+  const signedInOnlyCount = Math.max(totalUsers - activeUIDs.size, 0);
+
+  const phases: FunnelPhase[] = [
+    {
+      key: "signedInOnly",
+      label: "サインインのみ（時空旅未開始）",
+      count: signedInOnlyCount,
+      suggestion: "初回起動〜最初の古地図が浮かび上がる演出やプッシュ通知で、最初の「スタート」を後押しする。",
+    },
+    {
+      key: "startedTrip",
+      label: "時空旅を開始（御朱印は未収集）",
+      count: startedTripCount,
+      suggestion: "チェックポイントまでの距離が分かる導線を強化し、最初の御朱印を獲得しやすくする。",
+    },
+    {
+      key: "collectedStamp",
+      label: "御朱印を収集（時空旅は未共有）",
+      count: collectedStampCount,
+      suggestion: "「みんなの時空旅」への共有導線・シェアの心理的ハードルを下げるコピーを見直す。",
+    },
+    {
+      key: "shared",
+      label: "時空旅を共有済み",
+      count: sharedCount,
+      suggestion: "アンバサダー候補。レビュー依頼やリファラル施策の対象として優先的にアプローチする。",
+    },
+  ];
+
+  return {
+    totalUsers,
+    currentAnonymousViewers: presenceCountSnapshot.data().count,
+    phases,
+  };
+});
+
 export const requestTestFlightInvite = onCall(
   {
     secrets: [

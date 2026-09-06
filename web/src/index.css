@@ -393,6 +393,98 @@ code {
   border-top: 1px solid var(--color-border);
 }
 
+.admin-report-sidebar-hint {
+  padding: 16px 20px;
+  font-size: 0.85rem;
+  color: var(--color-ink);
+  opacity: 0.75;
+}
+
+.admin-report {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.admin-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-report-header h2 {
+  margin: 0;
+  color: var(--color-brown-deep);
+}
+
+.admin-report-error {
+  color: #b8304a;
+  font-weight: 600;
+}
+
+.admin-report-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-report-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.admin-report-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-brown-deep);
+}
+
+.admin-report-stat-label {
+  font-size: 0.85rem;
+  color: var(--color-ink);
+  opacity: 0.75;
+}
+
+.admin-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-report-table th,
+.admin-report-table td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.admin-report-table th {
+  background: rgba(140, 90, 52, 0.08);
+  color: var(--color-brown-deep);
+  font-size: 0.85rem;
+}
+
+.admin-report-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-report-count {
+  font-weight: 700;
+  color: var(--color-brown-deep);
+}
+
 .trip-comment-list {
   list-style: none;
   margin: 10px 0;

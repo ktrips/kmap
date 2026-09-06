@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { User } from "firebase/auth";
+import { AdminFunnelReport } from "./components/AdminFunnelReport";
 import { Header } from "./components/Header";
 import { MapView } from "./components/MapView";
 import { PlaceDetail } from "./components/PlaceDetail";
@@ -14,7 +15,10 @@ import type { SharedTrip } from "./types/sharedTrip";
 import { fromWalkTrip, type UnifiedTrip } from "./types/unifiedTrip";
 import type { SavedPlace } from "./types/place";
 
-type SidebarTab = "places" | "trips";
+type SidebarTab = "places" | "trips" | "admin";
+
+/** 管理者レポートタブを表示してよいメールアドレス（Cloud Function側でも同じ値を検証する）。 */
+const ADMIN_EMAIL = "kenichiyoshida13@gmail.com";
 
 interface Props {
   user: User;
@@ -36,6 +40,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [tab, setTab] = useState<SidebarTab>("trips");
+  const isAdmin = user.email === ADMIN_EMAIL;
   // 旅の詳細を表示すると左のメニュー（一覧）は収納し、画面を広く使えるようにする。
   // メニューボタンを押すか、タブを切り替えると再び開く。
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -86,10 +91,23 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
               >
                 時空旅
               </button>
+              {isAdmin && (
+                <button
+                  className={`sidebar-tab ${tab === "admin" ? "is-active" : ""}`}
+                  onClick={() => handleTabChange("admin")}
+                >
+                  管理者レポート
+                </button>
+              )}
             </div>
             {tab === "places" && <PlaceList places={places} selectedId={selectedId} onSelect={handleSelect} />}
             {tab === "trips" && (
               <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
+            )}
+            {tab === "admin" && (
+              <p className="admin-report-sidebar-hint">
+                Web経由のユーザーが今どの利用フェーズにいるかをまとめたレポートです。
+              </p>
             )}
             <a
               className="sidebar-footer-link"
@@ -113,6 +131,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
                 <span aria-hidden="true">☰</span> 一覧
               </button>
               {tab === "trips" && <span className="detail-header-label">時空旅の記録</span>}
+              {tab === "admin" && <span className="detail-header-label">管理者レポート</span>}
             </div>
           )}
           {tab === "places" && (
@@ -124,6 +143,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
           {tab === "trips" && (
             <TripDetail trip={selectedTrip} currentUser={{ uid: user.uid, displayName: user.displayName }} />
           )}
+          {tab === "admin" && isAdmin && <AdminFunnelReport />}
         </main>
       </div>
     </div>
