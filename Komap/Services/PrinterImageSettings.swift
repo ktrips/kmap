@@ -80,3 +80,22 @@ enum PrinterImageFormat: String, CaseIterable, Identifiable {
         }
     }
 }
+
+/// 連携プリンターへの転送方式。
+enum PrinterTransferMode: String, CaseIterable, Identifiable {
+    /// `POST <host>/api/print/photo` に、multipart/form-data（フィールド名`photo`）で
+    /// 画像ファイル本体を直接送る。
+    case direct
+    /// 画像を一度Firebase Storageへアップロードし、
+    /// `GET <host>/api/print/photo/url?url=<画像のURL>` を呼ぶ。
+    case hostedURL
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .direct: return "写真データを直接送信"
+        case .hostedURL: return "写真のURLを渡す"
+        }
+    }
+}

@@ -22,6 +22,7 @@ struct SettingsView: View {
     @State private var printerImageQuality: PrinterImageQuality = AppSettings.printerImageQuality
     @State private var printerIsGrayscale: Bool = AppSettings.printerIsGrayscale
     @State private var printerImageFormat: PrinterImageFormat = AppSettings.printerImageFormat
+    @State private var printerTransferMode: PrinterTransferMode = AppSettings.printerTransferMode
     @State private var printerLinkSavedMessage: String?
 
     @State private var isShowingAdvancedSettings = false
@@ -216,6 +217,15 @@ struct SettingsView: View {
                 .onChange(of: printerSyncPhotoPosts) { _, newValue in
                     AppSettings.printerSyncPhotoPosts = newValue
                 }
+            Picker("転送方式", selection: $printerTransferMode) {
+                ForEach(PrinterTransferMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: printerTransferMode) { _, newValue in
+                AppSettings.printerTransferMode = newValue
+            }
             Picker("写真の大きさ", selection: $printerImageSize) {
                 ForEach(PrinterImageSize.allCases) { size in
                     Text(size.title).tag(size)
@@ -259,7 +269,7 @@ struct SettingsView: View {
         } header: {
             Text("連携プリンター")
         } footer: {
-            Text("同じWi-Fi上で写真を受け取れるプリンターのURLを設定すると、チェックをつけた種類の写真が撮影・追加のたびに自動で転送されるほか、御朱印・投稿写真の詳細画面に表示される「連携プリント」ボタンから、後で見返した写真をその場で転送することもできます。大きさ・画質・ファイル形式（JPEG／PNG）・白黒の設定は転送する写真にだけ適用され、端末やクラウドに保存される写真は変わりません。\n「http://m5web.local/api/print?photo=」のようにURLの末尾に「photo=」を含めて設定すると、画像そのものを送る代わりに、画像を一度アップロードしてそのURLを「photo=」の後ろに続けてGETします（サインインが必要です）。「photo=」を含まないURLの場合は、これまで通り画像データを直接POSTします。")
+            Text("同じWi-Fi上で写真を受け取れるプリンターのホスト名／IP（パスは不要）を設定すると、チェックをつけた種類の写真が撮影・追加のたびに自動で転送されるほか、御朱印・投稿写真の詳細画面に表示される「連携プリント」ボタンから、後で見返した写真をその場で転送することもできます。大きさ・画質・ファイル形式（JPEG／PNG）・白黒の設定は転送する写真にだけ適用され、端末やクラウドに保存される写真は変わりません。\n「転送方式」が「写真データを直接送信」の場合はPOST <ホスト>/api/print/photoへmultipart/form-data（フィールド名photo）で画像を送ります。「写真のURLを渡す」の場合は、画像を一度アップロードしてGET <ホスト>/api/print/photo/url?url=<画像のURL>を呼びます（サインインが必要です）。")
         }
     }
 

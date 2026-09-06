@@ -12,6 +12,7 @@ enum AppSettings {
     private static let printerImageQualityKey = "printerImageQuality"
     private static let printerIsGrayscaleKey = "printerIsGrayscale"
     private static let printerImageFormatKey = "printerImageFormat"
+    private static let printerTransferModeKey = "printerTransferMode"
 
     /// 撮影・追加した写真に適用する加工スタイル。
     static var photoFilterStyle: PhotoFilterStyle {
@@ -77,6 +78,15 @@ enum AppSettings {
             return PrinterImageFormat(rawValue: raw) ?? .jpg
         }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: printerImageFormatKey) }
+    }
+
+    /// 連携プリンターへの転送方式（直接送信／URLを渡す）。
+    static var printerTransferMode: PrinterTransferMode {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: printerTransferModeKey) else { return .direct }
+            return PrinterTransferMode(rawValue: raw) ?? .direct
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: printerTransferModeKey) }
     }
 
     private static func nonEmpty(_ value: String?) -> String? {

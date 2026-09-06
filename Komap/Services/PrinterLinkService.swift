@@ -9,14 +9,17 @@ import UIKit
 /// 連携プリンター（例: M5Stackなどが自宅Wi-Fi上で動かす簡易プリントサーバー）へ、
 /// 御朱印・投稿写真を自動転送するクライアント。
 ///
-/// 連携プリンターのURL設定には、2通りの方式に対応する。
-/// 1. パスまでのURL（例: "m5print.local" や "http://m5print.local/print"）:
-///    画像データそのものをリクエストボディに入れて`POST`する（プリンター側がボディを
-///    直接受け取って印刷するタイプ）。
-/// 2. クエリに`photo=`を含むURL（例: "http://m5web.local/api/print?photo="）:
-///    画像を一度Firebase Storageへアップロードし、その公開URLを`photo=`の後ろに
-///    続けて`GET`する（プリンター側が渡されたURLを自分で取得しにいくタイプ）。
+/// 「設定」画面にはプリンターのホスト名／IP（例: "m5web.local"）だけを入力する。
+/// パスはこのアプリ側で以下の固定APIとして組み立てる。
+/// 1. 直接送信（`multipart/form-data`でのPOST）:
+///    `POST http://<ホスト>/api/print/photo` に、フィールド名`photo`として
+///    画像ファイル本体を`-F "photo=@image.jpg"`と同じ形で送る。
+/// 2. URLで渡す（GET）:
+///    画像を一度Firebase Storageへアップロードし、
+///    `GET http://<ホスト>/api/print/photo/url?url=<画像のURL>` を呼ぶ
+///    （プリンター側が渡された`url`を自分で取得しにいくタイプ）。
 ///
+/// どちらの方式を使うかは「設定」画面の「転送方式」で選ぶ（既定は方式1）。
 /// どちらの方式でも、転送前に「設定」画面で選んだ大きさ・白黒・画質・ファイル形式
 /// （JPEG／PNG）を画像に適用する（プリンターの通信量・印刷向けの見た目に合わせて、
 /// クラウド保存用の圧縮とは別に調整できるようにするため）。
@@ -62,25 +65,34 @@ struct PrinterLinkService {
 
     private func send(_ image: UIImage, cloudURL: URL?) async throws {
         guard let host = AppSettings.printerLinkHost,
-              let url = DeviceLinkURL.resolve(from: host, defaultPath: "/print")
+              let baseURL = DeviceLinkURL.resolve(from: host, defaultPath: "")
         else { throw PrintError.notConfigured }
+        // ホスト部分だけを使う（末尾に付いているかもしれない"/"は取り除き、
+        // 固定のAPIパスをこちらで組み立てる）。
+        let base = baseURL.absoluteString.hasSuffix("/") ? String(baseURL.absoluteString.dropLast()) : baseURL.absoluteString
 
         let format = AppSettings.printerImageFormat
         let prepared = Self.prepareForPrint(image)
         guard let data = Self.encodedData(prepared, format: format) else { throw PrintError.encodingFailed }
 
-        if let queryPrefix = Self.photoQueryPrefix(in: url.absoluteString) {
-            try await sendViaHostedURL(data: data, format: format, queryPrefix: queryPrefix, existingURL: cloudURL)
-        } else {
-            try await sendViaRequestBody(data: data, format: format, to: url)
+        switch AppSettings.printerTransferMode {
+        case .direct:
+            try await sendViaMultipartPOST(data: data, format: format, base: base)
+        case .hostedURL:
+            try await sendViaHostedURL(data: data, format: format, base: base, existingURL: cloudURL)
         }
     }
 
-    /// 方式1: 画像データをそのままリクエストボディに入れて`POST`する。
-    private func sendViaRequestBody(data: Data, format: PrinterImageFormat, to url: URL) async throws {
+    /// 方式1: `POST <base>/api/print/photo` へ、フィールド名`photo`の
+    /// `multipart/form-data`として画像ファイル本体を送る
+    /// （`-F "photo=@image.jpg"`と同じ形）。
+    private func sendViaMultipartPOST(data: Data, format: PrinterImageFormat, base: String) async throws {
+        guard let url = URL(string: base + "/api/print/photo") else { throw PrintError.encodingFailed }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue(format.mimeType, forHTTPHeaderField: "Content-Type")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.setValue("close", forHTTPHeaderField: "Connection")
         // URLSessionはボディ付きPOSTに自動で`Expect: 100-continue`を付けることがあるが、
         // M5Stack/ESP32系のごく簡易なHTTPサーバーはこれに正しく応答できず、
@@ -88,7 +100,7 @@ struct PrinterLinkService {
         // 「Expect」ヘッダーを（空でも）自分で明示しておくと、URLSessionは自動付与を
         // 行わなくなるため、これを付けて回避する。
         request.setValue("", forHTTPHeaderField: "Expect")
-        request.httpBody = data
+        request.httpBody = Self.multipartBody(data: data, format: format, fieldName: "photo", boundary: boundary)
         // サーマルプリンターなどは、実際に印刷し終えるまで応答を返さない
         // （同期処理の）実装になっていることが多く、印刷自体に数十秒かかることもあるため、
         // 通常のAPI通信より長めのタイムアウトを取る。
@@ -96,11 +108,24 @@ struct PrinterLinkService {
         try await Self.perform(request)
     }
 
-    /// 方式2: 画像を一度Firebase Storageへアップロードし、公開URLを`photo=`の後ろに
-    /// 続けたURLへ`GET`する（プリンター自身がそのURLを取得しにいく想定）。
+    /// `multipart/form-data`のリクエストボディを組み立てる。
+    private static func multipartBody(data: Data, format: PrinterImageFormat, fieldName: String, boundary: String) -> Data {
+        var body = Data()
+        let filename = "photo.\(format.fileExtension)"
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(format.mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        return body
+    }
+
+    /// 方式2: 画像を一度Firebase Storageへアップロードし、
+    /// `GET <base>/api/print/photo/url?url=<画像のURL>` を呼ぶ
+    /// （プリンター自身が渡された`url`を取得しにいく想定）。
     /// `existingURL`が渡されていれば、既にアップロード済みとしてそれをそのまま使う。
     /// サインインしていない・Firebase未設定でアップロードもできない場合は失敗を投げる。
-    private func sendViaHostedURL(data: Data, format: PrinterImageFormat, queryPrefix: String, existingURL: URL?) async throws {
+    private func sendViaHostedURL(data: Data, format: PrinterImageFormat, base: String, existingURL: URL?) async throws {
         let resolvedURL: URL?
         if let existingURL {
             resolvedURL = existingURL
@@ -109,7 +134,7 @@ struct PrinterLinkService {
         }
         guard let hostedURL = resolvedURL else { throw PrintError.uploadFailed }
         guard let encodedImageURL = hostedURL.absoluteString.addingPercentEncoding(withAllowedCharacters: Self.urlValueAllowedCharacters),
-              let finalURL = URL(string: queryPrefix + encodedImageURL)
+              let finalURL = URL(string: base + "/api/print/photo/url?url=" + encodedImageURL)
         else { throw PrintError.encodingFailed }
 
         var request = URLRequest(url: finalURL)
@@ -164,13 +189,6 @@ struct PrinterLinkService {
         } catch {
             return nil
         }
-    }
-
-    /// 設定されたURLの文字列に`photo=`が含まれていれば、そこまで（`photo=`を含む）を
-    /// 返す。含まれていなければ`nil`（＝方式1のリクエストボディ転送）。
-    private static func photoQueryPrefix(in absoluteURLString: String) -> String? {
-        guard let range = absoluteURLString.range(of: "photo=", options: .caseInsensitive) else { return nil }
-        return String(absoluteURLString[..<range.upperBound])
     }
 
     /// URLの値としてクエリに埋め込むため、RFC3986の非予約文字以外はすべて
