@@ -81,6 +81,7 @@ struct PrinterLinkService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(format.mimeType, forHTTPHeaderField: "Content-Type")
+        request.setValue("close", forHTTPHeaderField: "Connection")
         request.httpBody = data
         request.timeoutInterval = 10
         try await Self.perform(request)
@@ -104,6 +105,7 @@ struct PrinterLinkService {
 
         var request = URLRequest(url: finalURL)
         request.httpMethod = "GET"
+        request.setValue("close", forHTTPHeaderField: "Connection")
         request.timeoutInterval = 15
         try await Self.perform(request)
     }
@@ -112,7 +114,14 @@ struct PrinterLinkService {
     /// `requestFailed`にまとめて詰め直す。原因（DNS解決失敗・接続拒否・HTTPステータス等）を
     /// そのままメッセージに含めることで、「送信に失敗しました」とだけ出るのを避け、
     /// ユーザー自身が設定を見直せるようにする。
-    private static func perform(_ request: URLRequest) async throws {
+    ///
+    /// - Important: M5Stackなどのごく簡易なHTTPサーバーは、iOS側が接続を使い回そうとする
+    ///   （keep-alive）と応答を返す前に接続を切ってしまうことがあり、`URLError
+    ///   .networkConnectionLost`（「The network connection was lost」）になりやすい。
+    ///   `Connection: close`を付けて使い回しをやめさせた上で、それでも起きた場合は
+    ///   一度だけ短い間隔を空けて自動的に再試行する（この種の切断は再試行すると
+    ///   ほぼ成功することが多い、iOS側のよく知られた挙動）。
+    private static func perform(_ request: URLRequest, isRetry: Bool = false) async throws {
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
@@ -120,6 +129,9 @@ struct PrinterLinkService {
             }
         } catch let error as PrintError {
             throw error
+        } catch let error as URLError where error.code == .networkConnectionLost && !isRetry {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            try await perform(request, isRetry: true)
         } catch {
             throw PrintError.requestFailed(error.localizedDescription)
         }
