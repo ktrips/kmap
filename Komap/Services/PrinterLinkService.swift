@@ -1,18 +1,25 @@
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import FirebaseAuth
+import FirebaseCore
+import FirebaseStorage
 import Foundation
 import UIKit
 
 /// 連携プリンター（例: M5Stackなどが自宅Wi-Fi上で動かす簡易プリントサーバー）へ、
 /// 御朱印・投稿写真を自動転送するクライアント。
 ///
-/// 連携プリンター側は、JPEG画像をリクエストボディでそのまま受け取り印刷する
-/// HTTPサーバーとして動かしておく必要がある。ホスト名だけ（例: "m5print.local"）を
-/// 設定した場合は `http://<ホスト>/print` へ`POST`する。パスまで含めた完全なURLを
-/// 設定した場合はそれをそのまま使う。
+/// 連携プリンターのURL設定には、2通りの方式に対応する。
+/// 1. パスまでのURL（例: "m5print.local" や "http://m5print.local/print"）:
+///    画像データそのものをリクエストボディに入れて`POST`する（プリンター側がボディを
+///    直接受け取って印刷するタイプ）。
+/// 2. クエリに`photo=`を含むURL（例: "http://m5web.local/api/print?photo="）:
+///    画像を一度Firebase Storageへアップロードし、その公開URLを`photo=`の後ろに
+///    続けて`GET`する（プリンター側が渡されたURLを自分で取得しにいくタイプ）。
 ///
-/// 転送前に、「設定」画面で選んだ大きさ・白黒・画質を画像に適用する
-/// （プリンターの通信量・印刷向けの見た目に合わせて、クラウド保存用の圧縮とは別に調整できるようにするため）。
+/// どちらの方式でも、転送前に「設定」画面で選んだ大きさ・白黒・画質・ファイル形式
+/// （JPEG／PNG）を画像に適用する（プリンターの通信量・印刷向けの見た目に合わせて、
+/// クラウド保存用の圧縮とは別に調整できるようにするため）。
 struct PrinterLinkService {
     /// 御朱印の写真を、「設定」画面の連携設定に応じて連携プリンターへ転送する。
     /// 未設定・転送オフの場合は何もしない。
@@ -33,17 +40,83 @@ struct PrinterLinkService {
               let url = DeviceLinkURL.resolve(from: host, defaultPath: "/print")
         else { return }
 
+        let format = AppSettings.printerImageFormat
         let prepared = Self.prepareForPrint(image)
-        guard let data = prepared.jpegData(compressionQuality: AppSettings.printerImageQuality.jpegQuality) else { return }
+        guard let data = Self.encodedData(prepared, format: format) else { return }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
-        request.httpBody = data
-        request.timeoutInterval = 10
         // 印刷できてもできなくても、ここでの失敗はユーザー操作をブロックしない
         // (ベストエフォート。プリンターの電源が入っていない等はよくあるため)。
+        if let queryPrefix = Self.photoQueryPrefix(in: url.absoluteString) {
+            await sendViaHostedURL(data: data, format: format, queryPrefix: queryPrefix)
+        } else {
+            await sendViaRequestBody(data: data, format: format, to: url)
+        }
+    }
+
+    /// 方式1: 画像データをそのままリクエストボディに入れて`POST`する。
+    private func sendViaRequestBody(data: Data, format: PrinterImageFormat, to url: URL) async {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(format.mimeType, forHTTPHeaderField: "Content-Type")
+        request.httpBody = data
+        request.timeoutInterval = 10
         _ = try? await URLSession.shared.data(for: request)
+    }
+
+    /// 方式2: 画像を一度Firebase Storageへアップロードし、公開URLを`photo=`の後ろに
+    /// 続けたURLへ`GET`する（プリンター自身がそのURLを取得しにいく想定）。
+    /// サインインしていない・Firebase未設定の場合はアップロードできないため何もしない。
+    private func sendViaHostedURL(data: Data, format: PrinterImageFormat, queryPrefix: String) async {
+        guard let hostedURL = await uploadForHostedPrint(data: data, format: format) else { return }
+        guard let encodedImageURL = hostedURL.absoluteString.addingPercentEncoding(withAllowedCharacters: Self.urlValueAllowedCharacters),
+              let finalURL = URL(string: queryPrefix + encodedImageURL)
+        else { return }
+
+        var request = URLRequest(url: finalURL)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 15
+        _ = try? await URLSession.shared.data(for: request)
+    }
+
+    /// `users/{uid}/printerTransfers/` 配下へ一時的にアップロードし、ダウンロードURLを返す。
+    /// 御朱印・投稿写真本体のクラウド保存（`SyncService`）とは別に、連携プリンターへ
+    /// 渡すためだけの独立したアップロードとして扱う。
+    private func uploadForHostedPrint(data: Data, format: PrinterImageFormat) async -> URL? {
+        guard FirebaseApp.app() != nil, let uid = Auth.auth().currentUser?.uid else { return nil }
+
+        let metadata = StorageMetadata()
+        metadata.contentType = format.mimeType
+        let ref = Storage.storage().reference()
+            .child("users/\(uid)/printerTransfers/\(UUID().uuidString).\(format.fileExtension)")
+        do {
+            _ = try await ref.putDataAsync(data, metadata: metadata)
+            return try await ref.downloadURL()
+        } catch {
+            return nil
+        }
+    }
+
+    /// 設定されたURLの文字列に`photo=`が含まれていれば、そこまで（`photo=`を含む）を
+    /// 返す。含まれていなければ`nil`（＝方式1のリクエストボディ転送）。
+    private static func photoQueryPrefix(in absoluteURLString: String) -> String? {
+        guard let range = absoluteURLString.range(of: "photo=", options: .caseInsensitive) else { return nil }
+        return String(absoluteURLString[..<range.upperBound])
+    }
+
+    /// URLの値としてクエリに埋め込むため、RFC3986の非予約文字以外はすべて
+    /// パーセントエンコードする（`/`や`?`、Firebase StorageのURLに含まれる
+    /// `&`・`=`まで含めて確実にエスケープしないと、外側のクエリと混ざってしまうため）。
+    private static let urlValueAllowedCharacters: CharacterSet = {
+        CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+    }()
+
+    private static func encodedData(_ image: UIImage, format: PrinterImageFormat) -> Data? {
+        switch format {
+        case .jpg:
+            return image.jpegData(compressionQuality: AppSettings.printerImageQuality.jpegQuality)
+        case .png:
+            return image.pngData()
+        }
     }
 
     /// 「設定」画面で選んだ大きさまで縮小し、白黒が有効なら彩度を落とす。

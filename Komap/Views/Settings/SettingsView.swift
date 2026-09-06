@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var printerImageSize: PrinterImageSize = AppSettings.printerImageSize
     @State private var printerImageQuality: PrinterImageQuality = AppSettings.printerImageQuality
     @State private var printerIsGrayscale: Bool = AppSettings.printerIsGrayscale
+    @State private var printerImageFormat: PrinterImageFormat = AppSettings.printerImageFormat
     @State private var printerLinkSavedMessage: String?
 
     @State private var isShowingAdvancedSettings = false
@@ -233,6 +234,15 @@ struct SettingsView: View {
             .onChange(of: printerImageQuality) { _, newValue in
                 AppSettings.printerImageQuality = newValue
             }
+            Picker("ファイル形式", selection: $printerImageFormat) {
+                ForEach(PrinterImageFormat.allCases) { format in
+                    Text(format.title).tag(format)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: printerImageFormat) { _, newValue in
+                AppSettings.printerImageFormat = newValue
+            }
             Toggle("白黒で転送する", isOn: $printerIsGrayscale)
                 .onChange(of: printerIsGrayscale) { _, newValue in
                     AppSettings.printerIsGrayscale = newValue
@@ -249,7 +259,7 @@ struct SettingsView: View {
         } header: {
             Text("連携プリンター")
         } footer: {
-            Text("同じWi-Fi上で写真を受け取れるプリンターのURLを設定すると、チェックをつけた種類の写真が撮影・追加のたびに自動で転送されます。大きさ・画質・白黒の設定は転送する写真にだけ適用され、端末やクラウドに保存される写真は変わりません。")
+            Text("同じWi-Fi上で写真を受け取れるプリンターのURLを設定すると、チェックをつけた種類の写真が撮影・追加のたびに自動で転送されます。大きさ・画質・ファイル形式（JPEG／PNG）・白黒の設定は転送する写真にだけ適用され、端末やクラウドに保存される写真は変わりません。\n「http://m5web.local/api/print?photo=」のようにURLの末尾に「photo=」を含めて設定すると、画像そのものを送る代わりに、画像を一度アップロードしてそのURLを「photo=」の後ろに続けてGETします（サインインが必要です）。「photo=」を含まないURLの場合は、これまで通り画像データを直接POSTします。")
         }
     }
 

@@ -11,6 +11,7 @@ enum AppSettings {
     private static let printerImageSizeKey = "printerImageSize"
     private static let printerImageQualityKey = "printerImageQuality"
     private static let printerIsGrayscaleKey = "printerIsGrayscale"
+    private static let printerImageFormatKey = "printerImageFormat"
 
     /// 撮影・追加した写真に適用する加工スタイル。
     static var photoFilterStyle: PhotoFilterStyle {
@@ -67,6 +68,15 @@ enum AppSettings {
     static var printerIsGrayscale: Bool {
         get { UserDefaults.standard.bool(forKey: printerIsGrayscaleKey) }
         set { UserDefaults.standard.set(newValue, forKey: printerIsGrayscaleKey) }
+    }
+
+    /// 連携プリンターへ転送する画像ファイルのフォーマット（JPEG／PNG）。
+    static var printerImageFormat: PrinterImageFormat {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: printerImageFormatKey) else { return .jpg }
+            return PrinterImageFormat(rawValue: raw) ?? .jpg
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: printerImageFormatKey) }
     }
 
     private static func nonEmpty(_ value: String?) -> String? {

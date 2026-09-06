@@ -50,3 +50,33 @@ enum PrinterImageQuality: String, CaseIterable, Identifiable {
         }
     }
 }
+
+/// 連携プリンターへ転送する画像ファイルのフォーマット。
+enum PrinterImageFormat: String, CaseIterable, Identifiable {
+    case jpg
+    case png
+
+    var id: String { rawValue }
+
+    /// URL経由で転送する場合の拡張子・Content-Typeにそのまま使う。
+    var fileExtension: String {
+        switch self {
+        case .jpg: return "jpg"
+        case .png: return "png"
+        }
+    }
+
+    var mimeType: String {
+        switch self {
+        case .jpg: return "image/jpeg"
+        case .png: return "image/png"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .jpg: return "JPEG（.jpg）"
+        case .png: return "PNG（.png・可逆圧縮）"
+        }
+    }
+}
