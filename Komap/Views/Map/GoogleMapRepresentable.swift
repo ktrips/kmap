@@ -164,8 +164,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private let revealCorridorMeters: Double = 70
         /// 記録中、「まだ通っていない場所」の不透明度の下限。スライダーがこれより低くても、
         /// 宝探し演出（通った道だけくっきり）を保ったまま、歩いている間は古地図全体が
-        /// ある程度見えるようにする。
-        private static let minimumUnrevealedAlpha: CGFloat = 0.6
+        /// はっきり見えるようにする（以前は0.6で、ぼかしと合わさって古地図全体が
+        /// 薄く霞んで見えづらいという声があったため引き上げた）。
+        private static let minimumUnrevealedAlpha: CGFloat = 0.88
         /// 歩いた道の縁取りの太さ（画面上のポイント数）。中の透かし塗りよりわずかに太いだけの、
         /// 細く濃い縁として見せる。
         private let walkedTrailBorderWidth: CGFloat = 14.4 // 18の20%減
@@ -518,7 +519,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             guard let ciImage = CIImage(image: image) else { return nil }
             let filter = CIFilter.gaussianBlur()
             filter.inputImage = ciImage
-            filter.radius = 14
+            // 以前は14で、まだ通っていない場所の古地図がぼやけすぎて何の絵か
+            // 分かりにくいという声があったため、輪郭が判別できる程度まで弱めた。
+            filter.radius = 5
             guard let output = filter.outputImage?.cropped(to: ciImage.extent) else { return nil }
             guard let cgImage = sharedCIContext.createCGImage(output, from: output.extent) else { return nil }
             return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
