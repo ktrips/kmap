@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { TripDetail } from "./TripDetail";
 import { TripList } from "./TripList";
+import { HowToUseModal } from "./HowToUseModal";
+import { KindleBookModal } from "./KindleBookModal";
 import { usePresence } from "../lib/usePresence";
 import { fromSharedTrip, type UnifiedTrip } from "../types/unifiedTrip";
 import type { SharedTrip } from "../types/sharedTrip";
@@ -29,6 +31,8 @@ export function PublicSharedTripsView({
   // 時空旅を選ぶと、一覧と案内文（サインインの案内など）を収納して
   // 地図・写真の表示スペースを広げる。「一覧」ボタンで再び開く。
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isHowToOpen, setIsHowToOpen] = useState(false);
+  const [isKindleOpen, setIsKindleOpen] = useState(false);
 
   const trips = useMemo<UnifiedTrip[]>(
     () => sharedTrips.map(fromSharedTrip).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime()),
@@ -49,6 +53,9 @@ export function PublicSharedTripsView({
           <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
           <p className="brand-eyebrow">Komap 古地図巡り</p>
         </div>
+        <button type="button" className="howto-header-button" onClick={() => setIsHowToOpen(true)}>
+          📖 使い方
+        </button>
       </header>
 
       {isSidebarOpen && (
@@ -77,11 +84,17 @@ export function PublicSharedTripsView({
                   </span>
                 )}
               </button>
+              <button type="button" className="kindle-teaser-button" onClick={() => setIsKindleOpen(true)}>
+                📚 Komapの作り方 Kindle（一部無料）
+              </button>
             </div>
           )}
           {error && <p className="error-text">{error}</p>}
         </div>
       )}
+
+      {isHowToOpen && <HowToUseModal onClose={() => setIsHowToOpen(false)} />}
+      {isKindleOpen && <KindleBookModal onClose={() => setIsKindleOpen(false)} />}
 
       <div className="app-body">
         {isSidebarOpen && (

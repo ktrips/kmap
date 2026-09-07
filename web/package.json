@@ -12,6 +12,7 @@
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.1.1",
     "firebase": "^12.16.0",
+    "marked": "^18.0.11",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

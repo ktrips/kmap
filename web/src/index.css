@@ -959,3 +959,203 @@ code {
     display: none;
   }
 }
+
+/* ---------- ヘッダーの「使い方」ボタン・Kindle原稿の誘導ボタン ---------- */
+
+.howto-header-button {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-brown-deep);
+}
+
+.howto-header-button:hover {
+  background: rgba(140, 90, 52, 0.08);
+}
+
+.kindle-teaser-button {
+  width: 100%;
+  margin-top: 10px;
+  background: #fff;
+  border: 1px dashed var(--color-brown);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-brown-deep);
+  transition: background 0.2s ease;
+}
+
+.kindle-teaser-button:hover {
+  background: rgba(140, 90, 52, 0.08);
+}
+
+/* ---------- 共通モーダル（使い方・Kindle原稿プレビュー） ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(43, 36, 28, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+}
+
+.modal-card {
+  background: var(--color-card);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  width: min(680px, 100%);
+  max-height: min(80vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-brown-deep);
+}
+
+.modal-close-button {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: var(--color-ink);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.modal-close-button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  line-height: 1.8;
+}
+
+.modal-body h3 {
+  color: var(--color-brown-deep);
+  font-size: 1rem;
+  margin: 20px 0 8px;
+}
+
+.modal-body ul {
+  margin: 0 0 12px;
+  padding-left: 1.2em;
+}
+
+.modal-body li {
+  margin-bottom: 6px;
+}
+
+.howto-lead {
+  font-weight: 600;
+}
+
+.howto-footer-link {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.85rem;
+  color: var(--color-ink);
+}
+
+.kindle-lead {
+  font-size: 0.9rem;
+  color: var(--color-brown-deep);
+  background: #fdf2e3;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.kindle-loading {
+  text-align: center;
+  color: var(--color-brown);
+  padding: 24px 0;
+}
+
+.kindle-preview-content {
+  margin-top: 16px;
+  font-size: 0.92rem;
+}
+
+.kindle-preview-content h1 {
+  font-size: 1.25rem;
+  text-align: center;
+  border-bottom: 3px double var(--color-border);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.kindle-preview-content h2 {
+  font-size: 1.1rem;
+  color: var(--color-brown-deep);
+  margin: 26px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.kindle-preview-content h2:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.kindle-preview-content h3 {
+  font-size: 0.98rem;
+  color: var(--color-brown);
+}
+
+.kindle-preview-content p {
+  margin: 0 0 14px;
+}
+
+.kindle-preview-content hr {
+  border: none;
+  border-top: 1px dashed var(--color-border);
+  margin: 20px 0;
+}
+
+.kindle-upcoming {
+  margin-top: 22px;
+  padding: 16px 18px;
+  background: #f6efe4;
+  border-radius: 12px;
+}
+
+.kindle-upcoming-label {
+  margin: 0 0 10px;
+  font-weight: 700;
+  color: var(--color-brown-deep);
+  font-size: 0.85rem;
+}
+
+.kindle-upcoming ul {
+  margin: 0 0 10px;
+  padding-left: 1.1em;
+  font-size: 0.85rem;
+  color: var(--color-ink);
+}
+
+.kindle-upcoming-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-brown);
+}
