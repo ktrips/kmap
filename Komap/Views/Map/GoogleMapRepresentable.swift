@@ -593,6 +593,29 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             }
         }
 
+        /// カメラの移動（ズーム・パン）が収まった時に呼ばれる。
+        ///
+        /// - Important: 稀に、大きくズーム・パンした直後に`GMSGroundOverlay`の
+        ///   テクスチャがGPU側で失われたまま再描画されず、古地図が消えて見える
+        ///   ことがある（`.map`への再代入がSDK内部で「最後に追加した」扱いとなり
+        ///   描画を強制し直すきっかけになるのは、チェックポイントのマーカーで
+        ///   `bringCheckpointMarkersToFront`が行っているのと同じ対策）。
+        ///   カメラが落ち着いたタイミングで、既存のオーバーレイを画像の再デコードなど
+        ///   重い処理をせずに一旦外して貼り直すことで、この消失を防ぐ。
+        func mapView(_ mapView: GMSMapView, idleAt position: GMSCameraPosition) {
+            if let currentOverlay {
+                currentOverlay.map = nil
+                currentOverlay.map = mapView
+            }
+            for overlay in allOverlays {
+                overlay.map = nil
+                overlay.map = mapView
+            }
+            if !checkpointMarkers.isEmpty || !allOverlays.isEmpty {
+                bringCheckpointMarkersToFront(on: mapView)
+            }
+        }
+
         /// チェックポイントのマーカーをタップした時に出す情報ウィンドウを、
         /// そのチェックポイント名を示す小さな丸みのあるラベルとして描画する。
         /// これ自体をタップすると`didTapInfoWindowOf`が呼ばれ、詳細（物語）を開く。
