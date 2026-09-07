@@ -1229,16 +1229,3 @@ code {
 .howto-ios-cta-button:hover {
   box-shadow: 0 14px 32px rgba(90, 60, 30, 0.28);
 }
-
-/* ---------- 公開ページ下部の「iOSアプリをダウンロード」ボタン ---------- */
-
-.ios-download-button {
-  margin-top: 10px;
-  background: var(--color-card);
-  color: var(--color-brown-deep);
-  border: 1px solid var(--color-brown);
-}
-
-.ios-download-button:hover {
-  background: rgba(140, 90, 52, 0.08);
-}
