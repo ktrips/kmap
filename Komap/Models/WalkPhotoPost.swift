@@ -26,6 +26,9 @@ final class WalkPhotoPost {
     var storyBody: String?
     /// Firebase Storageへアップロード済みの画像URL。未アップロードなら`nil`。
     var cloudPhotoURL: String?
+    /// `true`の間は、この時空旅が「みんなの時空旅」に公開されていても、
+    /// この写真だけは公開データ（`sharedTrips/{id}`のpostPhotos）に含めない。
+    var isHiddenFromSharing: Bool = false
 
     /// 1回の投稿で獲得できるポイント。
     static let pointsPerPost = 10

@@ -182,6 +182,14 @@ struct SyncService {
         return url
     }
 
+    /// 投稿写真を削除する（Firestoreのドキュメント・Storageの画像本体の両方）。
+    /// ローカル（SwiftData・端末上の画像ファイル）の削除は呼び出し側が別途行う。
+    func deletePhotoPost(id: UUID, userID: String?) async {
+        guard let userID else { return }
+        await photoStorage.delete(path: photoPostStoragePath(userID: userID, postID: id))
+        try? await photoPostsCollection(for: userID).document(id.uuidString).delete()
+    }
+
     /// 保存した時間旅（`WalkRoute`）を `users/{uid}/walkRoutes/{id}` へアップロードする。
     /// Webアプリの「My Trips」で、同じGoogleアカウントの記録を見られるようにするために使う。
     func upload(_ route: WalkRoute, userID: String?) async throws {
@@ -240,7 +248,7 @@ struct SyncService {
                 }
             }
             var postPhotos: [[String: Any]] = []
-            for post in photoPosts where post.photo != nil {
+            for post in photoPosts where post.photo != nil && !post.isHiddenFromSharing {
                 let sourcePath = photoPostStoragePath(userID: userID, postID: post.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: post.id)
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
