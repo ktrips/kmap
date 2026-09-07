@@ -23,10 +23,25 @@ function TripEngagementCounts({ tripId }: { tripId: string }) {
   const { likeCount, commentCount } = useTripEngagementCounts(tripId);
   if (likeCount === 0 && commentCount === 0) return null;
   return (
-    <span className="place-story-preview trip-engagement-counts">
+    <>
+      {" ・ "}
       {likeCount > 0 ? `❤️ ${likeCount}` : ""}
       {likeCount > 0 && commentCount > 0 ? "　" : ""}
       {commentCount > 0 ? `💬 ${commentCount}` : ""}
+    </>
+  );
+}
+
+/** 2行目：日付・距離・歩数・投稿者のGoogle名・いいね数・コメント数をコンパクトに1行で。 */
+function TripMetaLine({ trip }: { trip: UnifiedTrip }) {
+  const parts = [dateFormatter.format(trip.startedAt), distanceLabel(trip.totalDistanceMeters)];
+  if (trip.stepCount !== null) parts.push(`${trip.stepCount.toLocaleString()}歩`);
+  if (trip.ownerDisplayName) parts.push(trip.ownerDisplayName);
+
+  return (
+    <span className="trip-row-meta">
+      {parts.join(" ・ ")}
+      {(trip.kind === "shared" || trip.isShared) && <TripEngagementCounts tripId={trip.id} />}
     </span>
   );
 }
@@ -54,22 +69,16 @@ export function TripList({ trips, selectedId, onSelect }: Props) {
               className={`place-list-item ${trip.id === selectedId ? "is-selected" : ""}`}
               onClick={() => onSelect(trip)}
             >
-              <span className="place-title">
+              <span className="trip-row-title">
                 {trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}
+                {oldMap && `（${oldMap.title}）`}
                 {trip.kind === "own" && trip.isShared && (
                   <span className="trip-shared-icon" title="みんなの時空旅に公開中" aria-label="公開中">
                     🌐
                   </span>
                 )}
               </span>
-              {oldMap && <span className="place-era">{oldMap.title}</span>}
-              <span className="place-story-preview">
-                {distanceLabel(trip.totalDistanceMeters)}
-                {trip.kind === "shared" && trip.ownerDisplayName ? ` ・ ${trip.ownerDisplayName}` : ""}
-                {trip.kind === "own" ? " ・ 自分の時空旅" : " ・ 共有された時空旅"}
-              </span>
-              {(trip.kind === "shared" || trip.isShared) && <TripEngagementCounts tripId={trip.id} />}
-              <span className="place-date">{dateFormatter.format(trip.startedAt)}</span>
+              <TripMetaLine trip={trip} />
             </button>
           </li>
         );

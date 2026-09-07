@@ -862,6 +862,24 @@ code {
   font-weight: 600;
 }
 
+.trip-row-title {
+  font-weight: 700;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-row-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: #8a7c68;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .place-era {
   font-size: 0.75rem;
   color: var(--color-brown);
