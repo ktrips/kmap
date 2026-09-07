@@ -87,13 +87,25 @@ export function PublicSharedTripsView({
               <button type="button" className="kindle-teaser-button" onClick={() => setIsKindleOpen(true)}>
                 📚 Komapの作り方 Kindle（一部無料）
               </button>
+              <button
+                className="google-button google-button-large ios-download-button"
+                onClick={onSignInWithGoogle}
+                disabled={isSigningIn}
+              >
+                <span className="google-button-content">
+                  <span className="google-button-title">📱 iOSアプリをダウンロード</span>
+                  <span className="google-button-bullet">・Googleでサインインすると招待メールが届きます</span>
+                </span>
+              </button>
             </div>
           )}
           {error && <p className="error-text">{error}</p>}
         </div>
       )}
 
-      {isHowToOpen && <HowToUseModal onClose={() => setIsHowToOpen(false)} />}
+      {isHowToOpen && (
+        <HowToUseModal onClose={() => setIsHowToOpen(false)} onSignInWithGoogle={onSignInWithGoogle} />
+      )}
       {isKindleOpen && <KindleBookModal onClose={() => setIsKindleOpen(false)} />}
 
       <div className="app-body">
