@@ -332,12 +332,6 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 // テクスチャアトラスがすぐには解放されないことがある）。
                 currentOverlay?.icon = nil
                 currentOverlay?.map = nil
-                // フル解像度のまま古地図を切り替え続けると、Google Maps SDKの
-                // テクスチャアトラス上限（`applyAllOverlays`のコメント参照）に達して、
-                // ある古地図から先は真っ白・あるいは一部だけ描画された状態になり
-                // 二度と古地図が表示されなくなることがあった。単体表示でも、以前は
-                // 「全ての古地図を表示」専用だったダウンサンプルを行う。
-                currentBaseImage = Self.downsampledForSingleOverlay(overlayMap.image)
                 currentBlurredImage = nil
                 lastRevealedPointCount = 0
 
@@ -345,12 +339,54 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     coordinate: overlayMap.southWest,
                     coordinate: overlayMap.northEast
                 )
-                let overlay = GMSGroundOverlay(bounds: bounds, icon: currentBaseImage)
-                overlay.bearing = overlayMap.bearing
-                overlay.opacity = 1
-                overlay.zIndex = Self.groundOverlayZIndex
-                overlay.map = mapView
-                currentOverlay = overlay
+                let overlayID = overlayMap.id
+
+                // フル解像度（3000px超のことがある）の画像をそのまま縮小すると、
+                // デコード＋再描画の負荷でメインスレッドが一瞬止まり、「地図タブを開いた
+                // 瞬間に表示がもたつく」原因になっていた。縮小結果はオーバーレイIDごとに
+                // キャッシュし、初回だけバックグラウンドで計算する（2回目以降は
+                // キャッシュ済みの画像を使うため即座に表示できる）。
+                if let cached = Self.singleOverlayImageCache[overlayID] {
+                    currentBaseImage = cached
+                    let overlay = GMSGroundOverlay(bounds: bounds, icon: cached)
+                    overlay.bearing = overlayMap.bearing
+                    overlay.opacity = 1
+                    overlay.zIndex = Self.groundOverlayZIndex
+                    overlay.map = mapView
+                    currentOverlay = overlay
+                } else {
+                    currentBaseImage = nil
+                    // 縮小画像ができるまでは、枠だけ（画像なし）のオーバーレイを
+                    // 即座に表示しておく（メインスレッドを待たせないため）。
+                    let overlay = GMSGroundOverlay(bounds: bounds, icon: nil)
+                    overlay.bearing = overlayMap.bearing
+                    overlay.opacity = 1
+                    overlay.zIndex = Self.groundOverlayZIndex
+                    overlay.map = mapView
+                    currentOverlay = overlay
+
+                    let sourceImage = overlayMap.image
+                    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                        let downsampled = Self.downsampledForSingleOverlay(sourceImage)
+                        if let downsampled {
+                            Self.singleOverlayImageCache[overlayID] = downsampled
+                        }
+                        DispatchQueue.main.async {
+                            guard let self, self.currentOverlayID == overlayID else { return }
+                            self.currentBaseImage = downsampled
+                            self.currentOverlay?.icon = downsampled
+                            // 記録中（宝探し演出）でなければ、この時点でスライダーの
+                            // 不透明度を反映しておく（次の`updateUIView`を待たず、
+                            // 画像が現れた瞬間から正しい濃さで見えるようにする）。
+                            if livePath.count < 2 {
+                                self.currentOverlay?.opacity = opacity
+                            }
+                            if let downsampled {
+                                self.startBlurGeneration(for: downsampled, overlayID: overlayID)
+                            }
+                        }
+                    }
+                }
                 currentOverlayID = overlayMap.id
 
                 // 古地図全体（かなり広いことがある）に合わせるのではなく、その古地図の
@@ -386,15 +422,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
                 // ぼかし画像の生成は重いので、メインスレッドをブロックしないよう
                 // バックグラウンドで計算してから後で使う（先に元画像で表示しておく）。
+                // 縮小画像がまだキャッシュされていない場合はここではまだ`currentBaseImage`が
+                // `nil`のため、縮小完了時のコールバック側（上）で改めて呼び出す。
                 if let baseImage = currentBaseImage {
-                    let overlayID = overlayMap.id
-                    DispatchQueue.global(qos: .utility).async { [weak self] in
-                        let blurred = Self.blurredImage(baseImage)
-                        DispatchQueue.main.async {
-                            guard self?.currentOverlayID == overlayID else { return }
-                            self?.currentBlurredImage = blurred
-                        }
-                    }
+                    startBlurGeneration(for: baseImage, overlayID: overlayID)
                 }
             }
 
@@ -525,6 +556,23 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             guard let output = filter.outputImage?.cropped(to: ciImage.extent) else { return nil }
             guard let cgImage = sharedCIContext.createCGImage(output, from: output.extent) else { return nil }
             return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+        }
+
+        /// 単体表示（`applyOverlay`）でダウンサンプルした結果を、古地図IDごとに使い回す
+        /// キャッシュ。同梱画像はアプリ起動中に内容が変わらないため、同じ古地図を
+        /// 選び直しても2回目以降は重いデコード・縮小処理をスキップし、即座に表示できる。
+        private static var singleOverlayImageCache: [String: UIImage] = [:]
+
+        /// ぼかし画像の生成をバックグラウンドで行い、完了時に（今も同じ古地図を
+        /// 選択中であれば）`currentBlurredImage`へ反映する。
+        private func startBlurGeneration(for baseImage: UIImage, overlayID: String) {
+            DispatchQueue.global(qos: .utility).async { [weak self] in
+                let blurred = Self.blurredImage(baseImage)
+                DispatchQueue.main.async {
+                    guard self?.currentOverlayID == overlayID else { return }
+                    self?.currentBlurredImage = blurred
+                }
+            }
         }
 
         /// 同梱の古地図画像は、この環境のGoogle Maps SDKが確実に描画できることを
