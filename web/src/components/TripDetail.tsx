@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { findOldMap } from "../lib/oldMapCatalog";
 import { sitesForOverlay } from "../lib/historicSiteCatalog";
 import { saveTripDetails } from "../lib/tripEditing";
@@ -60,6 +60,13 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
     setIsEditing(false);
   }, [trip?.id]);
 
+  const oldMap = trip ? findOldMap(trip.overlayMapID) : undefined;
+  // `sitesForOverlay`は呼ぶたびに新しい配列を返すため、useMemoなしだと
+  // いいね・コメントのリアルタイム更新でTripDetailが再描画されるたびに
+  // 新しい配列参照になり、変わっていないTripMapView側の重い再描画
+  // （古地図オーバーレイの再取得・マーカーの作り直し）を毎回引き起こしていた。
+  const checkpoints = useMemo(() => sitesForOverlay(oldMap?.id ?? null), [oldMap]);
+
   if (!trip) {
     return (
       <div className="trip-detail place-detail-empty">
@@ -68,7 +75,6 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
     );
   }
 
-  const oldMap = findOldMap(trip.overlayMapID);
   const duration = durationLabel(trip);
   const canEdit = trip.kind === "own" && currentUser !== null;
 
@@ -116,7 +122,7 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
           latitudes={trip.latitudes}
           longitudes={trip.longitudes}
           oldMap={oldMap}
-          checkpoints={sitesForOverlay(oldMap?.id ?? null)}
+          checkpoints={checkpoints}
         />
       )}
 
