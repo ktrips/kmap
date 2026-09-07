@@ -1,4 +1,5 @@
 import { Modal } from "./Modal";
+import { IOS_APP_VERSION } from "../version";
 
 interface Props {
   onClose: () => void;
@@ -68,6 +69,7 @@ export function HowToUseModal({ onClose, onSignInWithGoogle }: Props) {
         </a>{" "}
         をご覧ください。
       </p>
+      <p className="howto-version">iOSアプリ バージョン {IOS_APP_VERSION}</p>
     </Modal>
   );
 }

@@ -1229,3 +1229,10 @@ code {
 .howto-ios-cta-button:hover {
   box-shadow: 0 14px 32px rgba(90, 60, 30, 0.28);
 }
+
+.howto-version {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: #a89a83;
+  text-align: right;
+}

@@ -21,6 +21,16 @@ struct SettingsView: View {
 
     private let syncService = SyncService()
 
+    /// `MARKETING_VERSION`（例: "1.0"）と`CURRENT_PROJECT_VERSION`（ビルド番号、例: "22"）から
+    /// 「1.0 (22)」のような表示用文字列を作る。project.ymlのデフォルト値ではなく、
+    /// 実際にアーカイブ・配布されたビルドのInfo.plistから読むため、常に実態と一致する。
+    private static var appVersionText: String {
+        let info = Bundle.main.infoDictionary
+        let shortVersion = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let buildNumber = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(shortVersion) (\(buildNumber))"
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -32,6 +42,7 @@ struct SettingsView: View {
                     Text("Komap 古地図巡りは、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」をAIの解説とともに旅できるアプリです。同梱の古地図はサンプルの位置合わせデータです。実際の史料に基づく正確な位置合わせではありません。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    LabeledContent("バージョン", value: Self.appVersionText)
                     Link(destination: URL(string: "https://github.com/ktrips/kmap#readme")!) {
                         Label("Komapの使い方", systemImage: "book")
                     }
