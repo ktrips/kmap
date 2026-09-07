@@ -19,6 +19,10 @@ struct StampCheckInSheet: View {
     @State private var photoSyncErrorMessage: String?
     @State private var isPrintingToLinkedPrinter = false
     @State private var printMessage: String?
+    /// `AppSettings.cameraLinkHost`と同じキーを`@AppStorage`で直接監視し、
+    /// 「設定」画面での変更がこのシートにも即座に反映されるようにする
+    /// （`MapScreen`側の同様の対応と揃えている）。
+    @AppStorage("cameraLinkHost") private var cameraLinkHostRaw: String = ""
 
     @State private var isLoadingStory = true
     @State private var story: GeneratedStory?
@@ -26,6 +30,10 @@ struct StampCheckInSheet: View {
 
     private let historyService = AIHistoryService()
     private let syncService = SyncService()
+
+    private var isCameraLinkConfigured: Bool {
+        !cameraLinkHostRaw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     private var overlayMap: HistoricalOverlayMap? {
         OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
@@ -137,7 +145,7 @@ struct StampCheckInSheet: View {
             }
             .disabled(isLoadingPhoto)
 
-            if AppSettings.cameraLinkHost != nil {
+            if isCameraLinkConfigured {
                 Button {
                     Task { await captureFromLinkedCamera() }
                 } label: {

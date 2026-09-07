@@ -7,6 +7,12 @@ import SwiftUI
 struct MapScreen: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var watchConnectivity = WatchConnectivityManager()
+    /// `AppSettings.cameraLinkHost`はUserDefaultsを直接読み書きするだけで、
+    /// SwiftUIの状態変更としては扱われない。「設定」画面でホストを変更しても
+    /// このマップ画面（常時マウントされたまま）の`Menu`が再描画されず、
+    /// 「未設定なのに連携カメラの選択肢が残ったまま」になり得るため、
+    /// `@AppStorage`で同じキーを直接監視し、確実に再描画されるようにする。
+    @AppStorage("cameraLinkHost") private var cameraLinkHostRaw: String = ""
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
@@ -86,6 +92,10 @@ struct MapScreen: View {
 
     private var collectedSiteIDs: Set<String> {
         Set(collectedStamps.map(\.siteID))
+    }
+
+    private var isCameraLinkConfigured: Bool {
+        !cameraLinkHostRaw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// 現在選択中の古地図に紐づくチェックポイント（5箇所程度）。
@@ -439,7 +449,7 @@ struct MapScreen: View {
             } label: {
                 Label("ライブラリから選ぶ", systemImage: "photo.on.rectangle")
             }
-            if AppSettings.cameraLinkHost != nil {
+            if isCameraLinkConfigured {
                 Button {
                     Task { await postPhotoFromLinkedCamera() }
                 } label: {
