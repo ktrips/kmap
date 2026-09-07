@@ -72,8 +72,12 @@ export function TripList({ trips, selectedId, onSelect }: Props) {
               <span className="trip-row-title">
                 {trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}
                 {oldMap && `（${oldMap.title}）`}
-                {trip.kind === "own" && trip.isShared && (
-                  <span className="trip-shared-icon" title="みんなの時空旅に公開中" aria-label="公開中">
+                {(trip.kind === "shared" || trip.isShared) && (
+                  <span
+                    className="trip-shared-icon"
+                    title={trip.kind === "shared" ? "みんなの時空旅で公開中" : "自分の記録・公開中"}
+                    aria-label="公開中"
+                  >
                     🌐
                   </span>
                 )}

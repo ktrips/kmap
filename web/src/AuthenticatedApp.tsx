@@ -12,7 +12,7 @@ import { usePlaces } from "./lib/usePlaces";
 import { useStamps } from "./lib/useStamps";
 import { useWalkRoutes } from "./lib/useWalkRoutes";
 import type { SharedTrip } from "./types/sharedTrip";
-import { fromWalkTrip, type UnifiedTrip } from "./types/unifiedTrip";
+import { fromSharedTrip, fromWalkTrip, type UnifiedTrip } from "./types/unifiedTrip";
 import type { SavedPlace } from "./types/place";
 
 type SidebarTab = "places" | "trips" | "admin";
@@ -45,15 +45,20 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   // メニューボタンを押すか、タブを切り替えると再び開く。
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // 「時空旅」タブは自分の記録だけを並べる（他ユーザーの時空旅は「みんなの時空旅」
-  // 公開ページの役目のため、ここには混ぜない）。公開中かどうかは、同じidの
-  // `sharedTrips`が存在するかで判定し、一覧にアイコンで示す。
+  // 「時空旅」タブは、自分の記録と他ユーザーが公開した時空旅（sharedTrips）の
+  // 両方を並べる。自分の記録のうち公開中のものは、同じidが`sharedTrips`にも
+  // 存在するため、重複して2件表示されないよう自分のID分は`sharedTrips`側から
+  // 除外してから合流させる。共有されている（＝自分の公開中の記録、または
+  // 他ユーザーの記録）ことは、一覧側で🌐アイコンとして示す。
   const sharedTripIDs = useMemo(() => new Set(sharedTrips.map((trip) => trip.id)), [sharedTrips]);
   const unifiedTrips = useMemo<UnifiedTrip[]>(() => {
-    return ownTrips
-      .map((trip) => fromWalkTrip(trip, stamps, photoPosts, sharedTripIDs.has(trip.id)))
-      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
-  }, [ownTrips, sharedTripIDs, stamps, photoPosts]);
+    const ownUnified = ownTrips.map((trip) =>
+      fromWalkTrip(trip, stamps, photoPosts, sharedTripIDs.has(trip.id)),
+    );
+    const ownIDs = new Set(ownUnified.map((trip) => trip.id));
+    const othersShared = sharedTrips.filter((trip) => !ownIDs.has(trip.id)).map(fromSharedTrip);
+    return [...ownUnified, ...othersShared].sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+  }, [ownTrips, sharedTrips, sharedTripIDs, stamps, photoPosts]);
 
   const selectedPlace = places.find((place) => place.id === selectedId) ?? null;
   const selectedTrip = unifiedTrips.find((trip) => trip.id === selectedTripId) ?? null;
@@ -74,7 +79,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
 
   return (
     <div className="app-shell">
-      <Header user={user} tripCount={unifiedTrips.length} onSignOut={onSignOut} />
+      <Header user={user} tripCount={ownTrips.length} onSignOut={onSignOut} />
       <div className="app-body">
         {isSidebarOpen && (
           <aside className="app-sidebar">
