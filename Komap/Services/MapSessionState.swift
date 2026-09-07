@@ -6,10 +6,14 @@ import Foundation
 struct CameraMoveRequest: Equatable {
     let id: UUID
     let coordinate: CLLocationCoordinate2D
+    /// このズームレベルまで動かしたい場合に指定する。`nil`の場合は今のズームレベルのまま
+    /// 座標だけ移動する（従来通りの挙動）。
+    let zoom: Float?
 
-    init(_ coordinate: CLLocationCoordinate2D) {
+    init(_ coordinate: CLLocationCoordinate2D, zoom: Float? = nil) {
         self.id = UUID()
         self.coordinate = coordinate
+        self.zoom = zoom
     }
 
     static func == (lhs: CameraMoveRequest, rhs: CameraMoveRequest) -> Bool {
@@ -36,7 +40,7 @@ final class MapSessionState: ObservableObject {
 
     private static let defaultOverlayOpacityKey = "defaultOverlayOpacity"
     /// セットアップ画面で変更していない場合の、古地図濃度の初期値。
-    private static let fallbackDefaultOverlayOpacity: Double = 0.6
+    private static let fallbackDefaultOverlayOpacity: Double = 0.5
 
     /// 起動時・「セットアップ」で変更していない限り古地図濃度に使う値。
     /// セットアップ画面の設定を保存・反映するために`UserDefaults`に永続化する。
@@ -57,8 +61,8 @@ final class MapSessionState: ObservableObject {
         overlayOpacity = value
     }
 
-    func moveCamera(to coordinate: CLLocationCoordinate2D) {
-        cameraMoveRequest = CameraMoveRequest(coordinate)
+    func moveCamera(to coordinate: CLLocationCoordinate2D, zoom: Float? = nil) {
+        cameraMoveRequest = CameraMoveRequest(coordinate, zoom: zoom)
     }
 
     /// 「My TimeTrip」の記録から、その時の古地図・不透明度・位置を復元してマップタブへ移動する。

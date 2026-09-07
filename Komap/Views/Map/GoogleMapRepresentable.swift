@@ -11,6 +11,8 @@ import SwiftUI
 struct GoogleMapRepresentable: UIViewRepresentable {
     var overlayMap: HistoricalOverlayMap?
     var overlayOpacity: Float
+    /// 現在地。自前で描く現在地マーク（`applyCurrentLocationMarker`）の位置に使う。
+    var currentLocation: CLLocationCoordinate2D?
     /// `true`の間は`overlayMap`単体ではなく、同梱・登録済みの古地図すべてを
     /// 地図上に重ねて表示する（「全ての古地図を表示」選択時）。
     var showAllOverlays: Bool = false
@@ -50,9 +52,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         )
         let mapView = GMSMapView()
         mapView.camera = initialCamera
-        mapView.isMyLocationEnabled = true
+        // Google純正の現在地の「青い点」は小さく、写真ピンなどの下に隠れて見づらいという
+        // 声があったため無効化し、代わりに`applyCurrentLocationMarker`で自前の、
+        // より大きく・常に最前面に出るマーカーを描く。
+        mapView.isMyLocationEnabled = false
         // Google純正の現在地ボタンは大きいため非表示にし、代わりにもっと小さい
-        // 自前のボタン（MapScreen側）を使う。現在地の「青い点」表示自体は上のまま残す。
+        // 自前のボタン（MapScreen側）を使う。
         mapView.settings.myLocationButton = false
         mapView.settings.compassButton = true
         mapView.delegate = context.coordinator
@@ -82,13 +87,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
         context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, isRecording: isRecordingWalk, to: mapView)
         context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
-        context.coordinator.applyPhotoPosts(photoPosts, to: mapView)
+        context.coordinator.applyPhotoPosts(photoPosts, isRecordingWalk: isRecordingWalk, to: mapView)
         mapView.padding = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
 
         if let request = moveCameraRequest, context.coordinator.lastHandledMoveRequestID != request.id {
             context.coordinator.lastHandledMoveRequestID = request.id
-            mapView.animate(to: GMSCameraPosition.camera(withTarget: request.coordinate, zoom: mapView.camera.zoom))
+            mapView.animate(to: GMSCameraPosition.camera(withTarget: request.coordinate, zoom: request.zoom ?? mapView.camera.zoom))
         }
+
+        context.coordinator.applyCurrentLocationMarker(currentLocation, emphasized: isRecordingWalk, to: mapView)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -159,6 +166,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 全古地図分ちゃんと出ることを確認すること）。
         private static let maxSimultaneousAllOverlayImages = 4
         private static let photoPostMarkerZIndex: Int32 = 20
+        /// 現在地マークは、写真ピンなど他のどのマーカーより必ず前面に出す。
+        private static let currentLocationMarkerZIndex: Int32 = 30
+
+        private var currentLocationMarker: GMSMarker?
+        /// 直近に描いた現在地マークが「強調表示」だったかどうか。歩行記録中は
+        /// 大きく目立つ見た目にするため、この状態が変わった時だけアイコンを作り直す。
+        private var isCurrentLocationMarkerEmphasized = false
+        /// 直近に投稿写真ピンへ適用した「記録中で薄く表示」状態。
+        private var arePhotoPostsDimmed = false
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
@@ -662,6 +678,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if !checkpointMarkers.isEmpty || !allOverlays.isEmpty {
                 bringCheckpointMarkersToFront(on: mapView)
             }
+            if let currentLocationMarker {
+                currentLocationMarker.map = nil
+                currentLocationMarker.map = mapView
+            }
         }
 
         /// チェックポイントのマーカーをタップした時に出す情報ウィンドウを、
@@ -721,7 +741,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 savedPolylinePairs = saved.map { coordinates in
                     let path = GMSMutablePath()
                     Self.smoothedTrailCoordinates(coordinates).forEach { path.add($0) }
-                    return makeTrailPair(path: path, dimmed: isRecording, on: mapView)
+                    return makeTrailPair(path: path, style: isRecording ? .faded : .saved, on: mapView)
                 }
                 isSavedTrailDimmed = isRecording
             } else if isRecording != isSavedTrailDimmed {
@@ -752,7 +772,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if let liveTrailPair {
                 liveTrailPair.setPath(path)
             } else {
-                liveTrailPair = makeTrailPair(path: path, dimmed: false, on: mapView)
+                liveTrailPair = makeTrailPair(path: path, style: .live, on: mapView)
             }
         }
 
@@ -778,18 +798,46 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             return result
         }
 
+        /// 通った道の塗り方。`live`（今まさに記録中の軌跡）は保存済みルートよりも
+        /// ひときわ濃く・太くして、「歩き進めている」実感を最大限出す。
+        private enum TrailStyle {
+            case saved
+            case faded
+            case live
+        }
+
         /// 縁取り（細い線）を先に描き、その上に一回り細い透かし塗りを重ねることで、
         /// 「縁ははっきり・中は控えめ」な1本の通った道を作る。
-        private func makeTrailPair(path: GMSMutablePath, dimmed: Bool, on mapView: GMSMapView) -> TrailPolylinePair {
+        private func makeTrailPair(path: GMSMutablePath, style: TrailStyle, on mapView: GMSMapView) -> TrailPolylinePair {
+            let borderColor: UIColor
+            let fillColor: UIColor
+            let widthScale: CGFloat
+            switch style {
+            case .saved:
+                borderColor = .walkedTrailBorder
+                fillColor = .walkedTrailFill
+                widthScale = 1
+            case .faded:
+                borderColor = .walkedTrailBorderFaded
+                fillColor = .walkedTrailFillFaded
+                widthScale = 1
+            case .live:
+                borderColor = .liveWalkedTrailBorder
+                fillColor = .liveWalkedTrailFill
+                // 保存済みルートより一回り太くして、今の軌跡が古地図の上でも
+                // ひときわくっきり・力強く見えるようにする。
+                widthScale = 1.35
+            }
+
             let border = GMSPolyline(path: path)
-            border.strokeColor = dimmed ? .walkedTrailBorderFaded : .walkedTrailBorder
-            border.strokeWidth = walkedTrailBorderWidth
+            border.strokeColor = borderColor
+            border.strokeWidth = walkedTrailBorderWidth * widthScale
             border.zIndex = 0
             border.map = mapView
 
             let fill = GMSPolyline(path: path)
-            fill.strokeColor = dimmed ? .walkedTrailFillFaded : .walkedTrailFill
-            fill.strokeWidth = walkedTrailFillWidth
+            fill.strokeColor = fillColor
+            fill.strokeWidth = walkedTrailFillWidth * widthScale
             fill.zIndex = 1
             fill.map = mapView
 
@@ -864,7 +912,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
 
         /// 記録中に投稿した写真を、その場所に丸いサムネイルのピンとして地図上に共有表示する。
-        func applyPhotoPosts(_ posts: [WalkPhotoPost], to mapView: GMSMapView) {
+        /// 歩行記録中（`isRecordingWalk`）は、今まさに歩いている軌跡・現在地の方を
+        /// 目立たせたいので、過去の投稿写真ピンは薄く控えめに表示する。
+        func applyPhotoPosts(_ posts: [WalkPhotoPost], isRecordingWalk: Bool, to mapView: GMSMapView) {
             let currentIDs = Set(posts.map(\.id))
             let staleIDs = photoPostMarkers.keys.filter { !currentIDs.contains($0) }
             for id in staleIDs {
@@ -879,8 +929,86 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
                 marker.userData = post
                 marker.zIndex = Self.photoPostMarkerZIndex
+                marker.opacity = isRecordingWalk ? Self.dimmedPhotoPostOpacity : 1.0
                 marker.map = mapView
                 photoPostMarkers[post.id] = marker
+            }
+
+            guard isRecordingWalk != arePhotoPostsDimmed else { return }
+            arePhotoPostsDimmed = isRecordingWalk
+            let opacity: Float = isRecordingWalk ? Self.dimmedPhotoPostOpacity : 1.0
+            for marker in photoPostMarkers.values {
+                marker.opacity = opacity
+            }
+        }
+
+        /// 歩行記録中に投稿写真ピンを薄く見せる不透明度。目立たなくはするが、
+        /// タップして開けることが分かる程度には残す。
+        private static let dimmedPhotoPostOpacity: Float = 0.35
+
+        /// 現在地マークを描く。Google純正の「青い点」は使わず、写真ピンなど他の
+        /// どのマーカーよりも必ず前面に出て、かつサイズも大きく分かりやすい
+        /// 自前のマーカーにする。歩行記録中（`emphasized`）はさらに一回り大きくする。
+        func applyCurrentLocationMarker(_ coordinate: CLLocationCoordinate2D?, emphasized: Bool, to mapView: GMSMapView) {
+            guard let coordinate else {
+                currentLocationMarker?.map = nil
+                currentLocationMarker = nil
+                return
+            }
+
+            if let marker = currentLocationMarker {
+                marker.position = coordinate
+                if emphasized != isCurrentLocationMarkerEmphasized {
+                    isCurrentLocationMarkerEmphasized = emphasized
+                    marker.icon = Self.currentLocationIcon(emphasized: emphasized)
+                }
+            } else {
+                isCurrentLocationMarkerEmphasized = emphasized
+                let marker = GMSMarker(position: coordinate)
+                marker.icon = Self.currentLocationIcon(emphasized: emphasized)
+                marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
+                marker.zIndex = Self.currentLocationMarkerZIndex
+                marker.isTappable = false
+                marker.map = mapView
+                currentLocationMarker = marker
+            }
+        }
+
+        /// 現在地マークのアイコン。青い円＋白い縁取り。歩行記録中（`emphasized`）は
+        /// 一回り大きく、外側にもう一段リングを足してさらに目立たせる。
+        private static func currentLocationIcon(emphasized: Bool) -> UIImage {
+            let diameter: CGFloat = emphasized ? 40 : 26
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))
+            return renderer.image { context in
+                let cg = context.cgContext
+                let center = CGPoint(x: diameter / 2, y: diameter / 2)
+
+                if emphasized {
+                    // 外側の薄いリング（現在地の存在感を広げる）。
+                    let outerRadius = diameter / 2 - 1
+                    cg.setFillColor(UIColor.systemBlue.withAlphaComponent(0.22).cgColor)
+                    cg.addArc(center: center, radius: outerRadius, startAngle: 0, endAngle: .pi * 2, clockwise: true)
+                    cg.fillPath()
+                }
+
+                // 白い縁取り。
+                let dotDiameter: CGFloat = emphasized ? 26 : 20
+                let dotRect = CGRect(
+                    x: center.x - dotDiameter / 2,
+                    y: center.y - dotDiameter / 2,
+                    width: dotDiameter,
+                    height: dotDiameter
+                )
+                cg.setFillColor(UIColor.white.cgColor)
+                cg.addEllipse(in: dotRect)
+                cg.fillPath()
+
+                // 中の青い点。
+                let innerInset: CGFloat = 3.5
+                let innerRect = dotRect.insetBy(dx: innerInset, dy: innerInset)
+                cg.setFillColor(UIColor.systemBlue.cgColor)
+                cg.addEllipse(in: innerRect)
+                cg.fillPath()
             }
         }
 

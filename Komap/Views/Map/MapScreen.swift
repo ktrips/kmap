@@ -78,7 +78,11 @@ struct MapScreen: View {
     /// 歩いて記録中は「古地図の上を歩いている」ように見せたいので、古地図が
     /// 選ばれていなければ自動で表示し、不透明度もこの値まで引き上げる
     /// （既にこれより濃く見せている場合はそのまま）。
-    private let walkingOverlayOpacity: Double = 0.75
+    private let walkingOverlayOpacity: Double = 0.5
+
+    /// 「スタート」を押した瞬間、現在地へ寄ってマークが見やすくなるよう
+    /// 合わせるズームレベル。現在地ボタン単体では従来通り現在のズームを保つ。
+    private let walkStartZoom: Float = 18
 
     /// 画面下部に浮かせているパネル（アクションボタン＋古地図コントロール）が占める高さ。
     /// Google純正の現在地ボタンなどがこのパネルに隠れて押せなくなるのを防ぐため、
@@ -153,6 +157,7 @@ struct MapScreen: View {
             GoogleMapRepresentable(
                 overlayMap: mapSession.selectedOverlay,
                 overlayOpacity: Float(mapSession.overlayOpacity),
+                currentLocation: locationManager.currentLocation,
                 showAllOverlays: mapSession.isShowingAllOverlays,
                 moveCameraRequest: mapSession.cameraMoveRequest,
                 bottomInset: bottomPanelHeight,
@@ -270,9 +275,14 @@ struct MapScreen: View {
         }
         .onChange(of: mapSession.selectedOverlay?.id) { _, _ in
             recomputeActiveCheckpoints()
+            // 「全ての古地図を表示」のオフなど、歩行記録中に古地図の選択が
+            // 意図せず外れてしまうことがあるため、記録中は毎回すぐに立て直す
+            // （そうしないと、歩き出した直後に古地図が消えて見えることがあった）。
+            showOldMapForWalkingIfNeeded()
         }
         .onChange(of: mapSession.isShowingAllOverlays) { _, _ in
             recomputeActiveCheckpoints()
+            showOldMapForWalkingIfNeeded()
         }
         .onChange(of: locationManager.walkPath.count) { _, _ in
             guard let latest = locationManager.walkPath.last else { return }
@@ -503,7 +513,7 @@ struct MapScreen: View {
         locationManager.startRecordingWalk()
         isFollowingCurrentLocation = true
         if let coordinate = locationManager.currentLocation {
-            mapSession.moveCamera(to: coordinate)
+            mapSession.moveCamera(to: coordinate, zoom: walkStartZoom)
         }
         showOldMapForWalkingIfNeeded()
     }
