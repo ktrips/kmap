@@ -1,0 +1,21 @@
+{
+  "name": "Komap 古地図巡り (Web)",
+  "short_name": "Komap Web",
+  "description": "Komap 古地図巡りで保存した、あなただけの時間旅行の記録を見られるWebアプリです。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6efe4",
+  "theme_color": "#8a5a34",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/app-icon.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}

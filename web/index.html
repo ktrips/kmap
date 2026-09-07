@@ -3,8 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/app-icon.png" />
+    <!-- iPhoneのホーム画面に追加した時のアイコン。iOSアプリ本体（TestFlight/App Store）の
+         アイコンと見分けられるよう、「WEB」の帯を付けた専用画像を使う。 -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Komap Web" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Komap 古地図巡り | 時空を超えた旅ができる地図アプリ</title>
+    <title>Komap 古地図巡り | 時空を超えた地図アプリ</title>
     <meta name="description" content="Komap 古地図巡りで保存した、あなただけの時間旅行の記録を見られるWebアプリです。" />
   </head>
   <body>
