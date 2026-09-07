@@ -3,16 +3,18 @@ import SwiftUI
 /// 「連携機能」（同じWi-Fi上のカメラ端末・プリンターとの連携）をまとめた設定画面。
 /// 「設定」画面の「連携機能」から開く。
 struct LinkedDevicesSettingsView: View {
-    @State private var cameraLinkHost: String = AppSettings.cameraLinkHost ?? ""
-    @State private var cameraLinkSavedMessage: String?
-
-    @State private var printerLinkHost: String = AppSettings.printerLinkHost ?? ""
-    @State private var printerLinkSavedMessage: String?
-
-    // 以下はトグル・Pickerを操作した瞬間に`AppSettings`（UserDefaults）へ直接
-    // 読み書きするバインディングにしている（ローカルの`@State`を別途持って
-    // `onChange`で書き戻す形にすると、この画面が作り直された時にローカル側の
-    // 値がずれて「保存したのに元に戻る」ように見えることがあったため）。
+    // ホスト名の入力欄も含め、この画面のすべての項目は`AppSettings`
+    // （UserDefaults）へ直接読み書きするバインディングにしている。ローカルの
+    // `@State`を別途持って明示的な「保存する」ボタンで書き戻す形だと、この画面が
+    // （例えばアドバンス設定のDisclosureGroupの開閉などで）作り直された時に
+    // ローカル側の値がずれて「入力したのに保存されない／元に戻る」ように
+    // 見えることがあったため、常にその場で確定させる方式に統一している。
+    private var cameraLinkHost: Binding<String> {
+        Binding(get: { AppSettings.cameraLinkHost ?? "" }, set: { AppSettings.cameraLinkHost = $0 })
+    }
+    private var printerLinkHost: Binding<String> {
+        Binding(get: { AppSettings.printerLinkHost ?? "" }, set: { AppSettings.printerLinkHost = $0 })
+    }
     private var printerSyncStamps: Binding<Bool> {
         Binding(get: { AppSettings.printerSyncStamps }, set: { AppSettings.printerSyncStamps = $0 })
     }
@@ -46,19 +48,11 @@ struct LinkedDevicesSettingsView: View {
 
     private var cameraLinkSection: some View {
         Section {
-            TextField("例: m5web.local", text: $cameraLinkHost)
+            TextField("例: m5web.local", text: cameraLinkHost)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.URL)
-            Button("保存する") {
-                AppSettings.cameraLinkHost = cameraLinkHost
-                cameraLinkSavedMessage = "保存しました"
-            }
-            if let cameraLinkSavedMessage {
-                Text(cameraLinkSavedMessage)
-                    .font(.caption)
-                    .foregroundStyle(.green)
-            }
+                .submitLabel(.done)
         } header: {
             Text("カメラ連携")
         } footer: {
@@ -68,10 +62,11 @@ struct LinkedDevicesSettingsView: View {
 
     private var printerLinkSection: some View {
         Section {
-            TextField("例: m5web.local", text: $printerLinkHost)
+            TextField("例: m5web.local", text: printerLinkHost)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.URL)
+                .submitLabel(.done)
             Toggle("御朱印の写真を連携する", isOn: printerSyncStamps)
             Toggle("投稿写真を連携する", isOn: printerSyncPhotoPosts)
             Picker("転送方式", selection: printerTransferMode) {
@@ -99,15 +94,6 @@ struct LinkedDevicesSettingsView: View {
             }
             .pickerStyle(.menu)
             Toggle("白黒で転送する", isOn: printerIsGrayscale)
-            Button("保存する") {
-                AppSettings.printerLinkHost = printerLinkHost
-                printerLinkSavedMessage = "保存しました"
-            }
-            if let printerLinkSavedMessage {
-                Text(printerLinkSavedMessage)
-                    .font(.caption)
-                    .foregroundStyle(.green)
-            }
         } header: {
             Text("プリンター連携")
         } footer: {
