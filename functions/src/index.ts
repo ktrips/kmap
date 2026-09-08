@@ -188,11 +188,25 @@ async function inviteToTestFlight(params: {
     },
   );
   if (!addToGroupResponse.ok && addToGroupResponse.status !== 204) {
-    const addBody = await addToGroupResponse.json().catch(() => ({}));
+    const addBody = (await addToGroupResponse.json().catch(() => ({}))) as AppStoreErrorBody;
     logger.error("既存betaTesterのグループ追加に失敗", {
       status: addToGroupResponse.status,
       body: addBody,
     });
+    // App Store Connect側で、対象の外部テストグループにベータ版App Reviewを通過した
+    // ビルドがまだ1つも無い場合、テスターの割り当て自体がこの409 STATE_ERROR
+    // （"Tester(s) cannot be assigned"）で拒否される。ここを汎用の「送信に失敗しました」
+    // のままにすると毎回サーバーログを確認しないと原因が分からないため、
+    // このケースだけ具体的な対処法をエラーメッセージに含める。
+    const isStateError =
+      addToGroupResponse.status === 409 &&
+      addBody.errors?.some((e) => e.code === "STATE_ERROR");
+    if (isStateError) {
+      throw new HttpsError(
+        "failed-precondition",
+        "TestFlightへの招待に失敗しました。外部テストグループにベータ版App Reviewを通過したビルドがまだ無い可能性があります。App Store Connectでビルドを外部テストグループに追加し、審査（Ready to Test）を通してから、もう一度お試しください。",
+      );
+    }
     throw new HttpsError("internal", "TestFlight招待の送信に失敗しました。");
   }
 
