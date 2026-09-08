@@ -860,6 +860,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 checkpointCollectedState.removeValue(forKey: siteID)
             }
 
+            var addedNewMarkers = false
             for site in checkpoints where checkpointMarkers[site.id] == nil {
                 let marker = GMSMarker(position: site.coordinate)
                 marker.title = site.name
@@ -868,8 +869,16 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 marker.zIndex = Self.checkpointMarkerZIndex
                 marker.map = mapView
                 checkpointMarkers[site.id] = marker
+                addedNewMarkers = true
             }
-            bringCheckpointMarkersToFront(on: mapView)
+            // `applyCheckpoints`はGPS更新や他のUI状態変化のたびに呼ばれるため、ここで
+            // 毎回`bringCheckpointMarkersToFront`（`.map`の再代入）を行うと、ちょうど
+            // タップして開いた直後の情報ウィンドウ（チェックポイント名の吹き出し）まで
+            // 選択解除されて一瞬で消えてしまう。マーカーの顔ぶれが実際に変わった時
+            // （追加・削除があった時）だけ前面へ出し直す。
+            if !staleIDs.isEmpty || addedNewMarkers {
+                bringCheckpointMarkersToFront(on: mapView)
+            }
 
             // GPS更新のたびに全マーカーへ`icon`/`opacity`を設定し直すと、チェックポイントが
             // 多い「全ての古地図を表示」時に特に重くなるため、獲得状態が変わったマーカーだけ更新する。

@@ -75,11 +75,6 @@ struct MapScreen: View {
     /// この距離（メートル）以内にチェックポイントへ近づいたら御朱印を獲得する。
     private let stampCollectionRadiusMeters: CLLocationDistance = 60
 
-    /// 歩いて記録中は「古地図の上を歩いている」ように見せたいので、古地図が
-    /// 選ばれていなければ自動で表示し、不透明度もこの値まで引き上げる
-    /// （既にこれより濃く見せている場合はそのまま）。
-    private let walkingOverlayOpacity: Double = 0.5
-
     /// 「スタート」を押した瞬間、現在地へ寄ってマークが見やすくなるよう
     /// 合わせるズームレベル。現在地ボタン単体では従来通り現在のズームを保つ。
     private let walkStartZoom: Float = 18
@@ -272,6 +267,7 @@ struct MapScreen: View {
             locationManager.requestPermissionIfNeeded()
             syncWatchState()
             recomputeActiveCheckpoints()
+            mapSession.isWalking = locationManager.isRecordingWalk || isWatchTrackingActive
         }
         .onChange(of: mapSession.selectedOverlay?.id) { _, _ in
             recomputeActiveCheckpoints()
@@ -301,11 +297,13 @@ struct MapScreen: View {
         .onChange(of: photoPostPickerItem) { _, newItem in
             loadAndPostPhoto(newItem)
         }
-        .onChange(of: locationManager.isRecordingWalk) { _, _ in
+        .onChange(of: locationManager.isRecordingWalk) { _, isRecording in
             syncWatchState()
+            mapSession.isWalking = isRecording || isWatchTrackingActive
             showOldMapForWalkingIfNeeded()
         }
-        .onChange(of: isWatchTrackingActive) { _, _ in
+        .onChange(of: isWatchTrackingActive) { _, isActive in
+            mapSession.isWalking = locationManager.isRecordingWalk || isActive
             showOldMapForWalkingIfNeeded()
         }
         .onChange(of: locationManager.isWalkPaused) { _, _ in
@@ -523,12 +521,7 @@ struct MapScreen: View {
     /// 不透明度もある程度濃くする。ユーザーが既にそれ以上濃くしていれば触らない。
     private func showOldMapForWalkingIfNeeded() {
         guard locationManager.isRecordingWalk || isWatchTrackingActive else { return }
-        if mapSession.selectedOverlay == nil && !mapSession.isShowingAllOverlays {
-            mapSession.selectedOverlay = OldMapCatalog.edoCastle
-        }
-        if mapSession.overlayOpacity < walkingOverlayOpacity {
-            mapSession.overlayOpacity = walkingOverlayOpacity
-        }
+        mapSession.restoreOldMapForWalking()
     }
 
     /// 記録を終える。`autoSave`が`true`の時（Apple Watchからの「終了」など、

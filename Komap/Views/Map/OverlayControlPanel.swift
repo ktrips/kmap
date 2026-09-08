@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 画面下部に浮かせる、古地図の選択と不透明度（現在の地図 ⇔ 古地図）の切り替えパネル。
 struct OverlayControlPanel: View {
+    @EnvironmentObject private var mapSession: MapSessionState
     @Binding var selectedOverlay: HistoricalOverlayMap?
     @Binding var overlayOpacity: Double
     /// 「全ての古地図を表示」が選ばれているかどうか。選ばれている間は、単一の`selectedOverlay`ではなく
@@ -20,7 +21,15 @@ struct OverlayControlPanel: View {
     var body: some View {
         VStack(spacing: 14) {
             Button {
-                isPresentingPicker = true
+                // 歩行記録中に古地図が非表示になっている時は、選択シートを開かず
+                // その場ですぐ古地図を復活させる（「下の古地図を押すと再度表示」）。
+                // 既に何か表示されている時は、これまで通り選び直しシートを開く。
+                if mapSession.isWalking && selectedOverlay == nil && !isShowingAllOverlays {
+                    mapSession.restoreOldMapForWalking()
+                    onSelect(selectedOverlay)
+                } else {
+                    isPresentingPicker = true
+                }
             } label: {
                 HStack {
                     Image(systemName: "map.fill")
@@ -185,6 +194,7 @@ struct OldMapPickerSheet: View {
                 overlayOpacity: .constant(0.6),
                 isShowingAllOverlays: .constant(false)
             )
+            .environmentObject(MapSessionState())
             .padding(.bottom, 20)
         }
     }

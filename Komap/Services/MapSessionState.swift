@@ -37,10 +37,32 @@ final class MapSessionState: ObservableObject {
     @Published var isShowingAllOverlays: Bool = false
     /// 「新しい古地図を登録」の検索シートを表示するかどうか。
     @Published var isShowingOldMapSearch: Bool = false
+    /// 歩行記録中（iPhone本体・Apple Watchどちらでも）かどうか。`MapScreen`が
+    /// 実際の記録状態（`LocationManager.isRecordingWalk`等）と同期させる。左上・下部の
+    /// 古地図コントロールなど、`MapScreen`の外からも「今歩いているか」を参照したい
+    /// 場面のために公開している。
+    @Published var isWalking: Bool = false
 
     private static let defaultOverlayOpacityKey = "defaultOverlayOpacity"
     /// セットアップ画面で変更していない場合の、古地図濃度の初期値。
     private static let fallbackDefaultOverlayOpacity: Double = 0.5
+    /// 歩いて記録中は「古地図の上を歩いている」ように見せたいので、古地図が
+    /// 選ばれていなければ自動で表示し、不透明度もこの値まで引き上げる
+    /// （既にこれより濃く見せている場合はそのまま）。
+    static let walkingOverlayOpacity: Double = 0.5
+
+    /// 古地図が表示されていなければ（選択なし、かつ「全ての古地図を表示」でもない）
+    /// デフォルトの古地図を選び直し、不透明度も歩行中の見やすさを確保できる値まで
+    /// 引き上げる。歩行記録中に古地図の選択が意図せず外れてしまった時、
+    /// 左上・下部の古地図コントロールをもう一度押すだけで復帰できるようにするために使う。
+    func restoreOldMapForWalking() {
+        if selectedOverlay == nil && !isShowingAllOverlays {
+            selectedOverlay = OldMapCatalog.edoCastle
+        }
+        if overlayOpacity < Self.walkingOverlayOpacity {
+            overlayOpacity = Self.walkingOverlayOpacity
+        }
+    }
 
     /// 起動時・「セットアップ」で変更していない限り古地図濃度に使う値。
     /// セットアップ画面の設定を保存・反映するために`UserDefaults`に永続化する。
