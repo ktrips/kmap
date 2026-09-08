@@ -101,7 +101,14 @@ private struct MapTopLeftControls: View {
             .accessibilityLabel("マイ時空旅")
 
             Button {
-                isPresentingOldMapPicker = true
+                // 歩行記録中に古地図が非表示になっている時は、選択シートを開かず
+                // その場ですぐ古地図を復活させる（「左上の古地図を押すと再度表示」）。
+                // 既に何か表示されている時は、これまで通り選び直しシートを開く。
+                if mapSession.isWalking && mapSession.selectedOverlay == nil && !mapSession.isShowingAllOverlays {
+                    mapSession.restoreOldMapForWalking()
+                } else {
+                    isPresentingOldMapPicker = true
+                }
             } label: {
                 Image(systemName: "map")
                     .roundControlButtonStyle()
