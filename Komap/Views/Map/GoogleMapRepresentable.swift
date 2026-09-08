@@ -911,12 +911,21 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         ///   この`.map = nil`→再代入は、その安全側の対策として引き続き残している。
         ///   単体の古地図を選んで表示するモードはこの制約の影響を受けない。
         private func bringCheckpointMarkersToFront(on mapView: GMSMapView) {
+            // `.map`への再代入はマーカーの選択状態（＝開いている情報ウィンドウ）を
+            // 解除してしまう。チェックポイントをタップした直後は、SDKが自動で
+            // カメラをそのマーカーへ寄せるため`idleAt`が呼ばれ、ここで前面へ
+            // 出し直す処理が走って開いたばかりの名前表示を即座に消してしまっていた。
+            // 選択中のマーカーを覚えておき、再代入後に選択し直すことでこれを防ぐ。
+            let selected = mapView.selectedMarker
             for marker in checkpointMarkers.values {
                 // 既に`.map`が同じ`mapView`のままだと再代入が内部的に無視され、
                 // 描画順が更新されないことがあるため、一度`nil`にしてから
                 // 改めてセットし直すことで、確実に「最後に追加した」状態にする。
                 marker.map = nil
                 marker.map = mapView
+            }
+            if let selected, checkpointMarkers.values.contains(where: { $0 === selected }) {
+                mapView.selectedMarker = selected
             }
         }
 

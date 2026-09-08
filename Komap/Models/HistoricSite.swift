@@ -684,6 +684,20 @@ enum HistoricSiteCatalog {
             summary: "1872年（明治5年）、日本初の鉄道が新橋〜横浜間に開業した際の起点駅跡。現在は駅舎が復元されている。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6658, longitude: 139.7616)
         ),
+        HistoricSite(
+            id: "ginza-hamarikyu-gardens",
+            overlayMapID: OldMapCatalog.ginzaKabukiza.id,
+            name: "浜離宮恩賜庭園",
+            summary: "徳川将軍家の別邸として造られた潮入りの回遊式庭園。海水を引き込む池と、高層ビルを望む景観が同居する。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6597, longitude: 139.7636)
+        ),
+        HistoricSite(
+            id: "ginza-daimon",
+            overlayMapID: OldMapCatalog.ginzaKabukiza.id,
+            name: "大門",
+            summary: "増上寺の総門として建てられた大きな門に由来する地名。現在も交差点や駅名にその名を残す。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6564, longitude: 139.7566)
+        ),
 
         // 「君の名は。」聖地巡礼（新宿・四谷・原宿・渋谷）
         HistoricSite(

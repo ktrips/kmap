@@ -253,17 +253,19 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.68296, longitude: 139.73031)
     )
 
-    // 銀座・歌舞伎座は、実在の古地図・現在の地図の加工のどちらでもなく、
-    // 銀座煉瓦街・歌舞伎座・柳並木をモチーフにした、著作権のかからないオリジナルの
-    // 「古地図風」イラスト（`kiminonaSeichi`/`ghibliSeichi`と同様、自作の汎用デザイン）。
+    // 銀座・歌舞伎座は、当初は自作のオリジナル「古地図風」イラスト（`OldMap_GinzaKabukiza`）
+    // だったが、日本橋・神田明神と同じ「東京實測全圖」実写版（`OldMap_Nihonbashi`）を
+    // 使うよう変更した。日本橋のすぐ南に銀座・築地があり、この画像自体がもともと
+    // 銀座エリアも含む範囲で撮影・位置合わせされているため、南側（浜離宮・大門）まで
+    // 範囲を広げて日本橋と同じ画像・同じ位置合わせをそのまま使っている。
     static let ginzaKabukiza = HistoricalOverlayMap(
         id: "ginza-kabukiza",
         title: "銀座・歌舞伎座",
-        era: "古地図風（オリジナルイラスト）",
-        summary: "文明開化とともに煉瓦街が築かれ、柳並木が象徴となった銀座と、歌舞伎の殿堂・歌舞伎座を中心としたエリアです。京橋から新橋にかけての目抜き通りをたどります。",
-        imageAssetName: "OldMap_GinzaKabukiza",
-        southWest: CLLocationCoordinate2D(latitude: 35.660, longitude: 139.755),
-        northEast: CLLocationCoordinate2D(latitude: 35.682, longitude: 139.775)
+        era: "明治時代（1891年・明治24年頃）",
+        summary: "文明開化とともに煉瓦街が築かれ、柳並木が象徴となった銀座と、歌舞伎の殿堂・歌舞伎座を中心としたエリアです。京橋から新橋、浜離宮・大門にかけてをたどります。",
+        imageAssetName: "OldMap_Nihonbashi",
+        southWest: CLLocationCoordinate2D(latitude: 35.652, longitude: 139.7505),
+        northEast: CLLocationCoordinate2D(latitude: 35.7166, longitude: 139.7929)
     )
 
     // 神楽坂・早稲田・新宿も、現在の地図のスクリーンショットからピンアイコンを除去して
