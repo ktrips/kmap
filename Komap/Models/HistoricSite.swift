@@ -648,6 +648,43 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.7017, longitude: 139.7397)
         ),
 
+        // 銀座・歌舞伎座
+        HistoricSite(
+            id: "ginza-brick-town",
+            overlayMapID: OldMapCatalog.ginzaKabukiza.id,
+            name: "銀座煉瓦街跡",
+            summary: "明治初期の大火の後、不燃化のため築かれた西洋風の煉瓦街。銀座通り沿いに洋風建築が並んだ文明開化の象徴。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6741, longitude: 139.7712)
+        ),
+        HistoricSite(
+            id: "ginza-kabukiza-theater",
+            overlayMapID: OldMapCatalog.ginzaKabukiza.id,
+            name: "歌舞伎座",
+            summary: "1889年（明治22年）開場の歌舞伎の殿堂。破風屋根と定式幕が特徴的な、銀座を代表する劇場建築。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6693, longitude: 139.7663)
+        ),
+        HistoricSite(
+            id: "ginza-4chome-crossing",
+            overlayMapID: OldMapCatalog.ginzaKabukiza.id,
+            name: "銀座四丁目交差点",
+            summary: "和光の時計塔で知られる銀座のシンボル的な交差点。中央通りと晴海通りが交わる、銀座随一の賑わいの中心地。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6717, longitude: 139.7660)
+        ),
+        HistoricSite(
+            id: "ginza-willow-monument",
+            overlayMapID: OldMapCatalog.ginzaKabukiza.id,
+            name: "銀座柳の碑",
+            summary: "「東京行進曲」にも歌われた銀座の柳並木を今に伝える記念碑。かつて銀座通りの舗道を彩った柳のシンボル。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6693, longitude: 139.7607)
+        ),
+        HistoricSite(
+            id: "ginza-old-shimbashi-station",
+            overlayMapID: OldMapCatalog.ginzaKabukiza.id,
+            name: "旧新橋停車場跡",
+            summary: "1872年（明治5年）、日本初の鉄道が新橋〜横浜間に開業した際の起点駅跡。現在は駅舎が復元されている。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6658, longitude: 139.7616)
+        ),
+
         // 「君の名は。」聖地巡礼（新宿・四谷・原宿・渋谷）
         HistoricSite(
             id: "kiminona-suga-shrine",

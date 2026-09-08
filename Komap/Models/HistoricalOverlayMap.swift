@@ -253,6 +253,19 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.68296, longitude: 139.73031)
     )
 
+    // 銀座・歌舞伎座は、実在の古地図・現在の地図の加工のどちらでもなく、
+    // 銀座煉瓦街・歌舞伎座・柳並木をモチーフにした、著作権のかからないオリジナルの
+    // 「古地図風」イラスト（`kiminonaSeichi`/`ghibliSeichi`と同様、自作の汎用デザイン）。
+    static let ginzaKabukiza = HistoricalOverlayMap(
+        id: "ginza-kabukiza",
+        title: "銀座・歌舞伎座",
+        era: "古地図風（オリジナルイラスト）",
+        summary: "文明開化とともに煉瓦街が築かれ、柳並木が象徴となった銀座と、歌舞伎の殿堂・歌舞伎座を中心としたエリアです。京橋から新橋にかけての目抜き通りをたどります。",
+        imageAssetName: "OldMap_GinzaKabukiza",
+        southWest: CLLocationCoordinate2D(latitude: 35.660, longitude: 139.755),
+        northEast: CLLocationCoordinate2D(latitude: 35.682, longitude: 139.775)
+    )
+
     // 神楽坂・早稲田・新宿も、現在の地図のスクリーンショットからピンアイコンを除去して
     // セピア調に加工した「古地図風」画像。実際の歴史史料のスキャンではない
     // （`akasakaKioicho`/`oyamaKaido`と同じ扱い）。
@@ -312,7 +325,7 @@ enum OldMapCatalog {
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, nihonbashi,
         goshikiFudo, bashoOkuNoHosomichi, akasakaKioicho,
-        tokaido, nakasendo,
+        tokaido, nakasendo, ginzaKabukiza,
         meijiJinguOmotesando, oyamaKaido, kagurazakaWasedaShinjuku,
         kiminonaSeichi, ghibliSeichi,
     ]
@@ -332,6 +345,7 @@ enum OldMapCatalog {
         akasakaKioicho.id: .historicSites,
         meijiJinguOmotesando.id: .historicSites,
         kagurazakaWasedaShinjuku.id: .historicSites,
+        ginzaKabukiza.id: .historicSites,
         tokaido.id: .kaido,
         nakasendo.id: .kaido,
         oyamaKaido.id: .kaido,
