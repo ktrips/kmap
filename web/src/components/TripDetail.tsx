@@ -133,6 +133,97 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
 
   return (
     <div className="trip-detail">
+      {/* ヘッダー情報：題名（古地図）＋公開状況、説明、日付・距離・時間・歩数、件数 */}
+      <div className="trip-header-info">
+        {isEditing ? (
+          <div className="trip-edit-form">
+            <input
+              type="text"
+              className="trip-edit-title-input"
+              placeholder="旅の名称"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              maxLength={100}
+            />
+            <textarea
+              className="trip-edit-description-input"
+              placeholder="感想・説明を書く…"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              maxLength={1000}
+              rows={4}
+            />
+            <div className="trip-edit-actions">
+              <button type="button" className="trip-edit-save" onClick={() => void handleSaveEdits()} disabled={isSaving}>
+                {isSaving ? "保存中…" : "保存"}
+              </button>
+              <button type="button" className="trip-edit-cancel" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                キャンセル
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="trip-title-row">
+              <h2>
+                {trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}
+                {oldMap && <span className="trip-title-oldmap">（{oldMap.title}）</span>}
+              </h2>
+              {(trip.kind === "shared" || trip.isShared) && (
+                <span className="trip-visibility-badge" title="みんなの時空旅で公開中">
+                  🌐 公開中
+                </span>
+              )}
+              {canEdit && (
+                <button type="button" className="trip-edit-button" onClick={startEditing}>
+                  ✏️ 編集
+                </button>
+              )}
+            </div>
+            {trip.description && trip.description.length > 0 && (
+              <p className="trip-description-text">{trip.description}</p>
+            )}
+          </>
+        )}
+
+        {trip.kind === "shared" && trip.ownerDisplayName && (
+          <p className="place-detail-oldmap">投稿者：{trip.ownerDisplayName}</p>
+        )}
+
+        <p className="trip-journal-basic-info">
+          {dateFormatter.format(trip.startedAt)}
+          {" ・ "}
+          {distanceLabel(trip.totalDistanceMeters)}
+          {duration ? ` ・ ${duration}` : ""}
+          {trip.stepCount ? ` ・ ${trip.stepCount}歩` : ""}
+        </p>
+        <p className="trip-journal-basic-info">
+          {`御朱印 ${trip.stampCount ?? trip.stampPhotos.length}件`}
+          {` ・ 写真 ${trip.postPhotos.length}件`}
+          {likeCount > 0 ? ` ・ いいね ${likeCount}件` : ""}
+        </p>
+
+        <div className="trip-engagement">
+          <button
+            type="button"
+            className={`trip-like-button ${isLikedByMe ? "is-liked" : ""}`}
+            onClick={handleLikeClick}
+            disabled={isToggling}
+          >
+            {isLikedByMe ? "❤️" : "🤍"} いいね{likeCount > 0 ? ` ${likeCount}` : ""}
+          </button>
+        </div>
+      </div>
+
+      {/* 旅のサマリー（AIが生成した旅行記の本文。未生成なら非表示） */}
+      {journalHtml && (
+        <div className="trip-journal-summary">
+          <p className="trip-journal-summary-title">旅のサマリー</p>
+          <div className="trip-journal-body" dangerouslySetInnerHTML={{ __html: journalHtml }} />
+        </div>
+      )}
+
+      {/* 地図 */}
       {trip.latitudes.length > 0 && (
         <TripMapView
           latitudes={routeCoordinates.latitudes}
@@ -142,159 +233,35 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         />
       )}
 
-      <p className="place-detail-era">{dateFormatter.format(trip.startedAt)}</p>
-
-      {isEditing ? (
-        <div className="trip-edit-form">
-          <input
-            type="text"
-            className="trip-edit-title-input"
-            placeholder="旅の名称"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            maxLength={100}
-          />
-          <textarea
-            className="trip-edit-description-input"
-            placeholder="感想・説明を書く…"
-            value={editDescription}
-            onChange={(e) => setEditDescription(e.target.value)}
-            maxLength={1000}
-            rows={4}
-          />
-          <div className="trip-edit-actions">
-            <button type="button" className="trip-edit-save" onClick={() => void handleSaveEdits()} disabled={isSaving}>
-              {isSaving ? "保存中…" : "保存"}
-            </button>
-            <button type="button" className="trip-edit-cancel" onClick={() => setIsEditing(false)} disabled={isSaving}>
-              キャンセル
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="trip-title-row">
-            {trip.title && trip.title.length > 0 && <h2>{trip.title}</h2>}
-            {canEdit && (
-              <button type="button" className="trip-edit-button" onClick={startEditing}>
-                ✏️ 編集
-              </button>
-            )}
-          </div>
-          {trip.description && trip.description.length > 0 && (
-            <p className="trip-description-text">{trip.description}</p>
-          )}
-        </>
-      )}
-
-      {trip.kind === "shared" && trip.ownerDisplayName && (
-        <p className="place-detail-oldmap">投稿者：{trip.ownerDisplayName}</p>
-      )}
-      {oldMap && <p className="place-detail-oldmap">使っていた古地図：{oldMap.title}</p>}
-      <p className="place-detail-coordinate">
-        {distanceLabel(trip.totalDistanceMeters)}
-        {duration ? ` ・ ${duration}` : ""}
-        {trip.stepCount ? ` ・ ${trip.stepCount}歩` : ""}
-        {trip.stampCount !== null ? ` ・ 御朱印 ${trip.stampCount}件` : ""}
-      </p>
-
-      <div className="trip-engagement">
-        <button
-          type="button"
-          className={`trip-like-button ${isLikedByMe ? "is-liked" : ""}`}
-          onClick={handleLikeClick}
-          disabled={isToggling}
-        >
-          {isLikedByMe ? "❤️" : "🤍"} いいね{likeCount > 0 ? ` ${likeCount}` : ""}
-        </button>
-      </div>
-
+      {/* 通った御朱印 */}
       {trip.stampPhotos.length > 0 && (
-        <div className="shared-trip-photo-section">
-          <p className="shared-trip-photo-section-title">御朱印</p>
-          <div className="shared-trip-photos">
-            {trip.stampPhotos.map((photo) => (
-              <figure key={photo.url} className="shared-trip-photo-item">
-                <img src={photo.url} alt={photo.label} className="shared-trip-photo" loading="lazy" />
-                <figcaption>{photo.label}</figcaption>
-              </figure>
-            ))}
-          </div>
+        <div className="trip-journal-gallery">
+          <p className="trip-journal-gallery-title">通った御朱印</p>
+          {trip.stampPhotos.map((photo) => (
+            <div key={photo.url} className="trip-journal-gallery-item">
+              <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
+              <div className="trip-journal-gallery-text">
+                <p className="trip-journal-gallery-name">{photo.label}</p>
+                {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
+      {/* 投稿した写真 */}
       {trip.postPhotos.length > 0 && (
-        <div className="shared-trip-photo-section">
-          <p className="shared-trip-photo-section-title">投稿写真</p>
-          <div className="shared-trip-photos">
-            {trip.postPhotos.map((photo) => (
-              <figure key={photo.url} className="shared-trip-photo-item">
-                <img src={photo.url} alt={photo.label} className="shared-trip-photo" loading="lazy" />
-                {photo.label && <figcaption>{photo.label}</figcaption>}
-              </figure>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {journalHtml && (
-        <div className="trip-journal-section">
-          <p className="shared-trip-photo-section-title">旅行記{trip.journalTitle ? `：${trip.journalTitle}` : ""}</p>
-
-          <p className="trip-journal-basic-info">
-            {dateFormatter.format(trip.startedAt)}
-            {oldMap ? ` ・ ${oldMap.title}` : ""}
-            <br />
-            {distanceLabel(trip.totalDistanceMeters)}
-            {duration ? ` ・ ${duration}` : ""}
-            {trip.stepCount ? ` ・ ${trip.stepCount}歩` : ""}
-            {` ・ 御朱印 ${trip.stampCount ?? trip.stampPhotos.length}件`}
-            {trip.postPhotos.length > 0 ? ` ・ 写真 ${trip.postPhotos.length}件` : ""}
-          </p>
-
-          <p className="trip-journal-summary-title">旅のサマリー</p>
-          <div className="trip-journal-body" dangerouslySetInnerHTML={{ __html: journalHtml }} />
-
-          {trip.latitudes.length > 0 && (
-            <div className="trip-journal-map">
-              <TripMapView
-                latitudes={routeCoordinates.latitudes}
-                longitudes={routeCoordinates.longitudes}
-                oldMap={oldMap}
-                checkpoints={checkpoints}
-              />
+        <div className="trip-journal-gallery">
+          <p className="trip-journal-gallery-title">投稿した写真</p>
+          {trip.postPhotos.map((photo) => (
+            <div key={photo.url} className="trip-journal-gallery-item">
+              <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
+              <div className="trip-journal-gallery-text">
+                {photo.label && <p className="trip-journal-gallery-name">{photo.label}</p>}
+                {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
+              </div>
             </div>
-          )}
-
-          {trip.stampPhotos.length > 0 && (
-            <div className="trip-journal-gallery">
-              <p className="trip-journal-gallery-title">巡った御朱印</p>
-              {trip.stampPhotos.map((photo) => (
-                <div key={photo.url} className="trip-journal-gallery-item">
-                  <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
-                  <div className="trip-journal-gallery-text">
-                    <p className="trip-journal-gallery-name">{photo.label}</p>
-                    {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {trip.postPhotos.length > 0 && (
-            <div className="trip-journal-gallery">
-              <p className="trip-journal-gallery-title">投稿した写真</p>
-              {trip.postPhotos.map((photo) => (
-                <div key={photo.url} className="trip-journal-gallery-item">
-                  <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
-                  <div className="trip-journal-gallery-text">
-                    {photo.label && <p className="trip-journal-gallery-name">{photo.label}</p>}
-                    {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
       )}
 

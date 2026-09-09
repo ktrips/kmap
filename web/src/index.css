@@ -576,10 +576,31 @@ code {
 
 /* ---------- Trip title/description editing ---------- */
 
+.trip-header-info {
+  padding-bottom: 4px;
+}
+
 .trip-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trip-title-oldmap {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-brown);
+  margin-left: 4px;
+}
+
+.trip-visibility-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2b6cb0;
+  background: rgba(43, 108, 176, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 .trip-edit-button {
@@ -775,10 +796,6 @@ code {
 
 /* ---------- Shared trip photos ---------- */
 
-.shared-trip-photo-section {
-  margin-top: 20px;
-}
-
 .shared-trip-photo-section-title {
   margin: 0 0 8px;
   font-size: 0.85rem;
@@ -786,36 +803,9 @@ code {
   color: var(--color-brown);
 }
 
-.shared-trip-photos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.shared-trip-photo-item {
-  margin: 0;
-}
-
-.shared-trip-photo-item figcaption {
-  margin-top: 4px;
-  font-size: 0.75rem;
-  color: #5b5044;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.shared-trip-photo {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid var(--color-border);
-}
-
 /* ---------- Travel journal (AI-generated) ---------- */
 
-.trip-journal-section {
+.trip-journal-summary {
   margin-top: 20px;
   padding: 16px 18px;
   background: #fdf2e3;
@@ -830,16 +820,10 @@ code {
 }
 
 .trip-journal-summary-title {
-  margin: 16px 0 4px;
+  margin: 0 0 4px;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--color-brown-deep);
-}
-
-.trip-journal-map {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--color-border);
 }
 
 .trip-journal-body {

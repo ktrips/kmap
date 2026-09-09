@@ -12,8 +12,25 @@ struct TravelJournalView: View {
     let photoPosts: [WalkPhotoPost]
     let checkpoints: [HistoricSite]
 
+    /// 「YYYY/M/D HH:MI」形式の日時表記（時間旅の記録画面と統一）。
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/M/d HH:mm"
+        return formatter
+    }()
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+
+    @State private var likeCount = 0
+
+    private let syncService = SyncService()
+
+    /// 現在の公開状態（公開・自分だけ・非表示の3段階）。
+    private var currentVisibility: TripVisibility {
+        if route.isSharedPublicly { return .publicShared }
+        return route.isHiddenOnMap ? .hidden : .onlyMe
+    }
 
     private var sortedStamps: [CollectedStamp] {
         stamps.sorted { $0.collectedAt < $1.collectedAt }
@@ -34,9 +51,11 @@ struct TravelJournalView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    titleSection
-
-                    basicInfoSection
+                    VStack(alignment: .leading, spacing: 6) {
+                        nameSection
+                        statsSection
+                        countsSection
+                    }
 
                     summarySection
 
@@ -67,63 +86,74 @@ struct TravelJournalView: View {
                     Button("閉じる") { dismiss() }
                 }
             }
-        }
-    }
-
-    private var titleSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let overlayMap = route.overlayMap {
-                Text(overlayMap.title)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.brown)
-            }
-
-            Text(route.travelJournalTitle ?? route.title ?? "旅行記")
-                .font(.title2.bold())
-
-            if let generatedAt = route.travelJournalGeneratedAt {
-                Text(generatedAt, format: .dateTime.year().month().day())
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            .task(id: route.isSharedPublicly) {
+                guard route.isSharedPublicly else { return }
+                guard let counts = try? await syncService.fetchEngagementCounts(tripID: route.id.uuidString) else { return }
+                likeCount = counts.likeCount
             }
         }
     }
 
-    /// 旅の基本情報（日時・距離・時間・歩数・御朱印/写真の件数）。
-    private var basicInfoSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 12) {
-                Label(distanceText, systemImage: "figure.walk")
-                if let durationText {
-                    Label(durationText, systemImage: "clock")
-                }
-                if let stepCount = route.stepCount {
-                    Label("\(stepCount)歩", systemImage: "shoeprints.fill")
-                }
+    /// 1行目：旅の名前（使っていた古地図）と、その右横に公開状況アイコン・ラベル。
+    /// 時間旅の記録画面（`WalkRouteDetailView`）と同じ並びにしている。
+    private var nameSection: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            if let title = route.title, !title.isEmpty {
+                Text(title)
+                    .font(.title3.bold())
+            } else {
+                Text(Self.dateFormatter.string(from: route.startedAt))
+                    .font(.title3.bold())
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Text("（\(route.overlayMap?.title ?? "古地図なし")）")
+                .font(.subheadline.bold())
+                .foregroundStyle(.brown)
 
-            HStack(spacing: 12) {
-                Label("御朱印 \(sortedStamps.count)件", systemImage: "seal.fill")
-                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
-                if !sortedPhotoPosts.isEmpty {
-                    Label("写真 \(sortedPhotoPosts.count)件", systemImage: "camera.fill")
-                        .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+
+            Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
+                .lineLimit(1)
+                .layoutPriority(1)
         }
+    }
+
+    /// 2行目：日付・歩いた距離・歩数・時間。
+    private var statsSection: some View {
+        HStack(spacing: 12) {
+            Label(Self.dateFormatter.string(from: route.startedAt), systemImage: "calendar")
+            Label(distanceText, systemImage: "figure.walk")
+            if let stepCount = route.stepCount {
+                Label("\(stepCount)歩", systemImage: "shoeprints.fill")
+            }
+            if let durationText {
+                Label(durationText, systemImage: "clock")
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    /// 3行目：御朱印の数・写真の数・いいねの数。
+    private var countsSection: some View {
+        HStack(spacing: 12) {
+            Label("御朱印 \(sortedStamps.count)件", systemImage: "seal.fill")
+                .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+            Label("写真 \(sortedPhotoPosts.count)件", systemImage: "camera.fill")
+                .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
+            if route.isSharedPublicly {
+                Label("いいね \(likeCount)件", systemImage: "heart.fill")
+                    .foregroundStyle(.pink)
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 
     private var summarySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("旅のサマリー")
+            Text(route.travelJournalTitle.map { "旅のサマリー：\($0)" } ?? "旅のサマリー")
                 .font(.headline)
             Text(bodyText)
                 .font(.body)
@@ -149,7 +179,7 @@ struct TravelJournalView: View {
 
     private var goshuinGallery: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("巡った御朱印")
+            Text("通った御朱印")
                 .font(.headline)
 
             ForEach(sortedStamps) { stamp in
