@@ -43,16 +43,24 @@ export function fromWalkTrip(
   const tripPhotoPosts = photoPosts.filter((post) => post.walkRouteID === trip.id);
   const stampPhotos: SharedPhoto[] = tripStamps
     .filter((stamp) => Boolean(stamp.photoURL))
-    .map((stamp) => ({
-      url: stamp.photoURL as string,
-      label: findHistoricSite(stamp.siteID)?.name ?? "御朱印",
-    }));
+    .map((stamp) => {
+      const photo: SharedPhoto = {
+        url: stamp.photoURL as string,
+        label: findHistoricSite(stamp.siteID)?.name ?? "御朱印",
+      };
+      if (stamp.detail) photo.detail = stamp.detail;
+      return photo;
+    });
   const postPhotos: SharedPhoto[] = tripPhotoPosts
     .filter((post) => Boolean(post.photoURL))
-    .map((post) => ({
-      url: post.photoURL as string,
-      label: post.placeName ?? "",
-    }));
+    .map((post) => {
+      const photo: SharedPhoto = {
+        url: post.photoURL as string,
+        label: post.placeName ?? "",
+      };
+      if (post.storyBody) photo.detail = post.storyBody;
+      return photo;
+    });
 
   return {
     id: trip.id,

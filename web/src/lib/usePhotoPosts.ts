@@ -28,6 +28,8 @@ export function usePhotoPosts(userID: string | null) {
           longitude: typeof data.longitude === "number" ? data.longitude : 0,
           walkRouteID: data.walkRouteID ?? null,
           placeName: data.placeName ?? null,
+          storyTitle: data.storyTitle ?? null,
+          storyBody: data.storyBody ?? null,
         };
       });
       setPhotoPosts(next);

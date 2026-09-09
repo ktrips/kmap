@@ -25,6 +25,7 @@ export function useStamps(userID: string | null) {
           collectedAt,
           photoURL: data.photoURL ?? null,
           walkRouteID: data.walkRouteID ?? null,
+          detail: data.detail ?? null,
         };
       });
       setStamps(next);

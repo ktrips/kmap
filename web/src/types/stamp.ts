@@ -5,4 +5,6 @@ export interface Stamp {
   collectedAt: Date;
   photoURL: string | null;
   walkRouteID: string | null;
+  /** その御朱印スポットの説明文。未生成なら`null`。 */
+  detail: string | null;
 }

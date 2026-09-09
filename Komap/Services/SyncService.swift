@@ -103,16 +103,22 @@ struct SyncService {
     }
 
     /// 獲得した御朱印（`CollectedStamp`）を `users/{uid}/stamps/{id}` へアップロードする。
-    func upload(_ stamp: CollectedStamp, userID: String?) async throws {
+    /// `detail`（その御朱印スポットの説明文）を渡した時だけ、あわせて書き込む
+    /// （渡さない呼び出しでは、既に同期済みの説明文をmergeで消してしまわないよう
+    /// キー自体を含めない）。
+    func upload(_ stamp: CollectedStamp, userID: String?, detail: String? = nil) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         guard let userID else { throw SyncError.notSignedIn }
 
-        let data: [String: Any] = [
+        var data: [String: Any] = [
             "siteID": stamp.siteID,
             "collectedAt": Timestamp(date: stamp.collectedAt),
             "photoURL": stamp.cloudPhotoURL as Any? ?? NSNull(),
             "walkRouteID": stamp.walkRouteID?.uuidString as Any? ?? NSNull(),
         ]
+        if let detail, !detail.isEmpty {
+            data["detail"] = detail
+        }
 
         try await stampsCollection(for: userID)
             .document(stamp.id.uuidString)
@@ -163,6 +169,8 @@ struct SyncService {
             "longitude": post.longitude,
             "walkRouteID": post.walkRouteID?.uuidString as Any? ?? NSNull(),
             "placeName": post.placeName as Any? ?? NSNull(),
+            "storyTitle": post.storyTitle as Any? ?? NSNull(),
+            "storyBody": post.storyBody as Any? ?? NSNull(),
         ]
 
         try await photoPostsCollection(for: userID)

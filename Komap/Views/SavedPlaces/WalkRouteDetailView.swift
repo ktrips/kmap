@@ -468,14 +468,28 @@ struct WalkRouteDetailView: View {
 
     /// 既に「みんなの時空旅」に公開済みなら、名前・感想の変更を公開データにも反映する。
     private func resyncSharedTripIfNeeded() async {
+        let details = checkpointDetailTexts()
         await syncService.resyncSharedTripIfNeeded(
             route,
             userID: authService.userID,
             ownerDisplayName: authService.displayName,
             stamps: stampsForRoute,
             photoPosts: photoPostsForRoute,
-            checkpointDetails: checkpointDetailTexts()
+            checkpointDetails: details
         )
+        await syncCheckpointDetailsToPrivateCloud(details: details)
+    }
+
+    /// 巡った御朱印の説明文を、公開・非公開に関わらず自分用のプライベート同期
+    /// （`users/{uid}/stamps`）にも書き込む。サインインしてWebの「My Trips」を
+    /// 見た時にも、御朱印の説明が（公開していない時空旅でも）表示されるようにするため。
+    private func syncCheckpointDetailsToPrivateCloud(details: [String: String]) async {
+        guard !details.isEmpty else { return }
+        let userID = authService.userID
+        for stamp in stampsForRoute {
+            guard let detail = details[stamp.siteID] else { continue }
+            try? await syncService.upload(stamp, userID: userID, detail: detail)
+        }
     }
 
     /// 現在の公開状態（公開・自分だけ・非表示の3段階）。
@@ -493,6 +507,7 @@ struct WalkRouteDetailView: View {
 
         let shouldBePublic = visibility == .publicShared
         if shouldBePublic != route.isSharedPublicly {
+            let details = checkpointDetailTexts()
             do {
                 try await syncService.setPubliclyShared(
                     route,
@@ -501,9 +516,10 @@ struct WalkRouteDetailView: View {
                     ownerDisplayName: authService.displayName,
                     stamps: stampsForRoute,
                     photoPosts: photoPostsForRoute,
-                    checkpointDetails: checkpointDetailTexts()
+                    checkpointDetails: details
                 )
                 route.isSharedPublicly = shouldBePublic
+                await syncCheckpointDetailsToPrivateCloud(details: details)
             } catch {
                 shareErrorMessage = "共有の変更に失敗しました: \(error.localizedDescription)"
                 isUpdatingShare = false

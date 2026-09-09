@@ -282,6 +282,11 @@ private struct PhotoPostPageView: View {
             }
         }
 
+        try? modelContext.save()
+        // 場所の名前・AIの解説はサインイン中ならクラウドにも反映し、Webでサインインして
+        // 見た時にもこの写真の説明が表示されるようにする。
+        try? await syncService.upload(post, userID: authService.userID)
+
         isLoadingInfo = false
     }
 }
