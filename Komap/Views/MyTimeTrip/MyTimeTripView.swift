@@ -473,10 +473,10 @@ private struct TripRow: View {
     let route: WalkRoute
     let stampCount: Int
 
-    /// 一覧では年を省いた「MM/DD HH:MI」の短い表記にする。
+    /// 「YYYY/M/D HH:MI」形式の日時表記（時間旅の記録画面と統一）。
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "M/d HH:mm"
+        formatter.dateFormat = "yyyy/M/d HH:mm"
         return formatter
     }()
 
