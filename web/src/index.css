@@ -351,19 +351,6 @@ code {
   cursor: pointer;
 }
 
-.detail-header-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 16px 0 0 24px;
-}
-
-.detail-header-label {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-brown-deep);
-}
-
 .trip-like-button {
   display: inline-flex;
   align-items: center;

@@ -81,7 +81,13 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
 
   return (
     <div className="app-shell">
-      <Header user={user} tripCount={ownTrips.length} onSignOut={onSignOut} />
+      <Header
+        user={user}
+        tripCount={ownTrips.length}
+        onSignOut={onSignOut}
+        showListButton={!isSidebarOpen}
+        onShowList={() => setIsSidebarOpen(true)}
+      />
       <div className="app-body">
         {isSidebarOpen && (
           <aside className="app-sidebar">
@@ -127,20 +133,6 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
           </aside>
         )}
         <main className="app-main">
-          {!isSidebarOpen && (
-            <div className="detail-header-bar">
-              <button
-                type="button"
-                className="sidebar-menu-button"
-                onClick={() => setIsSidebarOpen(true)}
-                aria-label="一覧を表示"
-              >
-                <span aria-hidden="true">☰</span> 一覧
-              </button>
-              {tab === "trips" && <span className="detail-header-label">時空旅の記録</span>}
-              {tab === "admin" && <span className="detail-header-label">管理者レポート</span>}
-            </div>
-          )}
           {tab === "places" && (
             <>
               <MapView places={places} selectedId={selectedId} onSelect={handleSelect} />

@@ -5,9 +5,12 @@ interface Props {
   user: User;
   tripCount: number;
   onSignOut: () => void;
+  /** trueの間は、左側のアプリ名の代わりに「一覧」ボタンを表示する（詳細を見ている時用）。 */
+  showListButton?: boolean;
+  onShowList?: () => void;
 }
 
-export function Header({ user, tripCount, onSignOut }: Props) {
+export function Header({ user, tripCount, onSignOut, showListButton = false, onShowList }: Props) {
   const { status, errorMessage, requestInvite } = useTestFlightInvite();
 
   const handleAvatarClick = () => {
@@ -26,10 +29,16 @@ export function Header({ user, tripCount, onSignOut }: Props) {
 
   return (
     <header className="app-header app-header--authenticated">
-      <div className="app-header-title">
-        <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
-        <p className="brand-eyebrow">Komap 古地図巡り</p>
-      </div>
+      {showListButton ? (
+        <button type="button" className="sidebar-menu-button" onClick={onShowList} aria-label="一覧を表示">
+          <span aria-hidden="true">☰</span> 一覧
+        </button>
+      ) : (
+        <div className="app-header-title">
+          <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+          <p className="brand-eyebrow">Komap 古地図巡り</p>
+        </div>
+      )}
       <div className="app-header-account">
         <span className="account-count">{tripCount}件の旅</span>
         <div className="testflight-invite">
