@@ -291,15 +291,20 @@ struct MapScreen: View {
         // ルートの追加・削除、および地図上の表示/非表示の切り替えを、それぞれ軽い
         // メタデータ（ID一覧・非表示フラグ一覧）の変化で検知する。座標配列そのもの
         // （件数が多く重い）を比較キーにはしない。
-        .onChange(of: savedRoutes.map(\.id)) { _, _ in
-            recomputeSavedWalkPaths()
-        }
-        .onChange(of: savedRoutes.map(\.isHiddenOnMap)) { _, _ in
-            recomputeSavedWalkPaths()
-        }
-        .onChange(of: collectedStamps.map(\.id)) { _, _ in
-            recomputeCollectedSiteIDs()
-        }
+        //
+        // - Important: この3つの`onChange`を直接この巨大な修飾子チェーンに繋げると、
+        //   「The compiler is unable to type-check this expression in reasonable time」に
+        //   なることを確認した。型検査を独立させるため、別View（`CacheSyncObserver`）の
+        //   `body`側に切り出し、ここでは`.background`で1つだけ差し込む。
+        .background(
+            CacheSyncObserver(
+                savedRouteIDs: savedRoutes.map(\.id),
+                savedRouteHiddenFlags: savedRoutes.map(\.isHiddenOnMap),
+                collectedStampIDs: collectedStamps.map(\.id),
+                onSavedRoutesChanged: recomputeSavedWalkPaths,
+                onCollectedStampsChanged: recomputeCollectedSiteIDs
+            )
+        )
         .onChange(of: mapSession.selectedOverlay?.id) { _, _ in
             recomputeActiveCheckpoints()
             // 「全ての古地図を表示」のオフなど、歩行記録中に古地図の選択が
@@ -831,7 +836,7 @@ struct MapScreen: View {
     /// 記録中の現在地が、未獲得のチェックポイントに接近していれば御朱印を獲得する。
     private func checkForNewStamps(near coordinate: CLLocationCoordinate2D) {
         let current = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        let alreadyCollected = collectedSiteIDs
+        let alreadyCollected = cachedCollectedSiteIDs
 
         for site in cachedActiveCheckpoints where !alreadyCollected.contains(site.id) {
             let siteLocation = CLLocation(latitude: site.coordinate.latitude, longitude: site.coordinate.longitude)
@@ -839,6 +844,11 @@ struct MapScreen: View {
 
             let stamp = CollectedStamp(siteID: site.id, walkRouteID: currentSessionID)
             modelContext.insert(stamp)
+            // `.onChange(of: collectedStamps.map(\.id))`によるキャッシュ更新は次回の
+            // body再評価まで反映されない。GPS更新が短い間隔で連続すると、その反映より
+            // 前に同じチェックポイントへ再度到達判定してしまう恐れがあるため、ここでも
+            // 即座にキャッシュへ反映しておく。
+            cachedCollectedSiteIDs.insert(site.id)
             newlyCollectedSite = site
             newlyCollectedStamp = stamp
             watchConnectivity.notifyStampCollected(siteName: site.name, siteSummary: site.summary)
@@ -849,6 +859,29 @@ struct MapScreen: View {
             // 1回の更新で複数箇所に同時到達することは想定しないため、1件見つけたら終える。
             break
         }
+    }
+}
+
+/// `MapScreen`の保存済みルート・獲得済み御朱印キャッシュを、軽いメタデータ配列の変化で
+/// 再計算させるための、見た目を持たない小さな監視用View。
+///
+/// - Important: `MapScreen.body`は既にとても長い修飾子チェーンのため、この3つの
+///   `onChange`をそこへ直接追加すると、Swiftの型検査が
+///   「unable to type-check this expression in reasonable time」で止まってしまう。
+///   別Viewの`body`として型検査を独立させることで回避している。
+private struct CacheSyncObserver: View {
+    let savedRouteIDs: [UUID]
+    let savedRouteHiddenFlags: [Bool]
+    let collectedStampIDs: [UUID]
+    let onSavedRoutesChanged: () -> Void
+    let onCollectedStampsChanged: () -> Void
+
+    var body: some View {
+        Color.clear
+            .allowsHitTesting(false)
+            .onChange(of: savedRouteIDs) { _, _ in onSavedRoutesChanged() }
+            .onChange(of: savedRouteHiddenFlags) { _, _ in onSavedRoutesChanged() }
+            .onChange(of: collectedStampIDs) { _, _ in onCollectedStampsChanged() }
     }
 }
 
