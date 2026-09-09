@@ -50,9 +50,12 @@ export function PublicSharedTripsView({
 
   return (
     <div className="app-shell">
-      <header className="app-header app-header--with-presence">
+      <header className="app-header">
         <div className="app-header-title">
           <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+          {isSidebarOpen && activeVisitorCount !== null && activeVisitorCount > 0 && (
+            <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
+          )}
           <p className="brand-eyebrow">Komap 古地図巡り</p>
           {!isSidebarOpen && (
             <button
@@ -63,11 +66,6 @@ export function PublicSharedTripsView({
             >
               <span aria-hidden="true">☰</span> 一覧
             </button>
-          )}
-        </div>
-        <div className="app-header-presence">
-          {activeVisitorCount !== null && activeVisitorCount > 0 && (
-            <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
           )}
         </div>
         {isSidebarOpen ? (
