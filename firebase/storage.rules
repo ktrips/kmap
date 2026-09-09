@@ -12,7 +12,7 @@ rules_version = '2';
 // 各ユーザーは自分の users/{uid}/** 配下の画像のみ読み書きできる。
 // 「みんなの時空旅」として公開したものは、Cloud Functions等は使わず、
 // アップロード時にオーナー自身が sharedPhotos/{tripId}/** にも同じ画像を書き込む方式にする
-// （どちらも書き込みはオーナー本人のみ、読み取りはサインイン済みなら誰でも可）。
+// （書き込みはオーナー本人のみ、読み取りは未サインインの訪問者も含め誰でも可）。
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{userId}/{allPaths=**} {
@@ -20,7 +20,10 @@ service firebase.storage {
     }
 
     match /sharedPhotos/{tripId}/{allPaths=**} {
-      allow read: if request.auth != null;
+      // 「みんなの時空旅」は未サインインの訪問者にもWeb公開ページ（komap.ktrips.net）で
+      // 見せる前提の機能のため、対応するFirestoreの sharedTrips/{tripId} と同じく、
+      // 読み取りはサインイン不要で誰でも可能にする。
+      allow read: if true;
       // 対応する sharedTrips/{tripId} ドキュメントの持ち主だけが書き込める。
       allow write: if request.auth != null
         && firestore.get(/databases/(default)/documents/sharedTrips/$(tripId)).data.ownerUserID == request.auth.uid;
