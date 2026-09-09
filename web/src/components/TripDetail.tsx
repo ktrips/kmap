@@ -203,8 +203,7 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
             onClick={handleLikeClick}
             disabled={isToggling}
           >
-            {isLikedByMe ? "❤️" : "🤍"}
-            {likeCount > 0 ? ` ${likeCount}` : ""}
+            いいね {isLikedByMe ? "❤️" : "🤍"} {likeCount}
           </button>
         </p>
       </div>

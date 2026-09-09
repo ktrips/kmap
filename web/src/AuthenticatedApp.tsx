@@ -9,6 +9,7 @@ import { TripDetail } from "./components/TripDetail";
 import { TripList } from "./components/TripList";
 import { usePhotoPosts } from "./lib/usePhotoPosts";
 import { usePlaces } from "./lib/usePlaces";
+import { useSelectedTripId } from "./lib/useSelectedTripId";
 import { useStamps } from "./lib/useStamps";
 import { useWalkRoutes } from "./lib/useWalkRoutes";
 import type { SharedTrip } from "./types/sharedTrip";
@@ -38,12 +39,13 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const { stamps } = useStamps(user.uid);
   const { photoPosts } = usePhotoPosts(user.uid);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [selectedTripId, setSelectedTripId] = useSelectedTripId();
   const [tab, setTab] = useState<SidebarTab>("trips");
   const isAdmin = user.email === ADMIN_EMAIL;
   // 旅の詳細を表示すると左のメニュー（一覧）は収納し、画面を広く使えるようにする。
   // メニューボタンを押すか、タブを切り替えると再び開く。
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // URL（`?trip=`）付きで開いた場合は、最初から詳細を表示した状態にする。
+  const [isSidebarOpen, setIsSidebarOpen] = useState(selectedTripId === null);
 
   // 「時空旅」タブは、自分の記録と他ユーザーが公開した時空旅（sharedTrips）の
   // 両方を並べる。自分の記録のうち公開中のものは、同じidが`sharedTrips`にも

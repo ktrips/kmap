@@ -4,6 +4,7 @@ import { TripList } from "./TripList";
 import { HowToUseModal } from "./HowToUseModal";
 import { KindleBookModal } from "./KindleBookModal";
 import { usePresence } from "../lib/usePresence";
+import { useSelectedTripId } from "../lib/useSelectedTripId";
 import { fromSharedTrip, type UnifiedTrip } from "../types/unifiedTrip";
 import type { SharedTrip } from "../types/sharedTrip";
 
@@ -27,10 +28,11 @@ export function PublicSharedTripsView({
   isFirebaseConfigured,
   onSignInWithGoogle,
 }: Props) {
-  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [selectedTripId, setSelectedTripId] = useSelectedTripId();
   // 時空旅を選ぶと、一覧と案内文（サインインの案内など）を収納して
   // 地図・写真の表示スペースを広げる。「一覧」ボタンで再び開く。
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // URL（`?trip=`）付きで開いた場合は、最初から詳細を表示した状態にする。
+  const [isSidebarOpen, setIsSidebarOpen] = useState(selectedTripId === null);
   const [isHowToOpen, setIsHowToOpen] = useState(false);
   const [isKindleOpen, setIsKindleOpen] = useState(false);
 
