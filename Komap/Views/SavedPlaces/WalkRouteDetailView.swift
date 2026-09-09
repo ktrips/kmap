@@ -44,6 +44,13 @@ enum TripVisibility: String, CaseIterable, Identifiable {
 struct WalkRouteDetailView: View {
     let route: WalkRoute
 
+    /// 「YYYY/M/D HH:MI」形式の日時表記。
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/M/d HH:mm"
+        return formatter
+    }()
+
     @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -253,7 +260,7 @@ struct WalkRouteDetailView: View {
                     Text(title)
                         .font(.title3.bold())
                 } else {
-                    Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
+                    Text(Self.dateFormatter.string(from: route.startedAt))
                         .font(.title3.bold())
                 }
                 Text("（\(route.overlayMap?.title ?? "古地図なし")）")
@@ -280,7 +287,7 @@ struct WalkRouteDetailView: View {
     /// 3行目：日付・歩いた距離・歩数・時間。
     private var statsSection: some View {
         HStack(spacing: 12) {
-            Label(route.startedAt.formatted(date: .abbreviated, time: .shortened), systemImage: "calendar")
+            Label(Self.dateFormatter.string(from: route.startedAt), systemImage: "calendar")
             Label(distanceText, systemImage: "figure.walk")
             if let stepCount = route.stepCount {
                 Label("\(stepCount)歩", systemImage: "shoeprints.fill")
