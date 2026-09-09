@@ -39,7 +39,7 @@ export function Header({ user, tripCount, onSignOut, showListButton = false, onS
         )}
       </div>
       <div className="app-header-account">
-        <span className="account-count">{tripCount}件の旅</span>
+        {!showListButton && <span className="account-count">{tripCount}件の旅</span>}
         <div className="testflight-invite">
           <button
             type="button"

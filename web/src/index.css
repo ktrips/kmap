@@ -120,6 +120,12 @@ code {
   border-bottom: 1px solid var(--color-border);
 }
 
+/* サインイン済みヘッダーは、iOSアプリ取得ボタン・アバターをできるだけ
+   右端に寄せたいため、右側の余白を少し詰める。 */
+.app-header--authenticated {
+  padding-right: 16px;
+}
+
 .app-header-title {
   display: flex;
   align-items: center;
