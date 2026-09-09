@@ -318,6 +318,24 @@ code {
   background: rgba(140, 90, 52, 0.08);
 }
 
+.sidebar-footer-button {
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-brown-deep);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-footer-button:hover {
+  background: rgba(140, 90, 52, 0.08);
+}
+
 .sidebar-menu-button {
   align-self: flex-start;
   display: inline-flex;
@@ -1085,23 +1103,6 @@ code {
 }
 
 .howto-header-button:hover {
-  background: rgba(140, 90, 52, 0.08);
-}
-
-.kindle-teaser-button {
-  width: 100%;
-  margin-top: 10px;
-  background: #fff;
-  border: 1px dashed var(--color-brown);
-  border-radius: 12px;
-  padding: 12px 20px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--color-brown-deep);
-  transition: background 0.2s ease;
-}
-
-.kindle-teaser-button:hover {
   background: rgba(140, 90, 52, 0.08);
 }
 

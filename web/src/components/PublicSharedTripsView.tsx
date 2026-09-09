@@ -55,9 +55,20 @@ export function PublicSharedTripsView({
           <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
           <p className="brand-eyebrow">Komap 古地図巡り</p>
         </div>
-        <button type="button" className="howto-header-button" onClick={() => setIsHowToOpen(true)}>
-          📖 使い方
-        </button>
+        {isSidebarOpen ? (
+          <button type="button" className="howto-header-button" onClick={() => setIsHowToOpen(true)}>
+            📖 使い方
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="howto-header-button"
+            onClick={onSignInWithGoogle}
+            disabled={isSigningIn}
+          >
+            {isSigningIn ? "サインイン中..." : "ログイン"}
+          </button>
+        )}
       </header>
 
       {isSidebarOpen && (
@@ -86,9 +97,6 @@ export function PublicSharedTripsView({
                   </span>
                 )}
               </button>
-              <button type="button" className="kindle-teaser-button" onClick={() => setIsKindleOpen(true)}>
-                📚 Komapの作り方 Kindle（一部無料）
-              </button>
             </div>
           )}
           {error && <p className="error-text">{error}</p>}
@@ -104,14 +112,9 @@ export function PublicSharedTripsView({
         {isSidebarOpen && (
           <aside className="app-sidebar">
             <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
-            <a
-              className="sidebar-footer-link"
-              href="https://github.com/ktrips/kmap#readme"
-              target="_blank"
-              rel="noreferrer"
-            >
-              📖 Komapの使い方
-            </a>
+            <button type="button" className="sidebar-footer-button" onClick={() => setIsKindleOpen(true)}>
+              📚 Komapの作り方 Kindle（一部無料）
+            </button>
           </aside>
         )}
         <main className="app-main">
