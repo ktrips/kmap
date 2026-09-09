@@ -208,7 +208,7 @@ async function inviteToTestFlight(params: {
     if (isStateError) {
       throw new HttpsError(
         "failed-precondition",
-        "TestFlightへの招待に失敗しました。考えられる原因: (1) 外部テストグループにベータ版App Reviewを通過したビルドがまだ無い、(2) このメールアドレスが既にApp Store Connectのチームメンバーとして登録されている（本人のアカウントでは外部テスターとして追加できません）。チームメンバー以外のメールアドレスで、かつビルドが審査（Ready to Test）を通過した状態で、もう一度お試しください。",
+        "TestFlightへの招待に失敗しました。ビルドが未審査か、このメールアドレスが既にチームメンバーとして登録されている可能性があります。別のメールアドレスで、審査済みのビルドがある状態で再度お試しください。",
       );
     }
     throw new HttpsError("internal", "TestFlight招待の送信に失敗しました。");
