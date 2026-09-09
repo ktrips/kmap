@@ -53,10 +53,10 @@ export function PublicSharedTripsView({
       <header className="app-header">
         <div className="app-header-title">
           <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+          <p className="brand-eyebrow">Komap 古地図巡り</p>
           {isSidebarOpen && activeVisitorCount !== null && activeVisitorCount > 0 && (
             <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
           )}
-          <p className="brand-eyebrow">Komap 古地図巡り</p>
           {!isSidebarOpen && (
             <button
               type="button"
