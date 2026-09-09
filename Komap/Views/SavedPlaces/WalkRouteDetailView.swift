@@ -82,6 +82,20 @@ struct WalkRouteDetailView: View {
         HistoricSiteCatalog.sites(forOverlayID: route.overlayMap?.id)
     }
 
+    /// 巡った御朱印スポットについて、既にAIで生成済みの詳細（`CheckpointStory`）を
+    /// `siteID`をキーにまとめたもの。公開データ（`sharedTrips`）に、御朱印の写真と
+    /// 一緒に説明文も添えられるようにするために使う。新規のAI生成は行わない
+    /// （生成済みのものだけをそのまま使う、読み取り専用の軽い処理）。
+    private func checkpointDetailTexts() -> [String: String] {
+        let siteIDs = Set(stampsForRoute.map(\.siteID))
+        guard !siteIDs.isEmpty else { return [:] }
+        let descriptor = FetchDescriptor<CheckpointStory>(
+            predicate: #Predicate { siteIDs.contains($0.siteID) }
+        )
+        let stories = (try? modelContext.fetch(descriptor)) ?? []
+        return Dictionary(uniqueKeysWithValues: stories.map { ($0.siteID, $0.body) })
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -97,6 +111,8 @@ struct WalkRouteDetailView: View {
 
                 header
 
+                travelJournalSection
+
                 if !photoPostsForRoute.isEmpty {
                     photoPostsSection
                 }
@@ -104,8 +120,6 @@ struct WalkRouteDetailView: View {
                 if !stampsForRoute.isEmpty {
                     checkpointsSection
                 }
-
-                travelJournalSection
 
                 if route.isSharedPublicly {
                     TripEngagementView(
@@ -197,7 +211,12 @@ struct WalkRouteDetailView: View {
             StampCheckInSheet(site: selection.site, stamp: selection.stamp)
         }
         .sheet(isPresented: $isShowingJournal) {
-            TravelJournalView(route: route)
+            TravelJournalView(
+                route: route,
+                stamps: stampsForRoute,
+                photoPosts: photoPostsForRoute,
+                checkpoints: checkpointsForOverlay
+            )
         }
         .sheet(isPresented: $isEditingNotes) {
             NavigationStack {
@@ -408,7 +427,8 @@ struct WalkRouteDetailView: View {
             userID: authService.userID,
             ownerDisplayName: authService.displayName,
             stamps: stampsForRoute,
-            photoPosts: photoPostsForRoute
+            photoPosts: photoPostsForRoute,
+            checkpointDetails: checkpointDetailTexts()
         )
     }
 
@@ -434,7 +454,8 @@ struct WalkRouteDetailView: View {
                     userID: authService.userID,
                     ownerDisplayName: authService.displayName,
                     stamps: stampsForRoute,
-                    photoPosts: photoPostsForRoute
+                    photoPosts: photoPostsForRoute,
+                    checkpointDetails: checkpointDetailTexts()
                 )
                 route.isSharedPublicly = shouldBePublic
             } catch {

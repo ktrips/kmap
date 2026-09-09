@@ -805,6 +805,16 @@ code {
   text-overflow: ellipsis;
 }
 
+.shared-trip-photo-detail {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  color: var(--color-brown);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .shared-trip-photo {
   width: 100%;
   aspect-ratio: 1;

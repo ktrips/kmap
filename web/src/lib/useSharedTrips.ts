@@ -10,8 +10,11 @@ function parsePhotos(value: unknown): SharedPhoto[] {
       if (!entry || typeof entry !== "object") return null;
       const url = (entry as Record<string, unknown>).url;
       const label = (entry as Record<string, unknown>).siteName ?? (entry as Record<string, unknown>).placeName;
+      const detail = (entry as Record<string, unknown>).detail;
       if (typeof url !== "string") return null;
-      return { url, label: typeof label === "string" ? label : "" };
+      const photo: SharedPhoto = { url, label: typeof label === "string" ? label : "" };
+      if (typeof detail === "string" && detail.length > 0) photo.detail = detail;
+      return photo;
     })
     .filter((photo): photo is SharedPhoto => photo !== null);
 }

@@ -2,6 +2,8 @@
 export interface SharedPhoto {
   url: string;
   label: string;
+  /** その場所についての説明文（AIが生成した物語など）。無ければ`undefined`。 */
+  detail?: string;
 }
 
 /** 全ユーザー共通で公開された時空旅。Firestoreの `sharedTrips/{id}` に対応する。 */

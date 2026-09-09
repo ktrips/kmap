@@ -217,6 +217,7 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
               <figure key={photo.url} className="shared-trip-photo-item">
                 <img src={photo.url} alt={photo.label} className="shared-trip-photo" loading="lazy" />
                 <figcaption>{photo.label}</figcaption>
+                {photo.detail && <p className="shared-trip-photo-detail">{photo.detail}</p>}
               </figure>
             ))}
           </div>
@@ -231,6 +232,7 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
               <figure key={photo.url} className="shared-trip-photo-item">
                 <img src={photo.url} alt={photo.label} className="shared-trip-photo" loading="lazy" />
                 {photo.label && <figcaption>{photo.label}</figcaption>}
+                {photo.detail && <p className="shared-trip-photo-detail">{photo.detail}</p>}
               </figure>
             ))}
           </div>

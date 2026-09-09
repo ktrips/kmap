@@ -233,21 +233,27 @@ struct SyncService {
         userID: String?,
         ownerDisplayName: String?,
         stamps: [CollectedStamp] = [],
-        photoPosts: [WalkPhotoPost] = []
+        photoPosts: [WalkPhotoPost] = [],
+        checkpointDetails: [String: String] = [:]
     ) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         guard let userID else { throw SyncError.notSignedIn }
 
         if isShared {
             // 御朱印（史跡チェックポイント）の写真と、自由投稿の写真は、Web側でも
-            // 分けて表示できるよう、それぞれ紐づく史跡名・地点名を添えて公開する。
+            // 分けて表示できるよう、それぞれ紐づく史跡名・地点名と、あれば説明文
+            // （旅行記と同じ内容の`detail`）も添えて公開する。
             var stampPhotos: [[String: Any]] = []
             for stamp in stamps where stamp.photo != nil {
                 let sourcePath = stampPhotoStoragePath(userID: userID, stampID: stamp.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: stamp.id)
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
                     let siteName = HistoricSiteCatalog.site(withID: stamp.siteID)?.name ?? "御朱印"
-                    stampPhotos.append(["url": url.absoluteString, "siteName": siteName])
+                    stampPhotos.append([
+                        "url": url.absoluteString,
+                        "siteName": siteName,
+                        "detail": checkpointDetails[stamp.siteID] ?? "",
+                    ])
                 }
             }
             var postPhotos: [[String: Any]] = []
@@ -255,7 +261,11 @@ struct SyncService {
                 let sourcePath = photoPostStoragePath(userID: userID, postID: post.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: post.id)
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
-                    postPhotos.append(["url": url.absoluteString, "placeName": post.placeName ?? ""])
+                    postPhotos.append([
+                        "url": url.absoluteString,
+                        "placeName": post.placeName ?? "",
+                        "detail": post.storyBody ?? "",
+                    ])
                 }
             }
 
@@ -302,7 +312,8 @@ struct SyncService {
         userID: String?,
         ownerDisplayName: String?,
         stamps: [CollectedStamp],
-        photoPosts: [WalkPhotoPost]
+        photoPosts: [WalkPhotoPost],
+        checkpointDetails: [String: String] = [:]
     ) async {
         guard route.isSharedPublicly else { return }
         try? await setPubliclyShared(
@@ -311,7 +322,8 @@ struct SyncService {
             userID: userID,
             ownerDisplayName: ownerDisplayName,
             stamps: stamps,
-            photoPosts: photoPosts
+            photoPosts: photoPosts,
+            checkpointDetails: checkpointDetails
         )
     }
 
