@@ -240,7 +240,31 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
       {journalHtml && (
         <div className="trip-journal-section">
           <p className="shared-trip-photo-section-title">旅行記{trip.journalTitle ? `：${trip.journalTitle}` : ""}</p>
+
+          <p className="trip-journal-basic-info">
+            {dateFormatter.format(trip.startedAt)}
+            {oldMap ? ` ・ ${oldMap.title}` : ""}
+            <br />
+            {distanceLabel(trip.totalDistanceMeters)}
+            {duration ? ` ・ ${duration}` : ""}
+            {trip.stepCount ? ` ・ ${trip.stepCount}歩` : ""}
+            {` ・ 御朱印 ${trip.stampCount ?? trip.stampPhotos.length}件`}
+            {trip.postPhotos.length > 0 ? ` ・ 写真 ${trip.postPhotos.length}件` : ""}
+          </p>
+
+          <p className="trip-journal-summary-title">旅のサマリー</p>
           <div className="trip-journal-body" dangerouslySetInnerHTML={{ __html: journalHtml }} />
+
+          {trip.latitudes.length > 0 && (
+            <div className="trip-journal-map">
+              <TripMapView
+                latitudes={routeCoordinates.latitudes}
+                longitudes={routeCoordinates.longitudes}
+                oldMap={oldMap}
+                checkpoints={checkpoints}
+              />
+            </div>
+          )}
 
           {trip.stampPhotos.length > 0 && (
             <div className="trip-journal-gallery">

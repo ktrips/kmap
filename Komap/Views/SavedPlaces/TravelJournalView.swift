@@ -3,8 +3,8 @@ import SwiftUI
 
 /// AIが生成した旅行記を読むための画面。
 ///
-/// AIが書いた文章（読み物としての本文）に加え、実際に歩いたルートの地図・巡った
-/// 御朱印スポット・投稿写真を、それぞれの説明文と一緒に並べて見せる、
+/// 題名・基本情報（日時・距離・時間・件数）・AIが書いたサマリー・実際に歩いたルートの
+/// 地図・巡った御朱印/投稿写真（それぞれ説明文と並べて）の順に並べた、
 /// スクラップブックのような構成にしている。
 struct TravelJournalView: View {
     let route: WalkRoute
@@ -34,6 +34,12 @@ struct TravelJournalView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    titleSection
+
+                    basicInfoSection
+
+                    summarySection
+
                     WalkRouteMapView(
                         overlayMap: route.overlayMap,
                         overlayOpacity: Float(route.overlayOpacity),
@@ -43,11 +49,6 @@ struct TravelJournalView: View {
                     )
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                    titleSection
-
-                    Text(bodyText)
-                        .font(.body)
 
                     if !sortedStamps.isEmpty {
                         goshuinGallery
@@ -86,6 +87,64 @@ struct TravelJournalView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// 旅の基本情報（日時・距離・時間・歩数・御朱印/写真の件数）。
+    private var basicInfoSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Label(distanceText, systemImage: "figure.walk")
+                if let durationText {
+                    Label(durationText, systemImage: "clock")
+                }
+                if let stepCount = route.stepCount {
+                    Label("\(stepCount)歩", systemImage: "shoeprints.fill")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Label("御朱印 \(sortedStamps.count)件", systemImage: "seal.fill")
+                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                if !sortedPhotoPosts.isEmpty {
+                    Label("写真 \(sortedPhotoPosts.count)件", systemImage: "camera.fill")
+                        .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private var summarySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("旅のサマリー")
+                .font(.headline)
+            Text(bodyText)
+                .font(.body)
+        }
+    }
+
+    private var distanceText: String {
+        let meters = route.totalDistanceMeters
+        if meters >= 1000 {
+            return String(format: "%.1f km", meters / 1000)
+        }
+        return String(format: "%.0f m", meters)
+    }
+
+    private var durationText: String? {
+        guard let durationSeconds = route.durationSeconds else { return nil }
+        let totalMinutes = Int(durationSeconds / 60)
+        if totalMinutes >= 60 {
+            return "\(totalMinutes / 60)時間\(totalMinutes % 60)分"
+        }
+        return "\(max(totalMinutes, 1))分"
     }
 
     private var goshuinGallery: some View {

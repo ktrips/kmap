@@ -822,6 +822,26 @@ code {
   border-radius: 12px;
 }
 
+.trip-journal-basic-info {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-brown);
+  line-height: 1.6;
+}
+
+.trip-journal-summary-title {
+  margin: 16px 0 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-brown-deep);
+}
+
+.trip-journal-map {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
 .trip-journal-body {
   margin-top: 10px;
   font-size: 0.9rem;
