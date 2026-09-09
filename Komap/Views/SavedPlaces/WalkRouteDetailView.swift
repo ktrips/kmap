@@ -62,6 +62,7 @@ struct WalkRouteDetailView: View {
     @State private var isGeneratingJournal = false
     @State private var journalErrorMessage: String?
     @State private var isShowingJournal = false
+    @State private var likeCount = 0
 
     private let syncService = SyncService()
     private let journalService = TravelJournalService()
@@ -109,16 +110,22 @@ struct WalkRouteDetailView: View {
                 .frame(height: 240)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                header
+                nameSection
 
-                travelJournalSection
+                visibilitySection
 
-                if !photoPostsForRoute.isEmpty {
-                    photoPostsSection
-                }
+                statsSection
+
+                countsSection
+
+                descriptionAndJournalSection
 
                 if !stampsForRoute.isEmpty {
                     checkpointsSection
+                }
+
+                if !photoPostsForRoute.isEmpty {
+                    photoPostsSection
                 }
 
                 if route.isSharedPublicly {
@@ -133,6 +140,11 @@ struct WalkRouteDetailView: View {
         }
         .navigationTitle("時間旅の記録")
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: route.isSharedPublicly) {
+            guard route.isSharedPublicly else { return }
+            guard let counts = try? await syncService.fetchEngagementCounts(tripID: route.id.uuidString) else { return }
+            likeCount = counts.likeCount
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -235,64 +247,79 @@ struct WalkRouteDetailView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
+    /// 1行目：旅の名前（使っていた古地図）。
+    private var nameSection: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
             if let title = route.title, !title.isEmpty {
                 Text(title)
                     .font(.title3.bold())
-                Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             } else {
                 Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
                     .font(.title3.bold())
             }
-
-            Text(route.overlayMap?.title ?? "古地図なし")
+            Text("（\(route.overlayMap?.title ?? "古地図なし")）")
                 .font(.subheadline.bold())
                 .foregroundStyle(.brown)
+        }
+    }
 
-            if currentVisibility != .onlyMe {
-                Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
-                    .font(.caption.bold())
-                    .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
-            }
+    /// 2行目：公開かどうかの表示。
+    private var visibilitySection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
 
             if let shareErrorMessage {
                 Text(shareErrorMessage)
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+        }
+    }
 
-            HStack(spacing: 12) {
-                Label(distanceText, systemImage: "figure.walk")
-                if let durationText {
-                    Label(durationText, systemImage: "clock")
-                }
-                if let stepCount = route.stepCount {
-                    Label("\(stepCount)歩", systemImage: "shoeprints.fill")
-                }
+    /// 3行目：日付・歩いた距離・歩数・時間。
+    private var statsSection: some View {
+        HStack(spacing: 12) {
+            Label(route.startedAt.formatted(date: .abbreviated, time: .shortened), systemImage: "calendar")
+            Label(distanceText, systemImage: "figure.walk")
+            if let stepCount = route.stepCount {
+                Label("\(stepCount)歩", systemImage: "shoeprints.fill")
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-
-            HStack(spacing: 12) {
-                Label("御朱印 \(stampsForRoute.count)件", systemImage: "seal.fill")
-                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
-                if !photoPostsForRoute.isEmpty {
-                    Label("写真 \(photoPostsForRoute.count)件", systemImage: "camera.fill")
-                        .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
-                }
+            if let durationText {
+                Label(durationText, systemImage: "clock")
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
 
+    /// 4行目：御朱印の数・写真の数・いいねの数。
+    private var countsSection: some View {
+        HStack(spacing: 12) {
+            Label("御朱印 \(stampsForRoute.count)件", systemImage: "seal.fill")
+                .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+            Label("写真 \(photoPostsForRoute.count)件", systemImage: "camera.fill")
+                .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
+            if route.isSharedPublicly {
+                Label("いいね \(likeCount)件", systemImage: "heart.fill")
+                    .foregroundStyle(.pink)
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    /// 5行目：旅の説明（感想）と、旅行記を作る/読むボタン。
+    private var descriptionAndJournalSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
             if let notes = route.notes, !notes.isEmpty {
                 Text(notes)
                     .font(.subheadline)
                     .foregroundStyle(.primary)
-                    .padding(.top, 4)
             }
+
+            travelJournalSection
         }
     }
 
@@ -320,7 +347,7 @@ struct WalkRouteDetailView: View {
 
     private var checkpointsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("通ったチェックポイント")
+            Text("御朱印・チェックポイント")
                 .font(.headline)
 
             ForEach(stampsForRoute) { stamp in
