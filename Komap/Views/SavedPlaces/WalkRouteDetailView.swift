@@ -112,8 +112,6 @@ struct WalkRouteDetailView: View {
 
                 nameSection
 
-                visibilitySection
-
                 statsSection
 
                 countsSection
@@ -247,28 +245,29 @@ struct WalkRouteDetailView: View {
         }
     }
 
-    /// 1行目：旅の名前（使っていた古地図）。
+    /// 1行目：旅の名前（使っていた古地図）と、その右横に公開状況アイコン・ラベル。
     private var nameSection: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            if let title = route.title, !title.isEmpty {
-                Text(title)
-                    .font(.title3.bold())
-            } else {
-                Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
-                    .font(.title3.bold())
-            }
-            Text("（\(route.overlayMap?.title ?? "古地図なし")）")
-                .font(.subheadline.bold())
-                .foregroundStyle(.brown)
-        }
-    }
-
-    /// 2行目：公開かどうかの表示。
-    private var visibilitySection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
-                .font(.caption.bold())
-                .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                if let title = route.title, !title.isEmpty {
+                    Text(title)
+                        .font(.title3.bold())
+                } else {
+                    Text(route.startedAt, format: .dateTime.year().month().day().hour().minute())
+                        .font(.title3.bold())
+                }
+                Text("（\(route.overlayMap?.title ?? "古地図なし")）")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.brown)
+
+                Spacer(minLength: 8)
+
+                Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
+                    .font(.caption.bold())
+                    .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+            }
 
             if let shareErrorMessage {
                 Text(shareErrorMessage)
