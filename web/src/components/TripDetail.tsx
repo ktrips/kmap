@@ -233,10 +233,10 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         />
       )}
 
-      {/* 通った御朱印 */}
+      {/* 御朱印・チェックポイント */}
       {trip.stampPhotos.length > 0 && (
         <div className="trip-journal-gallery">
-          <p className="trip-journal-gallery-title">通った御朱印</p>
+          <p className="trip-journal-gallery-title">御朱印・チェックポイント</p>
           {trip.stampPhotos.map((photo) => (
             <div key={photo.url} className="trip-journal-gallery-item">
               <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />

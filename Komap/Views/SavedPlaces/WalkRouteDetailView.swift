@@ -90,18 +90,23 @@ struct WalkRouteDetailView: View {
         HistoricSiteCatalog.sites(forOverlayID: route.overlayMap?.id)
     }
 
-    /// 巡った御朱印スポットについて、既にAIで生成済みの詳細（`CheckpointStory`）を
-    /// `siteID`をキーにまとめたもの。公開データ（`sharedTrips`）に、御朱印の写真と
-    /// 一緒に説明文も添えられるようにするために使う。新規のAI生成は行わない
-    /// （生成済みのものだけをそのまま使う、読み取り専用の軽い処理）。
+    /// 巡った御朱印スポットについて、旅行記画面（`TravelJournalView`）が表示するのと
+    /// 同じ説明文（既にAIで生成済みの`CheckpointStory`があればその本文、無ければ
+    /// 史跡カタログの`summary`）を`siteID`をキーにまとめたもの。公開データ
+    /// （`sharedTrips`）に、御朱印の写真と一緒に説明文も添えられるようにするために使う。
+    /// 新規のAI生成は行わない（生成済みのものだけをそのまま使う、読み取り専用の軽い処理）。
     private func checkpointDetailTexts() -> [String: String] {
+        guard !stampsForRoute.isEmpty else { return [:] }
         let siteIDs = Set(stampsForRoute.map(\.siteID))
-        guard !siteIDs.isEmpty else { return [:] }
         let descriptor = FetchDescriptor<CheckpointStory>(
             predicate: #Predicate { siteIDs.contains($0.siteID) }
         )
         let stories = (try? modelContext.fetch(descriptor)) ?? []
-        return Dictionary(uniqueKeysWithValues: stories.map { ($0.siteID, $0.body) })
+        var details = Dictionary(uniqueKeysWithValues: stories.map { ($0.siteID, $0.body) })
+        for siteID in siteIDs where details[siteID] == nil {
+            details[siteID] = HistoricSiteCatalog.site(withID: siteID)?.summary
+        }
+        return details
     }
 
     var body: some View {

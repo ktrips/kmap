@@ -179,7 +179,7 @@ struct TravelJournalView: View {
 
     private var goshuinGallery: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("通った御朱印")
+            Text("御朱印・チェックポイント")
                 .font(.headline)
 
             ForEach(sortedStamps) { stamp in
