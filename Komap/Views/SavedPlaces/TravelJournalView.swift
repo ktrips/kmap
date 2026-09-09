@@ -94,8 +94,7 @@ struct TravelJournalView: View {
         }
     }
 
-    /// 1行目：旅の名前（使っていた古地図）と、その右横に公開状況アイコン・ラベル。
-    /// 時間旅の記録画面（`WalkRouteDetailView`）と同じ並びにしている。
+    /// 1行目：旅の名前と、その右横に公開状況アイコン・ラベル。
     private var nameSection: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             if let title = route.title, !title.isEmpty {
@@ -105,9 +104,6 @@ struct TravelJournalView: View {
                 Text(Self.dateFormatter.string(from: route.startedAt))
                     .font(.title3.bold())
             }
-            Text("（\(route.overlayMap?.title ?? "古地図なし")）")
-                .font(.subheadline.bold())
-                .foregroundStyle(.brown)
 
             Spacer(minLength: 8)
 
@@ -153,7 +149,7 @@ struct TravelJournalView: View {
 
     private var summarySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(route.travelJournalTitle.map { "旅のサマリー：\($0)" } ?? "旅のサマリー")
+            Text(route.overlayMap.map { "\($0.title)の時空旅" } ?? "時空旅")
                 .font(.headline)
             Text(bodyText)
                 .font(.body)
