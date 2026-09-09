@@ -165,10 +165,7 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         ) : (
           <>
             <div className="trip-title-row">
-              <h2>
-                {trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}
-                {oldMap && <span className="trip-title-oldmap">（{oldMap.title}）</span>}
-              </h2>
+              <h2>{trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}</h2>
               {(trip.kind === "shared" || trip.isShared) && (
                 <span className="trip-visibility-badge" title="みんなの時空旅で公開中">
                   🌐 公開中

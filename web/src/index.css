@@ -612,13 +612,6 @@ code {
   flex-wrap: wrap;
 }
 
-.trip-title-oldmap {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-brown);
-  margin-left: 4px;
-}
-
 .trip-visibility-badge {
   font-size: 0.75rem;
   font-weight: 700;
