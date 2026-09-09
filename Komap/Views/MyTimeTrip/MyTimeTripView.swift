@@ -522,6 +522,11 @@ private struct TripRow: View {
                         Label("\(stampCount)", systemImage: "seal.fill")
                             .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
                     }
+                    if route.travelJournalMarkdown != nil {
+                        Image(systemName: "book.closed.fill")
+                            .foregroundStyle(.brown)
+                            .accessibilityLabel("旅行記あり")
+                    }
                     if route.isSharedPublicly {
                         EngagementCountsView(tripID: route.id.uuidString)
                     }
