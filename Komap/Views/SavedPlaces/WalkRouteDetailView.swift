@@ -164,14 +164,6 @@ struct WalkRouteDetailView: View {
                         Label("公開設定: \(currentVisibility.menuTitle)", systemImage: currentVisibility.systemImage)
                     }
                     .disabled(isUpdatingShare)
-                    if route.travelJournalMarkdown != nil {
-                        Button {
-                            Task { await generateJournal() }
-                        } label: {
-                            Label("旅行記を作り直す", systemImage: "arrow.clockwise")
-                        }
-                        .disabled(isGeneratingJournal)
-                    }
                     Button(role: .destructive) {
                         isConfirmingDelete = true
                     } label: {
@@ -351,13 +343,29 @@ struct WalkRouteDetailView: View {
             }
 
             if route.travelJournalMarkdown != nil {
-                Button {
-                    isShowingJournal = true
-                } label: {
-                    Label("旅行記を読む", systemImage: "book.fill")
-                        .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    Button {
+                        isShowingJournal = true
+                    } label: {
+                        Label("旅行記を読む", systemImage: "book.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button {
+                        Task { await generateJournal() }
+                    } label: {
+                        if isGeneratingJournal {
+                            ProgressView()
+                                .frame(width: 20)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isGeneratingJournal)
+                    .accessibilityLabel("旅行記を作り直す")
                 }
-                .buttonStyle(.borderedProminent)
             } else {
                 Button {
                     Task { await generateJournal() }

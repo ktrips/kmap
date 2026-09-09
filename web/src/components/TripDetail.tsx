@@ -217,7 +217,6 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
               <figure key={photo.url} className="shared-trip-photo-item">
                 <img src={photo.url} alt={photo.label} className="shared-trip-photo" loading="lazy" />
                 <figcaption>{photo.label}</figcaption>
-                {photo.detail && <p className="shared-trip-photo-detail">{photo.detail}</p>}
               </figure>
             ))}
           </div>
@@ -232,7 +231,6 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
               <figure key={photo.url} className="shared-trip-photo-item">
                 <img src={photo.url} alt={photo.label} className="shared-trip-photo" loading="lazy" />
                 {photo.label && <figcaption>{photo.label}</figcaption>}
-                {photo.detail && <p className="shared-trip-photo-detail">{photo.detail}</p>}
               </figure>
             ))}
           </div>
@@ -243,6 +241,36 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         <div className="trip-journal-section">
           <p className="shared-trip-photo-section-title">旅行記{trip.journalTitle ? `：${trip.journalTitle}` : ""}</p>
           <div className="trip-journal-body" dangerouslySetInnerHTML={{ __html: journalHtml }} />
+
+          {trip.stampPhotos.length > 0 && (
+            <div className="trip-journal-gallery">
+              <p className="trip-journal-gallery-title">巡った御朱印</p>
+              {trip.stampPhotos.map((photo) => (
+                <div key={photo.url} className="trip-journal-gallery-item">
+                  <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
+                  <div className="trip-journal-gallery-text">
+                    <p className="trip-journal-gallery-name">{photo.label}</p>
+                    {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {trip.postPhotos.length > 0 && (
+            <div className="trip-journal-gallery">
+              <p className="trip-journal-gallery-title">投稿した写真</p>
+              {trip.postPhotos.map((photo) => (
+                <div key={photo.url} className="trip-journal-gallery-item">
+                  <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
+                  <div className="trip-journal-gallery-text">
+                    {photo.label && <p className="trip-journal-gallery-name">{photo.label}</p>}
+                    {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
