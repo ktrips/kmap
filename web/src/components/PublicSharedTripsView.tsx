@@ -79,7 +79,6 @@ export function PublicSharedTripsView({
               <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
             )}
           </div>
-          <p>みんなの時空旅（古地図上を歩いたルート・御朱印・写真など）を公開中！</p>
           {isFirebaseConfigured && (
             <div className="public-intro-cta">
               <button
@@ -92,8 +91,8 @@ export function PublicSharedTripsView({
                 ) : (
                   <span className="google-button-content">
                     <span className="google-button-title">Googleでサインイン</span>
-                    <span className="google-button-bullet">・みんなの時空旅が写真入りで見れる</span>
-                    <span className="google-button-bullet">・iOSアプリで自分で時空旅を作成</span>
+                    <span className="google-button-bullet">・みんなの時空旅(古地図ルート・御朱印など)を見れる！</span>
+                    <span className="google-button-bullet">・iOSアプリダウンロードで自分で旅を作れる！</span>
                   </span>
                 )}
               </button>
