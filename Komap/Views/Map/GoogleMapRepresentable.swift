@@ -135,12 +135,26 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// リビール画像の合成中に、GPSの更新が続けて何度も来た場合に合成タスクが
         /// 積み重ならないようにするためのフラグ。
         private var isComposingRevealedImage = false
+        /// 直近に合成し終えたリビール画像。次の合成では、この画像を土台にして
+        /// 新しく増えた区間だけ追加で「くっきり」描き足す（歩行が長くなるほど
+        /// 軌跡全体を毎回描き直すコストが増え続けるのを防ぐため）。
+        private var lastRevealedComposedImage: UIImage?
+        /// `idleAt`でのオーバーレイ・マーカー貼り直しワークアラウンドを、最後に
+        /// 実行した時のズーム値。通常のパン・小さなズーム操作のたびに毎回貼り直すと、
+        /// 古地図のテクスチャ再アップロードとチェックポイントの前面出し直しが
+        /// 無駄に発生し続けるため、テクスチャ喪失の原因である「大きなズーム変化」が
+        /// 実際にあった時だけ行うようにする。
+        private var lastOverlayRefreshZoom: Float?
+        private let overlayRefreshZoomThreshold: Float = 0.75
 
         private var savedPolylinePairs: [TrailPolylinePair] = []
         private var liveTrailPair: TrailPolylinePair?
         /// 直近にスムージング・描画済みのライブ軌跡の座標数。GPSの新しい更新が
         /// 無いのに`applyWalkPaths`が呼ばれた場合に、同じ軌跡を無駄に再計算しないための目印。
         private var liveRawPathCount = 0
+        /// `liveTrailPair`に設定済みのスムージング後パス本体。新しいGPS点が増えた時、
+        /// 全体を再スムージングする代わりに、末尾に増えた分だけ差分で追記するために保持する。
+        private var liveTrailMutablePath: GMSMutablePath?
         private var checkpointMarkers: [String: GMSMarker] = [:]
         /// 直近で`applyCheckpoints`に適用した獲得済み状態。GPS更新のたびに呼ばれても、
         /// 変化のないマーカーの`icon`/`opacity`を再設定しない（負荷軽減）ために使う。
@@ -456,6 +470,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentOverlay.opacity = 1
                 // 合成処理は重いのでメインスレッドをブロックしないようバックグラウンドで行う。
                 if !isComposingRevealedImage && (isNewOverlay || livePath.count != lastRevealedPointCount) {
+                    let previousPointCount = isNewOverlay ? 0 : lastRevealedPointCount
                     lastRevealedPointCount = livePath.count
                     isComposingRevealedImage = true
                     let southWest = overlayMap.southWest
@@ -467,18 +482,39 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     let faintAlpha = max(CGFloat(opacity), Self.minimumUnrevealedAlpha)
                     let blurredBase = currentBlurredImage ?? baseImage
                     let overlayRef = currentOverlay
+                    // 前回合成済みの画像があり、かつ新しく増えた区間だけなら、そこを土台にして
+                    // 増えた末尾区間だけ追加でくっきり描き足す（軌跡全体を毎回描き直すコストが
+                    // 歩行時間に比例して増え続けるのを防ぐ）。古地図を切り替えた直後や、
+                    // まだ土台が無い時は、これまで通り軌跡全体から作り直す。
+                    let previousComposed = (previousPointCount > 0 && previousPointCount <= livePath.count)
+                        ? lastRevealedComposedImage
+                        : nil
                     DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                        let image = Self.revealedImage(
-                            base: baseImage,
-                            blurredBase: blurredBase,
-                            southWest: southWest,
-                            northEast: northEast,
-                            path: livePath,
-                            corridorMeters: corridorMeters,
-                            faintAlpha: faintAlpha
-                        )
+                        let image: UIImage?
+                        if let previousComposed, previousPointCount >= 1 {
+                            let newSegment = Array(livePath[(previousPointCount - 1)...])
+                            image = Self.incrementalRevealedImage(
+                                previousComposed: previousComposed,
+                                base: baseImage,
+                                southWest: southWest,
+                                northEast: northEast,
+                                newSegment: newSegment,
+                                corridorMeters: corridorMeters
+                            )
+                        } else {
+                            image = Self.revealedImage(
+                                base: baseImage,
+                                blurredBase: blurredBase,
+                                southWest: southWest,
+                                northEast: northEast,
+                                path: livePath,
+                                corridorMeters: corridorMeters,
+                                faintAlpha: faintAlpha
+                            )
+                        }
                         DispatchQueue.main.async {
                             overlayRef.icon = image
+                            self?.lastRevealedComposedImage = image
                             self?.isComposingRevealedImage = false
                         }
                     }
@@ -488,6 +524,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 if lastRevealedPointCount != 0 {
                     currentOverlay.icon = baseImage
                     lastRevealedPointCount = 0
+                    lastRevealedComposedImage = nil
                 }
                 currentOverlay.opacity = opacity
             }
@@ -554,6 +591,69 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 cg.restoreGState()
             }
             return composited
+        }
+
+        /// `revealedImage`が作った合成済み画像を土台に、新しく増えた軌跡区間
+        /// （`newSegment`。前回の終端点＋新しい点、を含む）だけ追加でくっきり描き足す。
+        /// まだ通っていない場所は`previousComposed`側で既にぼかし済みのため、ここでは
+        /// 新区間のコリドーだけ重ねて描けばよく、軌跡全体を毎回描き直す必要がない
+        /// （歩行が長くなっても1回あたりの合成コストが増えないようにするため）。
+        private static func incrementalRevealedImage(
+            previousComposed: UIImage,
+            base: UIImage,
+            southWest: CLLocationCoordinate2D,
+            northEast: CLLocationCoordinate2D,
+            newSegment: [CLLocationCoordinate2D],
+            corridorMeters: Double
+        ) -> UIImage? {
+            guard let cgImage = base.cgImage else { return previousComposed }
+            let pixelSize = CGSize(width: cgImage.width, height: cgImage.height)
+            guard pixelSize.width > 0, pixelSize.height > 0, newSegment.count >= 2 else { return previousComposed }
+
+            let latSpan = northEast.latitude - southWest.latitude
+            let lngSpan = northEast.longitude - southWest.longitude
+            guard latSpan > 0, lngSpan > 0 else { return previousComposed }
+
+            let centerLatRadians = (southWest.latitude + northEast.latitude) / 2 * .pi / 180
+            let metersPerDegreeLat = 111_320.0
+            let metersPerDegreeLng = 111_320.0 * cos(centerLatRadians)
+            let pixelsPerMeterX = pixelSize.width / (lngSpan * metersPerDegreeLng)
+            let pixelsPerMeterY = pixelSize.height / (latSpan * metersPerDegreeLat)
+            let corridorWidthPixels = max(CGFloat(corridorMeters) * CGFloat((pixelsPerMeterX + pixelsPerMeterY) / 2), 6)
+
+            func point(for coordinate: CLLocationCoordinate2D) -> CGPoint {
+                let x = (coordinate.longitude - southWest.longitude) / lngSpan * pixelSize.width
+                let y = (northEast.latitude - coordinate.latitude) / latSpan * pixelSize.height
+                return CGPoint(x: x, y: y)
+            }
+
+            let renderer = UIGraphicsImageRenderer(size: pixelSize)
+            return renderer.image { context in
+                let cg = context.cgContext
+                let fullRect = CGRect(origin: .zero, size: pixelSize)
+
+                // 土台はすでに合成済みの画像をそのまま描くだけ（ここが全体再合成を避ける肝）。
+                previousComposed.draw(in: fullRect, blendMode: .normal, alpha: 1)
+
+                // 新しく増えた区間だけ、太い帯でくっきり鮮明に上書きする。
+                cg.saveGState()
+                cg.setLineWidth(corridorWidthPixels)
+                cg.setLineCap(.round)
+                cg.setLineJoin(.round)
+                let corridorPath = CGMutablePath()
+                let points = newSegment.map(point(for:))
+                if let first = points.first {
+                    corridorPath.move(to: first)
+                    for p in points.dropFirst() {
+                        corridorPath.addLine(to: p)
+                    }
+                }
+                cg.addPath(corridorPath)
+                cg.replacePathWithStrokedPath()
+                cg.clip()
+                base.draw(in: fullRect, blendMode: .normal, alpha: 1)
+                cg.restoreGState()
+            }
         }
 
         /// `CIContext`はGPUコンテキストの初期化コストが大きいため、呼び出しのたびに
@@ -667,6 +767,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         ///   カメラが落ち着いたタイミングで、既存のオーバーレイを画像の再デコードなど
         ///   重い処理をせずに一旦外して貼り直すことで、この消失を防ぐ。
         func mapView(_ mapView: GMSMapView, idleAt position: GMSCameraPosition) {
+            if let lastOverlayRefreshZoom,
+               abs(position.zoom - lastOverlayRefreshZoom) < overlayRefreshZoomThreshold {
+                return
+            }
+            lastOverlayRefreshZoom = position.zoom
+
             if let currentOverlay {
                 currentOverlay.map = nil
                 currentOverlay.map = mapView
@@ -756,6 +862,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 liveTrailPair?.remove()
                 liveTrailPair = nil
                 liveRawPathCount = 0
+                liveTrailMutablePath = nil
                 return
             }
 
@@ -765,15 +872,45 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             // ポリラインを作り直すのは無駄な負荷（記録が長くなるほど1回あたりの
             // 計算量が増え続ける）になるため、座標数が変化した時だけ再計算する。
             guard live.count != liveRawPathCount else { return }
+            let previousCount = liveRawPathCount
             liveRawPathCount = live.count
 
-            let path = GMSMutablePath()
-            Self.smoothedTrailCoordinates(live).forEach { path.add($0) }
-            if let liveTrailPair {
-                liveTrailPair.setPath(path)
-            } else {
-                liveTrailPair = makeTrailPair(path: path, style: .live, on: mapView)
+            // 前回スムージング済みの生座標数が3未満（＝`smoothedTrailCoordinates`が
+            // まだ入力をそのまま返している段階）か、まだパスが無い時、あるいは座標が
+            // 減った（記録リセットなど）時だけ、全体を作り直す。それ以外は末尾に
+            // 増えた区間だけ差分でスムージングして追記する（歩行が長くなっても
+            // 1回あたりの計算量が増えないようにするため）。
+            if previousCount < 3 || liveTrailMutablePath == nil || live.count < previousCount {
+                let path = GMSMutablePath()
+                Self.smoothedTrailCoordinates(live).forEach { path.add($0) }
+                liveTrailMutablePath = path
+                if let liveTrailPair {
+                    liveTrailPair.setPath(path)
+                } else {
+                    liveTrailPair = makeTrailPair(path: path, style: .live, on: mapView)
+                }
+                return
             }
+
+            let path = liveTrailMutablePath!
+            // 直前まで終端としてそのまま置いていた最後の生座標（`live[previousCount - 1]`）を
+            // 一旦外し、そこから新しく増えた区間ぶんのスムージング済み中間点を追加してから、
+            // 新しい終端を改めて置き直す。
+            path.removeLastCoordinate()
+            for index in (previousCount - 1)..<(live.count - 1) {
+                let p0 = live[index]
+                let p1 = live[index + 1]
+                path.add(CLLocationCoordinate2D(
+                    latitude: p0.latitude * 0.75 + p1.latitude * 0.25,
+                    longitude: p0.longitude * 0.75 + p1.longitude * 0.25
+                ))
+                path.add(CLLocationCoordinate2D(
+                    latitude: p0.latitude * 0.25 + p1.latitude * 0.75,
+                    longitude: p0.longitude * 0.25 + p1.longitude * 0.75
+                ))
+            }
+            path.add(live[live.count - 1])
+            liveTrailPair?.setPath(path)
         }
 
         /// GPSのノイズでできる細かいジグザグを和らげ、通った道の角を少し丸く滑らかに
@@ -941,15 +1078,27 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             }
 
             for post in posts where photoPostMarkers[post.id] == nil {
-                guard let photo = post.photo else { continue }
+                // `post.photo`はディスクからの読み込み＋JPEGデコードを伴い、キャッシュが
+                // 無い時（アプリ起動直後など）はメインスレッドをブロックしてカクつきの
+                // 原因になる。先にプレースホルダーのマーカーを即座に置き、実際の画像は
+                // バックグラウンドで読み込んでから差し替える。
                 let marker = GMSMarker(position: post.coordinate)
-                marker.icon = Self.circularThumbnail(photo)
+                marker.icon = Self.photoPostPlaceholderIcon
                 marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
                 marker.userData = post
                 marker.zIndex = Self.photoPostMarkerZIndex
                 marker.opacity = isRecordingWalk ? Self.dimmedPhotoPostOpacity : 1.0
                 marker.map = mapView
                 photoPostMarkers[post.id] = marker
+
+                let filename = post.photoFileName
+                DispatchQueue.global(qos: .userInitiated).async { [weak marker] in
+                    guard let photo = StampPhotoStore.load(filename) else { return }
+                    let thumbnail = Self.circularThumbnail(photo)
+                    DispatchQueue.main.async {
+                        marker?.icon = thumbnail
+                    }
+                }
             }
 
             guard isRecordingWalk != arePhotoPostsDimmed else { return }
@@ -1038,6 +1187,22 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
 
         /// 投稿写真をピン用に、金色の縁取りをつけた丸いサムネイルへ変換する。
+        /// 投稿写真の読み込みが終わるまでの間だけ表示する、中身のない丸いプレースホルダー。
+        private static let photoPostPlaceholderIcon: UIImage = {
+            let diameter: CGFloat = 32
+            let borderWidth: CGFloat = 3
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))
+            return renderer.image { context in
+                let rect = CGRect(x: borderWidth / 2, y: borderWidth / 2, width: diameter - borderWidth, height: diameter - borderWidth)
+                let ovalPath = UIBezierPath(ovalIn: rect)
+                UIColor(white: 0.85, alpha: 1).setFill()
+                ovalPath.fill()
+                UIColor(red: 0.86, green: 0.63, blue: 0.24, alpha: 1).setStroke()
+                ovalPath.lineWidth = borderWidth
+                ovalPath.stroke()
+            }
+        }()
+
         private static func circularThumbnail(_ image: UIImage, diameter: CGFloat = 32) -> UIImage {
             let borderWidth: CGFloat = 3
             let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))

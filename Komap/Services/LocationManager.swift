@@ -27,7 +27,11 @@ final class LocationManager: NSObject, ObservableObject {
         authorizationStatus = manager.authorizationStatus
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBest
+        // 記録していない間（地図を眺めているだけ、現在地ボタンを使うだけ等）は、
+        // GPSチップを常に最高精度で回し続けるとバッテリー消費が大きいため、
+        // 徒歩ルート記録中だけ`kCLLocationAccuracyBest`へ上げる
+        // （`startRecordingWalk`/`stopRecordingWalk`参照）。
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         // 徒歩ルート記録で細かすぎる点を拾いすぎないよう、5m未満の移動は無視する。
         manager.distanceFilter = 5
     }
@@ -52,6 +56,7 @@ final class LocationManager: NSObject, ObservableObject {
         walkPath = currentLocation.map { [$0] } ?? []
         isRecordingWalk = true
         isWalkPaused = false
+        manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.startUpdatingLocation()
     }
 
@@ -72,6 +77,7 @@ final class LocationManager: NSObject, ObservableObject {
     func stopRecordingWalk() -> [CLLocationCoordinate2D] {
         isRecordingWalk = false
         isWalkPaused = false
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         let path = walkPath
         walkPath = []
         return path

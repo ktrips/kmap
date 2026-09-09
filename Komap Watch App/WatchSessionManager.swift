@@ -45,6 +45,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// 実際に記録を始める時になって初めて作る（アプリ起動を軽く保つため）。
     private var tracker: WatchWorkoutLocationTracker?
     private var activeSessionID: UUID?
+    /// `sendTrackingSnapshot()`を最後に送った時刻。累積軌跡は歩くほど配列が長くなり、
+    /// GPS更新のたびに毎回送るとシリアライズ量・通信量が歩行時間に対してO(n²)的に
+    /// 膨らむため、一定間隔にまとめて送る（届かない間の位置は`sendLocationUpdate`の
+    /// 単発送信でおおむね追従できるので、間引いても実用上問題ない）。
+    private var lastSnapshotSentAt: Date?
+    private let snapshotMinInterval: TimeInterval = 15
 
     override init() {
         session = WCSession.isSupported() ? WCSession.default : nil
@@ -60,6 +66,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         activeSessionID = sessionID
         isSelfTracking = true
         state = .recording
+        lastSnapshotSentAt = nil
         let tracker = tracker ?? WatchWorkoutLocationTracker()
         self.tracker = tracker
         tracker.onLocationUpdate = { [weak self] coordinate in
@@ -192,8 +199,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
         guard let session, session.activationState == .activated,
               let tracker, let sessionID = activeSessionID
         else { return }
+        if let lastSnapshotSentAt, Date().timeIntervalSince(lastSnapshotSentAt) < snapshotMinInterval {
+            return
+        }
         let path = tracker.path
         guard !path.isEmpty else { return }
+        lastSnapshotSentAt = Date()
         try? session.updateApplicationContext([
             "trackingSessionID": sessionID.uuidString,
             "trackingLatitudes": path.map(\.latitude),

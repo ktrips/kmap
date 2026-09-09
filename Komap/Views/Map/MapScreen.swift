@@ -89,8 +89,25 @@ struct MapScreen: View {
     /// それより大きい値にして重ならないようにする。
     private static let toastTopPadding: CGFloat = 56
 
-    private var collectedSiteIDs: Set<String> {
-        Set(collectedStamps.map(\.siteID))
+    /// 獲得済み御朱印のサイトID集合。`savedWalkPaths`と同じ理由（GPS更新のたびの
+    /// `body`再評価）で計算プロパティのままにせず、実際に獲得済み件数が変わった時
+    /// だけ`recomputeCollectedSiteIDs()`で更新する。
+    @State private var cachedCollectedSiteIDs: Set<String> = []
+
+    private func recomputeCollectedSiteIDs() {
+        cachedCollectedSiteIDs = Set(collectedStamps.map(\.siteID))
+    }
+
+    /// 地図に描く保存済みルートの座標配列（非表示に設定したものは除く）。
+    ///
+    /// - Important: `cachedActiveCheckpoints`と同じ理由で、GPSの更新など無関係な
+    ///   `body`再評価のたびに、保存済み全ルートぶんの座標配列（記録が長いほど数千点に
+    ///   及ぶこともある）を毎回作り直すのは無駄が大きい。ルートの追加・削除・
+    ///   表示/非表示切り替えがあった時だけ`recomputeSavedWalkPaths()`で更新する。
+    @State private var cachedSavedWalkPaths: [[CLLocationCoordinate2D]] = []
+
+    private func recomputeSavedWalkPaths() {
+        cachedSavedWalkPaths = savedRoutes.filter { !$0.isHiddenOnMap }.map(\.coordinates)
     }
 
     private var isCameraLinkConfigured: Bool {
@@ -156,11 +173,11 @@ struct MapScreen: View {
                 showAllOverlays: mapSession.isShowingAllOverlays,
                 moveCameraRequest: mapSession.cameraMoveRequest,
                 bottomInset: bottomPanelHeight,
-                savedWalkPaths: savedRoutes.filter { !$0.isHiddenOnMap }.map(\.coordinates),
+                savedWalkPaths: cachedSavedWalkPaths,
                 liveWalkPath: displayedLiveWalkPath,
                 isRecordingWalk: locationManager.isRecordingWalk || isWatchTrackingActive,
                 checkpoints: cachedActiveCheckpoints,
-                collectedSiteIDs: collectedSiteIDs,
+                collectedSiteIDs: cachedCollectedSiteIDs,
                 photoPosts: photoPosts,
                 onTap: { coordinate in
                     pendingTapPoint = TappedPoint(coordinate: coordinate)
@@ -267,7 +284,21 @@ struct MapScreen: View {
             locationManager.requestPermissionIfNeeded()
             syncWatchState()
             recomputeActiveCheckpoints()
+            recomputeSavedWalkPaths()
+            recomputeCollectedSiteIDs()
             mapSession.isWalking = locationManager.isRecordingWalk || isWatchTrackingActive
+        }
+        // ルートの追加・削除、および地図上の表示/非表示の切り替えを、それぞれ軽い
+        // メタデータ（ID一覧・非表示フラグ一覧）の変化で検知する。座標配列そのもの
+        // （件数が多く重い）を比較キーにはしない。
+        .onChange(of: savedRoutes.map(\.id)) { _, _ in
+            recomputeSavedWalkPaths()
+        }
+        .onChange(of: savedRoutes.map(\.isHiddenOnMap)) { _, _ in
+            recomputeSavedWalkPaths()
+        }
+        .onChange(of: collectedStamps.map(\.id)) { _, _ in
+            recomputeCollectedSiteIDs()
         }
         .onChange(of: mapSession.selectedOverlay?.id) { _, _ in
             recomputeActiveCheckpoints()

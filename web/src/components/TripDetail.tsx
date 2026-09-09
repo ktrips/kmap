@@ -66,6 +66,17 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   // 新しい配列参照になり、変わっていないTripMapView側の重い再描画
   // （古地図オーバーレイの再取得・マーカーの作り直し）を毎回引き起こしていた。
   const checkpoints = useMemo(() => sitesForOverlay(oldMap?.id ?? null), [oldMap]);
+  // いいね・コメントのリアルタイム更新のたびに、`trip`を渡している親（一覧全体を
+  // Firestoreスナップショットのたびに丸ごと作り直している）経由で`trip.latitudes`/
+  // `longitudes`も新しい配列参照になりがちで、内容は変わっていないのに
+  // `TripMapView`側のマーカー・オーバーレイ再構築を毎回引き起こしていた。
+  // 選んでいる時空旅の記録済みルートは作成後に変わらないため、`trip.id`と
+  // 点数が変わらない限り、前回と同じ配列参照を使い回す。
+  const routeCoordinates = useMemo(
+    () => ({ latitudes: trip?.latitudes ?? [], longitudes: trip?.longitudes ?? [] }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trip?.id, trip?.latitudes.length, trip?.longitudes.length]
+  );
 
   if (!trip) {
     return (
@@ -119,8 +130,8 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
     <div className="trip-detail">
       {trip.latitudes.length > 0 && (
         <TripMapView
-          latitudes={trip.latitudes}
-          longitudes={trip.longitudes}
+          latitudes={routeCoordinates.latitudes}
+          longitudes={routeCoordinates.longitudes}
           oldMap={oldMap}
           checkpoints={checkpoints}
         />

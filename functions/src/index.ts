@@ -235,6 +235,18 @@ async function inviteToTestFlight(params: {
  */
 const ADMIN_EMAIL = "kenichiyoshida13@gmail.com";
 
+/**
+ * `getAdminFunnelReport`の集計結果を、関数インスタンス内に一定時間だけ
+ * キャッシュしておく（Cloud Functionsのウォームインスタンスはモジュール
+ * レベルの変数を呼び出しをまたいで保持する）。
+ * 全ユーザー・全`walkRoutes`/`stamps`/`sharedTrips`ドキュメントを毎回
+ * スキャンする重い集計のため、ダッシュボードを開き直す・数分おきに
+ * リロードするような使い方でも、その都度読み直さずに済むようにする。
+ */
+let cachedFunnelReport: { computedAt: number; result: Awaited<ReturnType<typeof computeAdminFunnelReport>> } | null =
+  null;
+const FUNNEL_REPORT_CACHE_TTL_MS = 15 * 60 * 1000;
+
 /** 生存確認（`presence`）がこれより古い場合は「もういない」とみなす（`usePresence.ts`と同じ基準）。 */
 const PRESENCE_STALE_AFTER_MS = 45_000;
 
@@ -266,8 +278,28 @@ export const getAdminFunnelReport = onCall(async (request) => {
     throw new HttpsError("permission-denied", "管理者のみ利用できます。");
   }
 
+  // 「現在の匿名閲覧者数」だけは文字通り"現在"の値であるべきなので、キャッシュせず
+  // 毎回問い合わせる（`.count()`の集計クエリ1件だけなので軽い）。それ以外の重い
+  // 集計（全ユーザー一覧・全`walkRoutes`/`stamps`/`sharedTrips`のスキャン）は
+  // 一定時間キャッシュする。
   const db = admin.firestore();
+  const presenceCountSnapshot = await db
+    .collection("presence")
+    .where("lastSeen", ">", admin.firestore.Timestamp.fromMillis(Date.now() - PRESENCE_STALE_AFTER_MS))
+    .count()
+    .get();
 
+  const now = Date.now();
+  if (!cachedFunnelReport || now - cachedFunnelReport.computedAt >= FUNNEL_REPORT_CACHE_TTL_MS) {
+    cachedFunnelReport = { computedAt: now, result: await computeAdminFunnelReport(db) };
+  }
+  return {
+    ...cachedFunnelReport.result,
+    currentAnonymousViewers: presenceCountSnapshot.data().count,
+  };
+});
+
+async function computeAdminFunnelReport(db: admin.firestore.Firestore) {
   let totalUsers = 0;
   let pageToken: string | undefined;
   do {
@@ -287,15 +319,10 @@ export const getAdminFunnelReport = onCall(async (request) => {
     return counts;
   };
 
-  const [walkRouteCountsByUID, stampCountsByUID, sharedTripsSnapshot, presenceCountSnapshot] = await Promise.all([
+  const [walkRouteCountsByUID, stampCountsByUID, sharedTripsSnapshot] = await Promise.all([
     countDocsByOwnerUID("walkRoutes"),
     countDocsByOwnerUID("stamps"),
     db.collection("sharedTrips").get(),
-    db
-      .collection("presence")
-      .where("lastSeen", ">", admin.firestore.Timestamp.fromMillis(Date.now() - PRESENCE_STALE_AFTER_MS))
-      .count()
-      .get(),
   ]);
 
   const sharedTripCountsByUID = new Map<string, number>();
@@ -356,10 +383,9 @@ export const getAdminFunnelReport = onCall(async (request) => {
 
   return {
     totalUsers,
-    currentAnonymousViewers: presenceCountSnapshot.data().count,
     phases,
   };
-});
+}
 
 export const requestTestFlightInvite = onCall(
   {

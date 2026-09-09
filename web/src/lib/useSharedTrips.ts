@@ -1,4 +1,4 @@
-import { collection, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
+import { collection, limit, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import type { SharedPhoto, SharedTrip } from "../types/sharedTrip";
@@ -35,7 +35,11 @@ export function useSharedTrips() {
     setIsLoading(true);
     setError(null);
 
-    const q = query(collection(db, "sharedTrips"), orderBy("startedAt", "desc"));
+    // 上限を付けずに購読すると、公開ページを開いた全訪問者（未サインインでも見られる）が
+    // 「みんなの時空旅」の全件をリアルタイム購読することになり、件数が増えるほど
+    // 通信量・メモリ・再同期コストが際限なく膨らんでしまう。直近の投稿だけで十分
+    // 一覧として成立するため、まず新しい順に一定件数までに絞る。
+    const q = query(collection(db, "sharedTrips"), orderBy("startedAt", "desc"), limit(50));
 
     const unsubscribe = onSnapshot(
       q,
