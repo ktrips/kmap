@@ -29,19 +29,15 @@ export function Header({ user, tripCount, onSignOut, showListButton = false, onS
 
   return (
     <header className="app-header app-header--authenticated">
-      {showListButton ? (
-        <button type="button" className="sidebar-menu-button" onClick={onShowList} aria-label="一覧を表示">
-          <span aria-hidden="true">☰</span> 一覧
-        </button>
-      ) : (
-        <div className="app-header-title">
-          <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
-          <p className="brand-eyebrow">Komap 古地図巡り</p>
+      <div className="app-header-title">
+        <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+        <p className="brand-eyebrow">Komap 古地図巡り</p>
+        {showListButton && (
           <button type="button" className="sidebar-menu-button" onClick={onShowList} aria-label="一覧を表示">
             <span aria-hidden="true">☰</span> 一覧
           </button>
-        </div>
-      )}
+        )}
+      </div>
       <div className="app-header-account">
         <span className="account-count">{tripCount}件の旅</span>
         <div className="testflight-invite">

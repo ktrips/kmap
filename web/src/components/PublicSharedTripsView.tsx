@@ -51,10 +51,10 @@ export function PublicSharedTripsView({
   return (
     <div className="app-shell">
       <header className="app-header">
-        {isSidebarOpen ? (
-          <div className="app-header-title">
-            <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
-            <p className="brand-eyebrow">Komap 古地図巡り</p>
+        <div className="app-header-title">
+          <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+          <p className="brand-eyebrow">Komap 古地図巡り</p>
+          {!isSidebarOpen && (
             <button
               type="button"
               className="sidebar-menu-button"
@@ -63,17 +63,8 @@ export function PublicSharedTripsView({
             >
               <span aria-hidden="true">☰</span> 一覧
             </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="sidebar-menu-button"
-            onClick={() => setIsSidebarOpen(true)}
-            aria-label="一覧を表示"
-          >
-            <span aria-hidden="true">☰</span> 一覧
-          </button>
-        )}
+          )}
+        </div>
         {isSidebarOpen ? (
           <button type="button" className="howto-header-button" onClick={() => setIsHowToOpen(true)}>
             📖 使い方
