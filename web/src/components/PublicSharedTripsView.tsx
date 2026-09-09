@@ -50,7 +50,7 @@ export function PublicSharedTripsView({
 
   return (
     <div className="app-shell">
-      <header className="app-header">
+      <header className="app-header app-header--with-presence">
         <div className="app-header-title">
           <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
           <p className="brand-eyebrow">Komap 古地図巡り</p>
@@ -63,6 +63,11 @@ export function PublicSharedTripsView({
             >
               <span aria-hidden="true">☰</span> 一覧
             </button>
+          )}
+        </div>
+        <div className="app-header-presence">
+          {activeVisitorCount !== null && activeVisitorCount > 0 && (
+            <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
           )}
         </div>
         {isSidebarOpen ? (
@@ -85,9 +90,6 @@ export function PublicSharedTripsView({
         <div className="public-intro">
           <div className="public-intro-headline">
             <h1>そうだ、時空旅しよう</h1>
-            {activeVisitorCount !== null && activeVisitorCount > 0 && (
-              <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
-            )}
           </div>
           {isFirebaseConfigured && (
             <div className="public-intro-cta">

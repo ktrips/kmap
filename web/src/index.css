@@ -126,6 +126,29 @@ code {
   gap: 12px;
 }
 
+/* 公開ページのヘッダーだけ、中央に「今N人が時空旅中」を挟む3カラムのグリッドにする
+   （左右の中身の幅が違っても、中央の要素が常に真ん中に来るように）。 */
+.app-header--with-presence {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-header--with-presence .app-header-title {
+  justify-self: start;
+}
+
+.app-header-presence {
+  justify-self: center;
+  display: flex;
+  justify-content: center;
+}
+
+.app-header--with-presence > *:last-child {
+  justify-self: end;
+}
+
 .app-header-icon {
   width: 36px;
   height: 36px;
