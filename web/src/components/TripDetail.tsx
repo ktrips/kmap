@@ -177,20 +177,26 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
                 </button>
               )}
             </div>
+
+            <p className="trip-meta-row">
+              <span>{dateFormatter.format(trip.startedAt)}</span>
+              {trip.kind === "shared" && trip.ownerDisplayName && (
+                <span className="trip-meta-owner">👤 {trip.ownerDisplayName}</span>
+              )}
+            </p>
+
             {trip.description && trip.description.length > 0 && (
               <p className="trip-description-text">{trip.description}</p>
             )}
+
+            <p className="trip-meta-row">
+              <span>🚶 {distanceLabel(trip.totalDistanceMeters)}</span>
+              {trip.stepCount !== null && <span>👣 {trip.stepCount}歩</span>}
+              {duration && <span>🕐 {duration}</span>}
+            </p>
           </>
         )}
 
-        <p className="trip-journal-basic-info">
-          {dateFormatter.format(trip.startedAt)}
-          {trip.kind === "shared" && trip.ownerDisplayName ? ` ・ ${trip.ownerDisplayName}` : ""}
-          {" ・ "}
-          {distanceLabel(trip.totalDistanceMeters)}
-          {duration ? ` ・ ${duration}` : ""}
-          {trip.stepCount ? ` ・ ${trip.stepCount}歩` : ""}
-        </p>
         <p className="trip-journal-basic-info trip-counts-row">
           {`御朱印 ${trip.stampCount ?? trip.stampPhotos.length}件`}
           {` ・ 写真 ${trip.postPhotos.length}件 ・ `}

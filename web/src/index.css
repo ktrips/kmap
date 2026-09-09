@@ -654,6 +654,20 @@ code {
   word-break: break-word;
 }
 
+.trip-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-brown);
+}
+
+.trip-meta-owner {
+  font-weight: 600;
+}
+
 .trip-edit-form {
   display: flex;
   flex-direction: column;
