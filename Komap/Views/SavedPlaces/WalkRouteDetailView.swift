@@ -23,7 +23,7 @@ enum TripVisibility: String, CaseIterable, Identifiable {
 
     var statusText: String {
         switch self {
-        case .publicShared: return "みんなの時空旅に公開中"
+        case .publicShared: return "公開中"
         case .onlyMe: return "自分だけに表示"
         case .hidden: return "マップには非表示"
         }
