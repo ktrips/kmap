@@ -186,33 +186,27 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
           </>
         )}
 
-        {trip.kind === "shared" && trip.ownerDisplayName && (
-          <p className="place-detail-oldmap">投稿者：{trip.ownerDisplayName}</p>
-        )}
-
         <p className="trip-journal-basic-info">
           {dateFormatter.format(trip.startedAt)}
+          {trip.kind === "shared" && trip.ownerDisplayName ? ` ・ ${trip.ownerDisplayName}` : ""}
           {" ・ "}
           {distanceLabel(trip.totalDistanceMeters)}
           {duration ? ` ・ ${duration}` : ""}
           {trip.stepCount ? ` ・ ${trip.stepCount}歩` : ""}
         </p>
-        <p className="trip-journal-basic-info">
+        <p className="trip-journal-basic-info trip-counts-row">
           {`御朱印 ${trip.stampCount ?? trip.stampPhotos.length}件`}
-          {` ・ 写真 ${trip.postPhotos.length}件`}
-          {likeCount > 0 ? ` ・ いいね ${likeCount}件` : ""}
-        </p>
-
-        <div className="trip-engagement">
+          {` ・ 写真 ${trip.postPhotos.length}件 ・ `}
           <button
             type="button"
             className={`trip-like-button ${isLikedByMe ? "is-liked" : ""}`}
             onClick={handleLikeClick}
             disabled={isToggling}
           >
-            {isLikedByMe ? "❤️" : "🤍"} いいね{likeCount > 0 ? ` ${likeCount}` : ""}
+            {isLikedByMe ? "❤️" : "🤍"}
+            {likeCount > 0 ? ` ${likeCount}` : ""}
           </button>
-        </div>
+        </p>
       </div>
 
       {/* 旅のサマリー（AIが生成した旅行記の本文。未生成なら非表示） */}
