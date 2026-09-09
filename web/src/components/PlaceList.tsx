@@ -7,8 +7,12 @@ interface Props {
 }
 
 const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
-  dateStyle: "medium",
-  timeStyle: "short",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
 });
 
 export function PlaceList({ places, selectedId, onSelect }: Props) {
