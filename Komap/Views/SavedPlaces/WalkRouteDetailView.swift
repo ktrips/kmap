@@ -59,8 +59,12 @@ struct WalkRouteDetailView: View {
     @State private var selectedStamp: StampSelection?
     @State private var isUpdatingShare = false
     @State private var shareErrorMessage: String?
+    @State private var isGeneratingJournal = false
+    @State private var journalErrorMessage: String?
+    @State private var isShowingJournal = false
 
     private let syncService = SyncService()
+    private let journalService = TravelJournalService()
 
     private var stampsForRoute: [CollectedStamp] {
         collectedStamps
@@ -100,6 +104,8 @@ struct WalkRouteDetailView: View {
                 if !stampsForRoute.isEmpty {
                     checkpointsSection
                 }
+
+                travelJournalSection
 
                 if route.isSharedPublicly {
                     TripEngagementView(
@@ -144,6 +150,14 @@ struct WalkRouteDetailView: View {
                         Label("公開設定: \(currentVisibility.menuTitle)", systemImage: currentVisibility.systemImage)
                     }
                     .disabled(isUpdatingShare)
+                    if route.travelJournalMarkdown != nil {
+                        Button {
+                            Task { await generateJournal() }
+                        } label: {
+                            Label("旅行記を作り直す", systemImage: "arrow.clockwise")
+                        }
+                        .disabled(isGeneratingJournal)
+                    }
                     Button(role: .destructive) {
                         isConfirmingDelete = true
                     } label: {
@@ -181,6 +195,9 @@ struct WalkRouteDetailView: View {
         }
         .sheet(item: $selectedStamp) { selection in
             StampCheckInSheet(site: selection.site, stamp: selection.stamp)
+        }
+        .sheet(isPresented: $isShowingJournal) {
+            TravelJournalView(route: route)
         }
         .sheet(isPresented: $isEditingNotes) {
             NavigationStack {
@@ -304,6 +321,67 @@ struct WalkRouteDetailView: View {
                 }
             }
         }
+    }
+
+    private var travelJournalSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let journalErrorMessage {
+                Text(journalErrorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            if route.travelJournalMarkdown != nil {
+                Button {
+                    isShowingJournal = true
+                } label: {
+                    Label("旅行記を読む", systemImage: "book.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button {
+                    Task { await generateJournal() }
+                } label: {
+                    if isGeneratingJournal {
+                        HStack {
+                            ProgressView()
+                            Text("旅行記を作成中…")
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        Label("旅行記を作成する", systemImage: "sparkles")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isGeneratingJournal)
+            }
+        }
+    }
+
+    /// AIに、この時間旅の内容から旅行記を生成してもらい、成功したら保存・同期する。
+    private func generateJournal() async {
+        isGeneratingJournal = true
+        journalErrorMessage = nil
+        do {
+            let journal = try await journalService.generateJournal(
+                for: route,
+                stamps: stampsForRoute,
+                photoPosts: photoPostsForRoute,
+                modelContext: modelContext
+            )
+            route.travelJournalTitle = journal.title
+            route.travelJournalMarkdown = journal.markdownBody
+            route.travelJournalGeneratedAt = Date()
+            try? modelContext.save()
+            await resyncSharedTripIfNeeded()
+            let userID = authService.userID
+            try? await syncService.upload(route, userID: userID)
+        } catch {
+            journalErrorMessage = error.localizedDescription
+        }
+        isGeneratingJournal = false
     }
 
     /// この時間旅を削除する。公開中だった場合は「みんなの時空旅」からも取り除き、

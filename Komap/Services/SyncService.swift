@@ -207,6 +207,9 @@ struct SyncService {
             "overlayMapID": route.overlayMapID as Any? ?? NSNull(),
             "totalDistanceMeters": route.totalDistanceMeters,
             "isSharedPublicly": route.isSharedPublicly,
+            "travelJournalTitle": route.travelJournalTitle as Any? ?? NSNull(),
+            "travelJournalMarkdown": route.travelJournalMarkdown as Any? ?? NSNull(),
+            "travelJournalGeneratedAt": route.travelJournalGeneratedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
         ]
 
         try await walkRoutesCollection(for: userID)
@@ -273,6 +276,9 @@ struct SyncService {
                 "totalDistanceMeters": route.totalDistanceMeters,
                 "stampPhotos": stampPhotos,
                 "postPhotos": postPhotos,
+                "travelJournalTitle": route.travelJournalTitle as Any? ?? NSNull(),
+                "travelJournalMarkdown": route.travelJournalMarkdown as Any? ?? NSNull(),
+                "travelJournalGeneratedAt": route.travelJournalGeneratedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
             ]
             try await sharedTripsCollection.document(route.id.uuidString).setData(data, merge: true)
         } else {

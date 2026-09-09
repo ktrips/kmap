@@ -63,6 +63,8 @@ export function useSharedTrips() {
             totalDistanceMeters: typeof data.totalDistanceMeters === "number" ? data.totalDistanceMeters : 0,
             stampPhotos: parsePhotos(data.stampPhotos),
             postPhotos: parsePhotos(data.postPhotos),
+            journalTitle: data.travelJournalTitle ?? null,
+            journalMarkdown: data.travelJournalMarkdown ?? null,
           };
         });
         setTrips(next);

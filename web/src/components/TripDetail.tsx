@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { marked } from "marked";
 import { findOldMap } from "../lib/oldMapCatalog";
 import { sitesForOverlay } from "../lib/historicSiteCatalog";
 import { saveTripDetails } from "../lib/tripEditing";
@@ -66,6 +67,10 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   // 新しい配列参照になり、変わっていないTripMapView側の重い再描画
   // （古地図オーバーレイの再取得・マーカーの作り直し）を毎回引き起こしていた。
   const checkpoints = useMemo(() => sitesForOverlay(oldMap?.id ?? null), [oldMap]);
+  const journalHtml = useMemo(
+    () => (trip?.journalMarkdown ? (marked.parse(trip.journalMarkdown, { async: false }) as string) : null),
+    [trip?.journalMarkdown],
+  );
   // いいね・コメントのリアルタイム更新のたびに、`trip`を渡している親（一覧全体を
   // Firestoreスナップショットのたびに丸ごと作り直している）経由で`trip.latitudes`/
   // `longitudes`も新しい配列参照になりがちで、内容は変わっていないのに
@@ -229,6 +234,13 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
               </figure>
             ))}
           </div>
+        </div>
+      )}
+
+      {journalHtml && (
+        <div className="trip-journal-section">
+          <p className="shared-trip-photo-section-title">旅行記{trip.journalTitle ? `：${trip.journalTitle}` : ""}</p>
+          <div className="trip-journal-body" dangerouslySetInnerHTML={{ __html: journalHtml }} />
         </div>
       )}
 

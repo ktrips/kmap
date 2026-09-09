@@ -33,6 +33,12 @@ final class WalkRoute {
     /// 「保存済みの徒歩ルート」としては描画しない（過去のルート表示を整理したい時用）。
     /// `isSharedPublicly`が`true`の時はこちらは意味を持たない（常に表示扱い）。
     var isHiddenOnMap: Bool = false
+    /// AIが生成した旅行記の見出し。未生成なら`nil`。
+    var travelJournalTitle: String?
+    /// AIが生成した旅行記の本文（Markdown形式）。未生成なら`nil`。
+    var travelJournalMarkdown: String?
+    /// 旅行記を生成した日時。未生成なら`nil`。
+    var travelJournalGeneratedAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -45,7 +51,10 @@ final class WalkRoute {
         title: String? = nil,
         notes: String? = nil,
         isSharedPublicly: Bool = false,
-        isHiddenOnMap: Bool = false
+        isHiddenOnMap: Bool = false,
+        travelJournalTitle: String? = nil,
+        travelJournalMarkdown: String? = nil,
+        travelJournalGeneratedAt: Date? = nil
     ) {
         self.id = id
         self.latitudes = coordinates.map(\.latitude)
@@ -59,6 +68,9 @@ final class WalkRoute {
         self.notes = notes
         self.isSharedPublicly = isSharedPublicly
         self.isHiddenOnMap = isHiddenOnMap
+        self.travelJournalTitle = travelJournalTitle
+        self.travelJournalMarkdown = travelJournalMarkdown
+        self.travelJournalGeneratedAt = travelJournalGeneratedAt
     }
 
     /// 歩いた時間（秒）。`endedAt`が無い（この項目を追加する前の）記録では`nil`。

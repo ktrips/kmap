@@ -41,6 +41,8 @@ export function useWalkRoutes(userID: string | null) {
             stepCount: typeof data.stepCount === "number" ? data.stepCount : null,
             overlayMapID: data.overlayMapID ?? null,
             totalDistanceMeters: typeof data.totalDistanceMeters === "number" ? data.totalDistanceMeters : 0,
+            journalTitle: data.travelJournalTitle ?? null,
+            journalMarkdown: data.travelJournalMarkdown ?? null,
           };
         });
         setTrips(next);

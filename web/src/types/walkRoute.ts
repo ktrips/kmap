@@ -11,4 +11,8 @@ export interface WalkTrip {
   stepCount: number | null;
   overlayMapID: string | null;
   totalDistanceMeters: number;
+  /** AIが生成した旅行記の見出し。未生成なら`null`。 */
+  journalTitle: string | null;
+  /** AIが生成した旅行記の本文（Markdown形式）。未生成なら`null`。 */
+  journalMarkdown: string | null;
 }
