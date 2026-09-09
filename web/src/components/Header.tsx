@@ -1,6 +1,9 @@
 import type { User } from "firebase/auth";
 import { useTestFlightInvite } from "../lib/useTestFlightInvite";
 
+/** Cloud Functions側の管理者チェックと同じアドレス。エラー時の問い合わせ先。 */
+const ADMIN_EMAIL = "kenichiyoshida13@gmail.com";
+
 interface Props {
   user: User;
   tripCount: number;
@@ -11,7 +14,13 @@ interface Props {
 }
 
 export function Header({ user, tripCount, onSignOut, showListButton = false, onShowList }: Props) {
-  const { status, errorMessage, requestInvite } = useTestFlightInvite();
+  const { status, errorMessage, adminReport, requestInvite } = useTestFlightInvite();
+
+  const adminMailtoHref = adminReport
+    ? `mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(
+        "Komap: TestFlight招待エラー",
+      )}&body=${encodeURIComponent(`${adminReport}\n\n---\n問い合わせ元: ${user.email ?? "(不明)"}`)}`
+    : null;
 
   const handleAvatarClick = () => {
     if (window.confirm("サインアウトしますか?")) {
@@ -55,7 +64,17 @@ export function Header({ user, tripCount, onSignOut, showListButton = false, onS
               {user.email} 宛のメールから、TestFlightアプリ経由でインストールできます。
             </p>
           )}
-          {status === "error" && errorMessage && <p className="testflight-invite-note is-error">{errorMessage}</p>}
+          {status === "error" && errorMessage && (
+            <p className="testflight-invite-note is-error">
+              {errorMessage}
+              {adminMailtoHref && (
+                <>
+                  {" "}
+                  <a href={adminMailtoHref}>管理者にメールで連絡する</a>
+                </>
+              )}
+            </p>
+          )}
         </div>
         <button
           className="account-avatar-button"

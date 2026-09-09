@@ -217,6 +217,12 @@ code {
   color: #b3432b;
 }
 
+.testflight-invite-note.is-error a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 /* ---------- Public shared trips view（未サインイン向け） ---------- */
 
 .public-intro {
