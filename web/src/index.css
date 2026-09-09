@@ -1062,10 +1062,9 @@ code {
     border-right: none;
     border-bottom: 1px solid var(--color-border);
   }
-  /* サインイン済み画面はヘッダーにアカウント操作（招待ボタン・アバター等）も並ぶため、
-     モバイルでは幅を圧迫するアプリ名を省き、アイコンだけにする
-     （未サインインの公開ページはアプリ名を残すため、ここでは限定して非表示にする）。 */
-  .app-header--authenticated .brand-eyebrow {
+  /* モバイルでは、ヘッダー左側にアイコン・アプリ名・一覧ボタンが並ぶと幅を
+     圧迫するため、アプリ名（テキスト）は省いてアイコン＋一覧ボタンだけにする。 */
+  .brand-eyebrow {
     display: none;
   }
 }
