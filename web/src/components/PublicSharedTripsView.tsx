@@ -62,7 +62,7 @@ export function PublicSharedTripsView({
         ) : (
           <button
             type="button"
-            className="howto-header-button"
+            className="login-header-button"
             onClick={onSignInWithGoogle}
             disabled={isSigningIn}
           >
@@ -91,7 +91,7 @@ export function PublicSharedTripsView({
                 ) : (
                   <span className="google-button-content">
                     <span className="google-button-title">Googleでサインイン</span>
-                    <span className="google-button-bullet">・みんなの時空旅(古地図ルート・御朱印など)を見れる！</span>
+                    <span className="google-button-bullet">・みんなの時空旅(古地図・御朱印)を見れる！</span>
                     <span className="google-button-bullet">・iOSアプリダウンロードで自分で旅を作れる！</span>
                   </span>
                 )}

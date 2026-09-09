@@ -1106,6 +1106,27 @@ code {
   background: rgba(140, 90, 52, 0.08);
 }
 
+/* ヘッダーの「ログイン」ボタン（時空旅を開いている間の使い方ボタンの代わり）。
+   ブランドカラーで塗りつぶした見た目を、Googleサインインボタン（.google-button-accent）と揃える。 */
+.login-header-button {
+  background: linear-gradient(135deg, var(--color-brown) 0%, var(--color-brown-deep) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.login-header-button:hover:not(:disabled) {
+  box-shadow: 0 8px 20px rgba(90, 60, 30, 0.28);
+}
+
+.login-header-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* ---------- 共通モーダル（使い方・Kindle原稿プレビュー） ---------- */
 
 .modal-overlay {
