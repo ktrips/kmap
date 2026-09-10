@@ -19,7 +19,7 @@ const upcomingChapters = [
 ];
 
 /**
- * 「Komapの作り方 Kindle（一部無料）」ボタンから開く、執筆中のKindle原稿の
+ * 「Komapの作り方 Kindle（一部無料）」ボタンから開く、Kindle原稿の
  * 冒頭（目安10ページ相当）プレビュー。`public/kindle-preview.md`は、原稿全文のうち
  * 冒頭部分だけをあらかじめ切り出して配置した専用ファイル（全文はここでは配信しない）。
  */
@@ -49,8 +49,11 @@ export function KindleBookModal({ onClose }: Props) {
   return (
     <Modal title="Komapの作り方（Kindle原稿・一部無料）" onClose={onClose}>
       <p className="kindle-lead">
-        本書「週末だけでできる！Google Mapを使った地図ゲームアプリを作る＆収益化する方法」は、
-        Komapを実際に開発した経験をもとにした執筆中のKindle原稿です。冒頭部分（目安10ページ相当）を
+        本書「
+        <a href="https://link.amazon/B006awnVi" target="_blank" rel="noopener noreferrer">
+          週末だけでできる！Google Mapを使った地図ゲームアプリを作る＆収益化する方法
+        </a>
+        」は、Komapを実際に開発した経験をもとにしたKindle原稿です。冒頭部分（目安10ページ相当）を
         無料でお読みいただけます。
       </p>
 
