@@ -33,6 +33,10 @@ export function shortIdToUuid(shortId: string): string | null {
     for (let i = 0; i < 16; i++) {
       hex += binary.charCodeAt(i).toString(16).padStart(2, "0");
     }
+    // iOSの`UUID.uuidString`（Firestoreのドキュメント名として使われる）は大文字の
+    // 16進数表記のため、こちらも大文字にして一致させる（小文字のままだと、
+    // trips.find(t => t.id === id)による照合が一致せず、旅日記が表示されない）。
+    hex = hex.toUpperCase();
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   } catch {
     return null;
