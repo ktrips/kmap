@@ -45,6 +45,9 @@ struct SettingsView: View {
                     Link(destination: URL(string: "https://github.com/ktrips/kmap#readme")!) {
                         Label("Komapの使い方", systemImage: "book")
                     }
+                    Link(destination: URL(string: "https://link.amazon/B006awnVi")!) {
+                        Label("Komapの作り方 Kindle本", systemImage: "book.closed")
+                    }
                 } header: {
                     HStack {
                         Text("このアプリについて")
