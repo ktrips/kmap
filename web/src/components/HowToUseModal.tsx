@@ -29,8 +29,7 @@ export function HowToUseModal({ onClose, onSignInWithGoogle }: Props) {
       </p>
 
       <div className="howto-ios-pitch">
-        <p className="howto-ios-pitch-eyebrow">📱 Googleでサインインすれば、旅の記録の閲覧・</p>
-        <h3>iOSアプリなら、こんなこともできる！</h3>
+        <h3 className="howto-ios-pitch-title">更にGoogleでサインインして、iOSアプリを入れれば、こんなこともできる！</h3>
         <ul>
           <li>
             <strong>実際に歩いて古地図を発見</strong> —

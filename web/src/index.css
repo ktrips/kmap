@@ -1354,15 +1354,11 @@ code {
   border-radius: 14px;
 }
 
-.howto-ios-pitch-eyebrow {
-  margin: 0 0 4px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-brown);
-}
-
-.howto-ios-pitch h3 {
+.howto-ios-pitch-title {
   margin-top: 0 !important;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .howto-ios-pitch li {
