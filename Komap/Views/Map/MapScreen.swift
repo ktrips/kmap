@@ -172,6 +172,7 @@ struct MapScreen: View {
                 currentLocation: locationManager.currentLocation,
                 showAllOverlays: mapSession.isShowingAllOverlays,
                 moveCameraRequest: mapSession.cameraMoveRequest,
+                reattachOverlayRequest: mapSession.overlayReattachRequest,
                 bottomInset: bottomPanelHeight,
                 savedWalkPaths: cachedSavedWalkPaths,
                 liveWalkPath: displayedLiveWalkPath,
@@ -206,6 +207,10 @@ struct MapScreen: View {
                     onSelect: { _ in
                         // カメラ移動は`GoogleMapRepresentable`側で、古地図の範囲と
                         // チェックポイントが収まるよう自動的に行う。
+                        // 既に選択中と同じ古地図を選び直した場合にも、歩行中に
+                        // GPU不具合で消えてしまった古地図を復帰できるよう、
+                        // オーバーレイの貼り直しをリクエストする。
+                        mapSession.requestOverlayReattach()
                     },
                     onRequestSearch: {
                         mapSession.isShowingOldMapSearch = true
@@ -243,6 +248,7 @@ struct MapScreen: View {
         .sheet(isPresented: $mapSession.isShowingOldMapSearch) {
             OldMapSearchView(onAdd: { overlay in
                 mapSession.selectedOverlay = overlay
+                mapSession.requestOverlayReattach()
             })
         }
         .alert(

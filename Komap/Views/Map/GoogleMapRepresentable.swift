@@ -19,6 +19,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     /// カメラを移動させたい座標のリクエスト。同じ`id`には一度だけ反応する
     /// （同じ座標への再移動要求も、`id`が新しければ改めて移動する）。
     var moveCameraRequest: CameraMoveRequest?
+    /// 古地図オーバーレイを貼り直したいというリクエスト。`overlayMap`のidが
+    /// 変わっていなくても（＝同じ古地図が選び直されても）、新しい`id`であれば
+    /// 一度だけ、オーバーレイを一旦マップから外して付け直す
+    /// （GPU側のテクスチャ喪失バグから復帰させるため）。
+    var reattachOverlayRequest: UUID?
     /// 画面下部に浮かせているパネルの高さ分、現在地ボタンなど純正コントロールを
     /// 押し上げるための余白（パネルに隠れてボタンが押せなくなるのを防ぐ）。
     var bottomInset: CGFloat = 0
@@ -83,7 +88,14 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             context.coordinator.applyAllOverlays(OldMapCatalog.allIncludingCustom, checkpoints: checkpoints, to: mapView)
         } else {
             context.coordinator.removeAllOverlays()
-            context.coordinator.applyOverlay(overlayMap, opacity: overlayOpacity, livePath: liveWalkPath, checkpoints: checkpoints, to: mapView)
+            context.coordinator.applyOverlay(
+                overlayMap,
+                opacity: overlayOpacity,
+                livePath: liveWalkPath,
+                checkpoints: checkpoints,
+                reattachRequestID: reattachOverlayRequest,
+                to: mapView
+            )
         }
         context.coordinator.applyWalkPaths(saved: savedWalkPaths, live: liveWalkPath, isRecording: isRecordingWalk, to: mapView)
         context.coordinator.applyCheckpoints(checkpoints, collectedSiteIDs: collectedSiteIDs, to: mapView)
@@ -106,6 +118,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         // 残っていた古いリクエストがここで初めて処理され、チェックポイントに合わせた
         // 初期カメラフィットを直後に上書きしてしまう。
         coordinator.lastHandledMoveRequestID = moveCameraRequest?.id
+        // カメラ移動リクエストと同様、View生成前から存在していた貼り直しリクエストは
+        // 「既に処理済み」として扱う（タブを離れて戻ってきた時に、古いリクエストで
+        // 無駄な貼り直しが起きないようにするため）。
+        coordinator.lastHandledReattachRequestID = reattachOverlayRequest
         return coordinator
     }
 
@@ -115,6 +131,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         var onPhotoPostTap: (WalkPhotoPost) -> Void = { _ in }
         var onUserPanned: () -> Void = {}
         var lastHandledMoveRequestID: UUID?
+        var lastHandledReattachRequestID: UUID?
 
         private var currentOverlay: GMSGroundOverlay?
         private var currentOverlayID: String?
@@ -344,6 +361,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             opacity: Float,
             livePath: [CLLocationCoordinate2D],
             checkpoints: [HistoricSite] = [],
+            reattachRequestID: UUID? = nil,
             to mapView: GMSMapView
         ) {
             guard let overlayMap else {
@@ -355,7 +373,20 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 return
             }
 
+            // 同じ古地図が選び直された場合でも、新しい貼り直しリクエストが来ていれば
+            // （＝ユーザーが古地図メニューを操作した直後であれば）、`idleAt`の
+            // ワークアラウンドと同じ方法（一旦マップから外して付け直す）でオーバーレイを
+            // 復帰させる。テクスチャの作り直しは行わないため軽量。
+            let shouldForceReattach = reattachRequestID != nil && reattachRequestID != lastHandledReattachRequestID
+            if let reattachRequestID {
+                lastHandledReattachRequestID = reattachRequestID
+            }
+
             let isNewOverlay = currentOverlayID != overlayMap.id
+            if !isNewOverlay && shouldForceReattach, let currentOverlay {
+                currentOverlay.map = nil
+                currentOverlay.map = mapView
+            }
             if isNewOverlay {
                 // 古いオーバーレイのテクスチャをすぐに手放せるよう、`.map = nil`の前に
                 // `.icon`も明示的に外しておく（`.map = nil`だけでは、Google Maps SDK内部の

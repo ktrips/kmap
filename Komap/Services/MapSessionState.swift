@@ -31,6 +31,10 @@ final class MapSessionState: ObservableObject {
     @Published var selectedOverlay: HistoricalOverlayMap? = OldMapCatalog.edoCastle
     @Published var overlayOpacity: Double = MapSessionState.defaultOverlayOpacity
     @Published var cameraMoveRequest: CameraMoveRequest?
+    /// 古地図オーバーレイを貼り直したい（作り直しではなく、一旦マップから外して
+    /// 付け直すだけ）というリクエスト。同じ古地図が選び直された時に使う
+    /// （`id`が変わらないと`GoogleMapRepresentable`側の作り直し処理が走らないため）。
+    @Published var overlayReattachRequest: UUID?
     @Published var selectedTab: AppTab = .map
     /// 「全ての古地図を表示」が選ばれているかどうか。右上のハンバーガーメニュー内の
     /// 「古地図選択」と、マップ下部の`OverlayControlPanel`の両方から操作する。
@@ -85,6 +89,13 @@ final class MapSessionState: ObservableObject {
 
     func moveCamera(to coordinate: CLLocationCoordinate2D, zoom: Float? = nil) {
         cameraMoveRequest = CameraMoveRequest(coordinate, zoom: zoom)
+    }
+
+    /// 古地図の選択メニューから、今表示中と同じ古地図であっても選び直された時に呼ぶ。
+    /// 歩行中にGoogle Maps SDK側のGPU不具合で古地図が見えなくなった時、
+    /// もう一度同じ古地図を選ぶだけでオーバーレイを貼り直して復帰できるようにするため。
+    func requestOverlayReattach() {
+        overlayReattachRequest = UUID()
     }
 
     /// 「My TimeTrip」の記録から、その時の古地図・不透明度・位置を復元してマップタブへ移動する。
