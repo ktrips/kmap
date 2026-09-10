@@ -125,7 +125,15 @@ struct WalkRouteDetailView: View {
                     path: route.coordinates,
                     checkpoints: checkpointsForOverlay,
                     collectedSiteIDs: Set(stampsForRoute.map(\.siteID)),
-                    onMapViewReady: { mapViewForSharing = $0 }
+                    onMapViewReady: { mapView in
+                        // `makeUIView`はSwiftUIの描画パス中に呼ばれるため、ここで直接
+                        // `@State`を書き換えると「Modifying state during view update」の
+                        // 警告と、それに伴う余分な再描画を引き起こす。次の実行ループまで
+                        // 書き換えを遅らせて、描画パスの外側で状態を更新する。
+                        DispatchQueue.main.async {
+                            mapViewForSharing = mapView
+                        }
+                    }
                 )
                 .frame(height: 240)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -500,8 +508,9 @@ struct WalkRouteDetailView: View {
         }
 
         // 外部のURL短縮サービスは不安定だったため使わず、この時空旅を直接開ける
-        // Web版のURL（`?trip=<id>`）をそのままメッセージに載せる。
-        let url = "https://komap.ktrips.net/?trip=\(route.id.uuidString)"
+        // Web版のURLをそのままメッセージに載せる。UUID（36文字）をそのまま使うと
+        // 長くなるため、可逆変換できる短縮ID（22文字、`UUID.shortID`）を使う。
+        let url = "https://komap.ktrips.net/?t=\(route.id.shortID)"
         let message = "Komapで古地図巡りしよう！旅日記はこちら（\(url)）"
 
         shareItems = [image, message]

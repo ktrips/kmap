@@ -20,6 +20,11 @@ struct MapScreen: View {
     @Query private var collectedStamps: [CollectedStamp]
     @Query private var photoPosts: [WalkPhotoPost]
 
+    /// 古地図の選択メニューで直前に選ばれていた古地図のID。同じ古地図が選び直された
+    /// 時だけオーバーレイの貼り直しリクエストを出すために使う（`mapSession.selectedOverlay`
+    /// 自体は`@Published`のため、同じ値を代入してもここより先にpublishされてしまい、
+    /// 選び直し後の値との比較には使えない）。
+    @State private var lastSelectedOverlayID: String?
     @State private var tappedPoint: TappedPoint?
     /// マップをタップした直後、「新しいポイントを追加しますか？」の確認待ちの座標。
     /// ここで確認してからAIへ問い合わせることで、探索中の何気ないタップで
@@ -216,13 +221,18 @@ struct MapScreen: View {
                     selectedOverlay: $mapSession.selectedOverlay,
                     overlayOpacity: $mapSession.overlayOpacity,
                     isShowingAllOverlays: $mapSession.isShowingAllOverlays,
-                    onSelect: { _ in
+                    onSelect: { overlay in
                         // カメラ移動は`GoogleMapRepresentable`側で、古地図の範囲と
                         // チェックポイントが収まるよう自動的に行う。
-                        // 既に選択中と同じ古地図を選び直した場合にも、歩行中に
+                        // 既に選択中と同じ古地図が選び直された場合だけ、歩行中に
                         // GPU不具合で消えてしまった古地図を復帰できるよう、
-                        // オーバーレイの貼り直しをリクエストする。
-                        mapSession.requestOverlayReattach()
+                        // オーバーレイの貼り直しをリクエストする（新しい古地図への
+                        // 切り替えは`GoogleMapRepresentable`側の通常の作り直し処理で
+                        // 十分なため、毎回リクエストして余計な再描画を増やさない）。
+                        if overlay?.id == lastSelectedOverlayID {
+                            mapSession.requestOverlayReattach()
+                        }
+                        lastSelectedOverlayID = overlay?.id
                     },
                     onRequestSearch: {
                         mapSession.isShowingOldMapSearch = true
