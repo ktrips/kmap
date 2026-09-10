@@ -18,18 +18,18 @@ export function HowToUseModal({ onClose, onSignInWithGoogle }: Props) {
   return (
     <Modal title="Komapの使い方" onClose={onClose}>
       <p className="howto-lead">
-        Komap（古地図巡り）は、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」をAIが
-        解説してくれる、時間旅行気分の散策アプリです。
+        Komap（古地図巡り）は、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」を
+        味わえる散策アプリです。
       </p>
 
-      <h3>このページ（Web版）でできること</h3>
+      <h3>Web版でできること</h3>
       <p className="howto-web-summary">
         みんなが公開した時空旅（歩いたルート・御朱印・写真）を、誰でも地図上で眺められます。
         Googleでサインインすれば、自分の記録の閲覧・編集やいいね・コメントも可能です。
       </p>
 
       <div className="howto-ios-pitch">
-        <p className="howto-ios-pitch-eyebrow">📱 でも、Komapの本当の楽しさはiOSアプリの中に</p>
+        <p className="howto-ios-pitch-eyebrow">📱 Googleでサインインすれば、旅の記録の閲覧・</p>
         <h3>iOSアプリなら、こんなこともできる！</h3>
         <ul>
           <li>
