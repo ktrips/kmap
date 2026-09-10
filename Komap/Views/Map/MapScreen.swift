@@ -25,6 +25,18 @@ struct MapScreen: View {
     /// ここで確認してからAIへ問い合わせることで、探索中の何気ないタップで
     /// AI（課金対象）を無駄に呼び出さないようにする。
     @State private var pendingTapPoint: TappedPoint?
+    /// `pendingTapPoint`の有無をそのまま`.alert(isPresented:)`用の`Bool`として使うための
+    /// バインディング。この式をbody内の巨大な修飾子チェーンに直接書くと、型検査が
+    /// 「The compiler is unable to type-check this expression in reasonable time」で
+    /// タイムアウトすることを確認したため、独立した計算プロパティに切り出している。
+    private var isPendingTapPointAlertPresented: Binding<Bool> {
+        Binding(
+            get: { pendingTapPoint != nil },
+            set: { isPresented in
+                if !isPresented { pendingTapPoint = nil }
+            }
+        )
+    }
     /// チェックポイントのマーカー上の小さなアイコンボタンがタップされた時に表示する史跡。
     @State private var tappedCheckpoint: HistoricSite?
     /// 地図上の写真ピンがタップされた時に表示する投稿。
@@ -253,10 +265,7 @@ struct MapScreen: View {
         }
         .alert(
             "新しいポイントを追加しますか？",
-            isPresented: Binding(
-                get: { pendingTapPoint != nil },
-                set: { isPresented in if !isPresented { pendingTapPoint = nil } }
-            ),
+            isPresented: isPendingTapPointAlertPresented,
             presenting: pendingTapPoint
         ) { point in
             Button("追加する") {
