@@ -65,7 +65,14 @@ export function KindleBookModal({ onClose }: Props) {
             <li key={chapter}>🔒 {chapter}</li>
           ))}
         </ul>
-        <p className="kindle-upcoming-note">Kindle版は現在準備中です。公開時期は追ってお知らせします。</p>
+        <a
+          href="https://link.amazon/B006awnVi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="kindle-buy-button"
+        >
+          📖 Amazonで続きを読む
+        </a>
       </div>
     </Modal>
   );

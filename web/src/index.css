@@ -1321,6 +1321,24 @@ code {
   color: var(--color-brown);
 }
 
+.kindle-buy-button {
+  display: block;
+  margin-top: 16px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-brown) 0%, var(--color-brown-deep) 100%);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.kindle-buy-button:hover {
+  box-shadow: var(--shadow-soft);
+}
+
 /* ---------- 使い方モーダル：Web版は簡潔に、iOSアプリは強く訴求する ---------- */
 
 .howto-web-summary {
