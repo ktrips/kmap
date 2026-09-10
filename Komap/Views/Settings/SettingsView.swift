@@ -39,7 +39,7 @@ struct SettingsView: View {
                 photoFilterSection
 
                 Section("このアプリについて") {
-                    Text("Komap 古地図巡りは、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」をAIの解説とともに旅できるアプリです。同梱の古地図はサンプルの位置合わせデータです。実際の史料に基づく正確な位置合わせではありません。")
+                    Text("Komap 古地図巡りは、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」をAIの解説とともに旅できるアプリです。古地図はサンプルの位置合わせデータです。実際の史料に基づく正確な位置合わせではありません。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     LabeledContent("バージョン", value: Self.appVersionText)
@@ -108,7 +108,7 @@ struct SettingsView: View {
             Text("アカウント / Web連携")
         } footer: {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Googleでサインインすると、保存した地点・私の時空旅（歩いたルート）が新しく記録するたびにクラウドへ同期され、Webアプリで同じGoogleアカウントでログインした際に「My Trips」として見られるようになります。")
+                Text("Googleでサインインすると、保存した地点・私の時空旅（歩いたルート）がクラウドへ同期され、Googleアカウントでログインした際に見られるようになります。")
 
                 if authService.isSignedIn {
                     Group {
@@ -161,7 +161,7 @@ struct SettingsView: View {
         } header: {
             Text("古地図のデフォルト濃度")
         } footer: {
-            Text("マップ画面で古地図を選んだ時に最初から使われる濃度です。マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
+            Text("マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
         }
     }
 
@@ -179,7 +179,7 @@ struct SettingsView: View {
         } header: {
             Text("写真の加工")
         } footer: {
-            Text("御朱印・投稿写真を撮影・追加するたびに、選んだ加工が自動で適用されます。")
+            Text("写真を撮影・追加するたびに、選んだ加工が自動で適用されます。")
         }
     }
 
@@ -256,7 +256,7 @@ struct SettingsView: View {
         } header: {
             Text("アドバンス設定")
         } footer: {
-            Text("カメラ・プリンター連携、OpenAI・Googleカスタム検索・Google MapsのAPIキーなど、通常は初回セットアップ時にしか使わない項目をまとめています。")
+            Text("カメラ・プリンター連携、OpenAI・Googleカスタム検索・Google MapsのAPIキーなど。")
         }
     }
 
