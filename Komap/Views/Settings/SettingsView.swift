@@ -38,13 +38,18 @@ struct SettingsView: View {
                 overlayOpacitySection
                 photoFilterSection
 
-                Section("このアプリについて") {
+                Section {
                     Text("Komap 古地図巡りは、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」をAIの解説とともに旅できるアプリです。古地図はサンプルの位置合わせデータです。実際の史料に基づく正確な位置合わせではありません。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    LabeledContent("バージョン", value: Self.appVersionText)
                     Link(destination: URL(string: "https://github.com/ktrips/kmap#readme")!) {
                         Label("Komapの使い方", systemImage: "book")
+                    }
+                } header: {
+                    HStack {
+                        Text("このアプリについて")
+                        Spacer()
+                        Text("（バージョン \(Self.appVersionText)）")
                     }
                 }
 
