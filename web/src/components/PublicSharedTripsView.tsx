@@ -132,6 +132,14 @@ export function PublicSharedTripsView({
             <button type="button" className="sidebar-footer-button" onClick={() => setIsKindleOpen(true)}>
               📚 Komapの作り方 Kindle（一部無料）
             </button>
+            <a
+              href="https://link.amazon/B006awnVi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sidebar-footer-link"
+            >
+              📖 この続きはKindle本で
+            </a>
           </aside>
         )}
         <main className="app-main">
