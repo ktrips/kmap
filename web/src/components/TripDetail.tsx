@@ -215,7 +215,7 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         </p>
       </div>
 
-      {/* 旅のサマリー（AIが生成した旅行記の本文。未生成なら非表示） */}
+      {/* 旅のサマリー（AIが生成した旅日記の本文。未生成なら非表示） */}
       {journalHtml && (
         <div className="trip-journal-summary">
           <p className="trip-journal-summary-title">{oldMap ? `${oldMap.title}の時空旅` : "時空旅"}</p>

@@ -18,7 +18,7 @@ enum TravelJournalError: LocalizedError {
     }
 }
 
-/// 生成された旅行記（見出し + Markdown本文）
+/// 生成された旅日記（見出し + Markdown本文）
 struct GeneratedTravelJournal {
     let title: String
     let markdownBody: String
@@ -29,9 +29,9 @@ struct GeneratedTravelJournal {
 ///
 /// 巡った御朱印スポットの詳細は、チェックポイント詳細シート（`CheckpointInfoSheet`）と
 /// 同じ`CheckpointStory`キャッシュを使い、既にあればそのまま使い、無ければこのタイミングで
-/// 生成してキャッシュに保存する。個々の詳細は旅行記画面の御朱印/写真ギャラリーに
+/// 生成してキャッシュに保存する。個々の詳細は旅日記画面の御朱印/写真ギャラリーに
 /// そのまま表示する（サマリー本文には繰り返し含めない）ため、アプリ上のチェックポイント詳細・
-/// 旅行記・Web上の旅行記表示のすべてで同じ内容になる。
+/// 旅日記・Web上の旅日記表示のすべてで同じ内容になる。
 struct TravelJournalService {
     /// テキスト生成に使うモデル名。必要に応じて変更可能。
     var model: String = "gpt-4o-mini"
@@ -58,14 +58,14 @@ struct TravelJournalService {
         あなたは日本の歴史・地理に詳しい語り部です。ユーザーが古地図を片手に歩いた
         「時間旅」の記録（旅の名前・使った古地図・歩いた統計・感想・巡った史跡の一覧・
         投稿した写真の情報）をもとに、その旅を振り返る「旅のサマリー」を日本語で
-        書いてください。個々の史跡の詳しい説明は旅行記の他の場所（御朱印・写真の一覧）で
+        書いてください。個々の史跡の詳しい説明は旅日記の他の場所（御朱印・写真の一覧）で
         別途表示されるため、ここでは繰り返さず、旅全体の印象・雰囲気・見どころが伝わる
         文章を、旅情を感じられる語り口で簡潔にまとめてください。
         文字数は200字程度（多くても250字まで）に収めてください。小見出しは不要です。
         史実として確定していない場合は、伝承や一般的な当時の様子として、
         断定を避けた表現（例:「〜と伝えられています」「〜だったと考えられます」）を使ってください。
         出力は必ず次の形式のJSONのみとし、それ以外の文字は含めないでください。
-        {"title": "20文字程度の旅行記タイトル", "body": "200字程度のサマリー本文"}
+        {"title": "20文字程度の旅日記タイトル", "body": "200字程度のサマリー本文"}
         """
 
         let userPrompt = buildUserPrompt(route: route, checkpointDetails: checkpointDetails, photoPosts: photoPosts)
@@ -137,7 +137,7 @@ struct TravelJournalService {
                 try? modelContext.save()
                 details.append((site: site, title: story.title, body: story.body))
             } catch {
-                // その場所の詳細が取得できなくても、他の場所の分で旅行記は生成できるので続行する。
+                // その場所の詳細が取得できなくても、他の場所の分で旅日記は生成できるので続行する。
                 continue
             }
         }

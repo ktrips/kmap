@@ -90,7 +90,7 @@ struct WalkRouteDetailView: View {
         HistoricSiteCatalog.sites(forOverlayID: route.overlayMap?.id)
     }
 
-    /// 巡った御朱印スポットについて、旅行記画面（`TravelJournalView`）が表示するのと
+    /// 巡った御朱印スポットについて、旅日記画面（`TravelJournalView`）が表示するのと
     /// 同じ説明文（既にAIで生成済みの`CheckpointStory`があればその本文、無ければ
     /// 史跡カタログの`summary`）を`siteID`をキーにまとめたもの。公開データ
     /// （`sharedTrips`）に、御朱印の写真と一緒に説明文も添えられるようにするために使う。
@@ -321,7 +321,7 @@ struct WalkRouteDetailView: View {
         .foregroundStyle(.secondary)
     }
 
-    /// 5行目：旅の説明（感想）と、旅行記を作る/読むボタン。
+    /// 5行目：旅の説明（感想）と、旅日記を作る/読むボタン。
     private var descriptionAndJournalSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let notes = route.notes, !notes.isEmpty {
@@ -385,7 +385,7 @@ struct WalkRouteDetailView: View {
                     Button {
                         isShowingJournal = true
                     } label: {
-                        Label("旅行記を読む", systemImage: "book.fill")
+                        Label("旅日記を読む", systemImage: "book.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -402,7 +402,7 @@ struct WalkRouteDetailView: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(isGeneratingJournal)
-                    .accessibilityLabel("旅行記を作り直す")
+                    .accessibilityLabel("旅日記を作り直す")
                 }
             } else {
                 Button {
@@ -411,11 +411,11 @@ struct WalkRouteDetailView: View {
                     if isGeneratingJournal {
                         HStack {
                             ProgressView()
-                            Text("旅行記を作成中…")
+                            Text("旅日記を作成中…")
                         }
                         .frame(maxWidth: .infinity)
                     } else {
-                        Label("旅行記を作成する", systemImage: "sparkles")
+                        Label("旅日記を作成する", systemImage: "sparkles")
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -425,7 +425,7 @@ struct WalkRouteDetailView: View {
         }
     }
 
-    /// AIに、この時間旅の内容から旅行記を生成してもらい、成功したら保存・同期する。
+    /// AIに、この時間旅の内容から旅日記を生成してもらい、成功したら保存・同期する。
     private func generateJournal() async {
         isGeneratingJournal = true
         journalErrorMessage = nil

@@ -77,7 +77,7 @@ export function TripList({ trips, selectedId, onSelect }: Props) {
                 {trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}
                 {oldMap && `（${oldMap.title}）`}
                 {trip.journalMarkdown && (
-                  <span className="trip-shared-icon" title="旅行記あり" aria-label="旅行記あり">
+                  <span className="trip-shared-icon" title="旅日記あり" aria-label="旅日記あり">
                     📖
                   </span>
                 )}

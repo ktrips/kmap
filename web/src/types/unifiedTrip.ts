@@ -27,9 +27,9 @@ export interface UnifiedTrip {
   stampCount: number | null;
   /** 自分の時空旅（`kind: "own"`）が、「みんなの時空旅」として公開中かどうか。 */
   isShared: boolean;
-  /** AIが生成した旅行記の見出し。未生成なら`null`。 */
+  /** AIが生成した旅日記の見出し。未生成なら`null`。 */
   journalTitle: string | null;
-  /** AIが生成した旅行記の本文（Markdown形式）。未生成なら`null`。 */
+  /** AIが生成した旅日記の本文（Markdown形式）。未生成なら`null`。 */
   journalMarkdown: string | null;
 }
 

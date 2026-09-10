@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// AIが生成した旅行記を読むための画面。
+/// AIが生成した旅日記を読むための画面。
 ///
 /// 題名・基本情報（日時・距離・時間・件数）・AIが書いたサマリー・実際に歩いたルートの
 /// 地図・巡った御朱印/投稿写真（それぞれ説明文と並べて）の順に並べた、
@@ -79,7 +79,7 @@ struct TravelJournalView: View {
                 }
                 .padding()
             }
-            .navigationTitle("旅行記")
+            .navigationTitle("時空旅日記")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -218,7 +218,7 @@ struct TravelJournalView: View {
     }
 }
 
-/// 旅行記のギャラリー（御朱印・投稿写真）1件分の行。写真とその説明を横並びで見せる。
+/// 旅日記のギャラリー（御朱印・投稿写真）1件分の行。写真とその説明を横並びで見せる。
 private struct JournalGalleryRow: View {
     let image: UIImage?
     let placeholderSystemImage: String

@@ -52,7 +52,14 @@ export function PublicSharedTripsView({
     <div className="app-shell">
       <header className="app-header">
         <div className="app-header-title">
-          <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+          <button
+            type="button"
+            className="app-header-icon-button"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="一覧を表示"
+          >
+            <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+          </button>
           <p className="brand-eyebrow">Komap 古地図巡り</p>
           {isSidebarOpen && activeVisitorCount !== null && activeVisitorCount > 0 && (
             <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
@@ -120,6 +127,7 @@ export function PublicSharedTripsView({
       <div className="app-body">
         {isSidebarOpen && (
           <aside className="app-sidebar">
+            <p className="trip-list-heading">みんなの時空旅 ({trips.length}件の公開旅日記)</p>
             <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
             <button type="button" className="sidebar-footer-button" onClick={() => setIsKindleOpen(true)}>
               📚 Komapの作り方 Kindle（一部無料）

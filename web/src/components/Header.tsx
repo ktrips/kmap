@@ -39,7 +39,14 @@ export function Header({ user, tripCount, onSignOut, showListButton = false, onS
   return (
     <header className="app-header app-header--authenticated">
       <div className="app-header-title">
-        <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+        <button
+          type="button"
+          className="app-header-icon-button"
+          onClick={onShowList}
+          aria-label="一覧を表示"
+        >
+          <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
+        </button>
         <p className="brand-eyebrow">Komap 古地図巡り</p>
         {showListButton && (
           <button type="button" className="sidebar-menu-button" onClick={onShowList} aria-label="一覧を表示">

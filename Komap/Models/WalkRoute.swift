@@ -33,11 +33,11 @@ final class WalkRoute {
     /// 「保存済みの徒歩ルート」としては描画しない（過去のルート表示を整理したい時用）。
     /// `isSharedPublicly`が`true`の時はこちらは意味を持たない（常に表示扱い）。
     var isHiddenOnMap: Bool = false
-    /// AIが生成した旅行記の見出し。未生成なら`nil`。
+    /// AIが生成した旅日記の見出し。未生成なら`nil`。
     var travelJournalTitle: String?
-    /// AIが生成した旅行記の本文（Markdown形式）。未生成なら`nil`。
+    /// AIが生成した旅日記の本文（Markdown形式）。未生成なら`nil`。
     var travelJournalMarkdown: String?
-    /// 旅行記を生成した日時。未生成なら`nil`。
+    /// 旅日記を生成した日時。未生成なら`nil`。
     var travelJournalGeneratedAt: Date?
 
     init(

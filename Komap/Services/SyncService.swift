@@ -250,7 +250,7 @@ struct SyncService {
         if isShared {
             // 御朱印（史跡チェックポイント）の写真と、自由投稿の写真は、Web側でも
             // 分けて表示できるよう、それぞれ紐づく史跡名・地点名と、あれば説明文
-            // （旅行記と同じ内容の`detail`）も添えて公開する。
+            // （旅日記と同じ内容の`detail`）も添えて公開する。
             var stampPhotos: [[String: Any]] = []
             for stamp in stamps where stamp.photo != nil {
                 let sourcePath = stampPhotoStoragePath(userID: userID, stampID: stamp.id)

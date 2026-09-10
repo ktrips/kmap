@@ -525,7 +525,7 @@ private struct TripRow: View {
                     if route.travelJournalMarkdown != nil {
                         Image(systemName: "book.closed.fill")
                             .foregroundStyle(.brown)
-                            .accessibilityLabel("旅行記あり")
+                            .accessibilityLabel("旅日記あり")
                     }
                     if route.isSharedPublicly {
                         EngagementCountsView(tripID: route.id.uuidString)
