@@ -74,6 +74,9 @@ struct WalkRouteDetailView: View {
     @State private var isShowingShareSheet = false
     @State private var shareItems: [Any] = []
     @State private var shareCardErrorMessage: String?
+    /// この画面に表示している地図（`WalkRouteMapView`）の`GMSMapView`インスタンス。
+    /// シェア画像を作る時に、既に画面表示されているこの地図をそのままスナップショットする。
+    @State private var mapViewForSharing: GMSMapView?
 
     private let syncService = SyncService()
     private let journalService = TravelJournalService()
@@ -121,7 +124,8 @@ struct WalkRouteDetailView: View {
                     overlayOpacity: Float(route.overlayOpacity),
                     path: route.coordinates,
                     checkpoints: checkpointsForOverlay,
-                    collectedSiteIDs: Set(stampsForRoute.map(\.siteID))
+                    collectedSiteIDs: Set(stampsForRoute.map(\.siteID)),
+                    onMapViewReady: { mapViewForSharing = $0 }
                 )
                 .frame(height: 240)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -483,8 +487,8 @@ struct WalkRouteDetailView: View {
         isGeneratingJournal = false
     }
 
-    /// この時空旅の要約カード画像と、短縮URL付きの紹介メッセージを用意してから、
-    /// 標準の共有シート（SNS・LINEなど）を表示する。
+    /// この時空旅の要約カード画像と、その時空旅を直接開けるURL付きの紹介メッセージを
+    /// 用意してから、標準の共有シート（SNS・LINEなど）を表示する。
     private func prepareAndShowShareSheet() async {
         isPreparingShare = true
         shareCardErrorMessage = nil
@@ -495,42 +499,42 @@ struct WalkRouteDetailView: View {
             return
         }
 
-        let longURL = "https://komap.ktrips.net/?trip=\(route.id.uuidString)"
-        let shortURL = await Self.shortenURL(longURL)
-        let message = "Komapで古地図巡りしよう！旅日記はこちら（\(shortURL)）"
+        // 外部のURL短縮サービスは不安定だったため使わず、この時空旅を直接開ける
+        // Web版のURL（`?trip=<id>`）をそのままメッセージに載せる。
+        let url = "https://komap.ktrips.net/?trip=\(route.id.uuidString)"
+        let message = "Komapで古地図巡りしよう！旅日記はこちら（\(url)）"
 
         shareItems = [image, message]
         isShowingShareSheet = true
     }
 
     /// この時空旅の内容から、SNS・LINEで共有する要約カード画像を1枚に書き出す。
+    /// 地図部分は、この画面に既に表示されている地図（`mapViewForSharing`）を
+    /// そのままスナップショットして使う（現在の地図・古地図・ルート・御朱印スポットの
+    /// マーカーが、画面と同じ見た目で重なった状態になる）。
     @MainActor
     private func renderShareCardImage() -> UIImage? {
-        let card = TripShareCardView(route: route, stamps: stampsForRoute, photoPosts: photoPostsForRoute)
+        let card = TripShareCardView(
+            route: route,
+            stamps: stampsForRoute,
+            photoPosts: photoPostsForRoute,
+            mapSnapshot: captureMapSnapshot()
+        )
         let renderer = ImageRenderer(content: card)
         renderer.scale = 2
         return renderer.uiImage
     }
 
-    /// TinyURLの認証不要APIでURLを短縮する。失敗した場合は元のURLをそのまま返す
-    /// （共有メッセージ自体は短縮の成否に関わらず必ず送れるようにするため）。
-    private static func shortenURL(_ longURL: String) async -> String {
-        guard let encoded = longURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://tinyurl.com/api-create.php?url=\(encoded)")
-        else {
-            return longURL
+    /// 画面上部に表示中の`GMSMapView`をそのまま画像化する。`GMSMapView`は内部で
+    /// Metal/OpenGLを使って描画しているため、`layer.render(in:)`では正しく描画結果を
+    /// キャプチャできないことがあり、代わりに`drawHierarchy(in:afterScreenUpdates:)`を使う。
+    private func captureMapSnapshot() -> UIImage? {
+        guard let mapView = mapViewForSharing, mapView.bounds.width > 0, mapView.bounds.height > 0 else {
+            return nil
         }
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode),
-                  let shortURL = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  shortURL.hasPrefix("http")
-            else {
-                return longURL
-            }
-            return shortURL
-        } catch {
-            return longURL
+        let renderer = UIGraphicsImageRenderer(bounds: mapView.bounds)
+        return renderer.image { _ in
+            mapView.drawHierarchy(in: mapView.bounds, afterScreenUpdates: false)
         }
     }
 
@@ -680,6 +684,9 @@ struct WalkRouteMapView: UIViewRepresentable {
     let path: [CLLocationCoordinate2D]
     let checkpoints: [HistoricSite]
     let collectedSiteIDs: Set<String>
+    /// 生成し終えた`GMSMapView`を呼び出し側へ渡す。シェア用の画像を作る時に、
+    /// この画面に既に表示されている地図をそのままスナップショットするために使う。
+    var onMapViewReady: ((GMSMapView) -> Void)?
 
     func makeUIView(context: Context) -> GMSMapView {
         let initialCamera = GMSCameraPosition.camera(
@@ -735,6 +742,7 @@ struct WalkRouteMapView: UIViewRepresentable {
             mapView.moveCamera(GMSCameraUpdate.fit(pathBounds, withPadding: 32))
         }
 
+        onMapViewReady?(mapView)
         return mapView
     }
 

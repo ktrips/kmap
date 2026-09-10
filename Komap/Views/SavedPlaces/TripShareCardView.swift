@@ -8,14 +8,15 @@ struct TripShareCardView: View {
     let route: WalkRoute
     let stamps: [CollectedStamp]
     let photoPosts: [WalkPhotoPost]
+    /// 時間旅の記録画面に既に表示されている地図（`WalkRouteMapView`）をそのまま
+    /// スナップショットしたもの。現在の地図・古地図・歩いたルート・御朱印スポットの
+    /// マーカーが実際の画面と同じ見た目で重なった状態で載せられる。取得できなかった
+    /// 場合だけ、簡易的に描き直した地図（`fallbackMapArea`）を使う。
+    let mapSnapshot: UIImage?
 
     static let cardWidth: CGFloat = 1080
     private static let brown = Color(red: 0.72, green: 0.35, blue: 0.15)
     private static let goldBrown = Color(red: 0.72, green: 0.53, blue: 0.15)
-
-    /// カードに載せる御朱印・写真は多すぎると縦長になりすぎるため、それぞれ上限を設ける。
-    private static let maxGoshuinItems = 4
-    private static let maxPhotoItems = 4
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
@@ -54,11 +55,27 @@ struct TripShareCardView: View {
         }
     }
 
-    /// 古地図の画像に、実際に歩いたルートを重ねて描く。ネットワーク通信や
-    /// 実行中のGMSMapViewのスナップショットは使わず、既に端末上にある古地図画像
-    /// （`overlayMap.image`）とルート座標だけで描画するため、共有直前に
-    /// すぐ画像化できる。
+    @ViewBuilder
     private var mapArea: some View {
+        if let mapSnapshot {
+            Image(uiImage: mapSnapshot)
+                .resizable()
+                .scaledToFill()
+                .frame(height: Self.cardWidth - 88)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                )
+        } else {
+            fallbackMapArea
+        }
+    }
+
+    /// 画面の地図をスナップショットできなかった時だけ使う、簡易的な地図の描き直し。
+    /// ネットワーク通信や実行中のGMSMapViewを必要とせず、既に端末上にある古地図画像
+    /// （`overlayMap.image`）とルート座標だけで描画する。
+    private var fallbackMapArea: some View {
         Canvas { context, size in
             if let overlayMap = route.overlayMap, let cgImage = overlayMap.image?.cgImage {
                 context.draw(Image(decorative: cgImage, scale: 1), in: CGRect(origin: .zero, size: size))
@@ -80,7 +97,7 @@ struct TripShareCardView: View {
 
     /// 緯度経度を、古地図の範囲（`overlayMap.southWest`〜`northEast`）を基準に
     /// カード内の座標へ単純な線形変換で写す（`bearing`による回転は考慮しない、
-    /// 共有カードとしては十分な近似）。古地図が無い場合は歩いたルート自体の
+    /// フォールバック描画としては十分な近似）。古地図が無い場合は歩いたルート自体の
     /// 範囲を基準にする。
     private func routePath(in size: CGSize) -> Path {
         var path = Path()
@@ -139,74 +156,60 @@ struct TripShareCardView: View {
             .foregroundStyle(tint)
     }
 
+    /// 御朱印・チェックポイントは、時間旅の記録画面の「御朱印・チェックポイント」
+    /// セクション（`CheckpointRow`）と同じく、写真・名前・史跡の紹介文を横並びで
+    /// 1件ずつ、件数の上限なく全て並べる。
     private var goshuinSection: some View {
-        let shown = stamps.prefix(Self.maxGoshuinItems)
-        let remaining = stamps.count - shown.count
-        return VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 18) {
             Text("御朱印・チェックポイント")
                 .font(.system(size: 28, weight: .bold))
-            HStack(spacing: 16) {
-                ForEach(shown) { stamp in
-                    shareThumbnail(image: stamp.photo, placeholderSystemImage: "seal.fill", caption: stamp.site?.name)
-                }
-                if remaining > 0 {
-                    moreBadge(count: remaining)
+            ForEach(stamps) { stamp in
+                if let site = stamp.site {
+                    HStack(alignment: .top, spacing: 18) {
+                        thumbnailImage(stamp.photo, placeholderSystemImage: "seal.fill", size: 120)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(site.name)
+                                .font(.system(size: 24, weight: .bold))
+                            Text(site.summary)
+                                .font(.system(size: 20))
+                                .foregroundStyle(.black.opacity(0.6))
+                        }
+                        Spacer(minLength: 0)
+                    }
                 }
             }
         }
     }
 
+    /// 投稿した写真は、記録画面の「投稿した写真」セクションと同じく、
+    /// キャプション無しのグリッドで件数の上限なく全て並べる。
     private var photosSection: some View {
-        let shown = photoPosts.prefix(Self.maxPhotoItems)
-        let remaining = photoPosts.count - shown.count
-        return VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 18) {
             Text("投稿した写真")
                 .font(.system(size: 28, weight: .bold))
-            HStack(spacing: 16) {
-                ForEach(shown) { post in
-                    shareThumbnail(image: post.photo, placeholderSystemImage: "camera.fill", caption: post.placeName)
-                }
-                if remaining > 0 {
-                    moreBadge(count: remaining)
+            let columns = [GridItem(.adaptive(minimum: 220), spacing: 16)]
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(photoPosts) { post in
+                    thumbnailImage(post.photo, placeholderSystemImage: "camera.fill", size: 220)
                 }
             }
         }
     }
 
-    private func shareThumbnail(image: UIImage?, placeholderSystemImage: String, caption: String?) -> some View {
-        VStack(alignment: .center, spacing: 6) {
-            Group {
-                if let image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.06))
-                        .overlay(Image(systemName: placeholderSystemImage).font(.system(size: 32)).foregroundStyle(Self.goldBrown))
-                }
-            }
-            .frame(width: 160, height: 160)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-            if let caption, !caption.isEmpty {
-                Text(caption)
-                    .font(.system(size: 18))
-                    .foregroundStyle(.black.opacity(0.65))
-                    .lineLimit(1)
-                    .frame(width: 160)
+    private func thumbnailImage(_ image: UIImage?, placeholderSystemImage: String, size: CGFloat) -> some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Rectangle()
+                    .fill(Color.black.opacity(0.06))
+                    .overlay(Image(systemName: placeholderSystemImage).font(.system(size: 32)).foregroundStyle(Self.goldBrown))
             }
         }
-    }
-
-    private func moreBadge(count: Int) -> some View {
-        VStack {
-            Text("+\(count)")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(Self.brown)
-        }
-        .frame(width: 160, height: 160)
-        .background(Self.brown.opacity(0.1), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var footer: some View {
