@@ -73,12 +73,14 @@ export function Header({ user, tripCount, onSignOut, showListButton = false, onS
           )}
           {status === "error" && errorMessage && (
             <p className="testflight-invite-note is-error">
-              {errorMessage}
-              {adminMailtoHref && (
+              {adminMailtoHref ? (
                 <>
-                  {" "}
-                  <a href={adminMailtoHref}>管理者にメールで連絡する</a>
+                  iOSのダウンロードに失敗した時は、お手数ですが、この
+                  <a href={adminMailtoHref}>リンク</a>
+                  から管理者にメールで連絡して下さい。
                 </>
+              ) : (
+                errorMessage
               )}
             </p>
           )}
