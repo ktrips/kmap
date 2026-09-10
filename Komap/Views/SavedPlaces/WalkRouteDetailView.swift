@@ -70,6 +70,10 @@ struct WalkRouteDetailView: View {
     @State private var journalErrorMessage: String?
     @State private var isShowingJournal = false
     @State private var likeCount = 0
+    @State private var isPreparingShare = false
+    @State private var isShowingShareSheet = false
+    @State private var shareItems: [Any] = []
+    @State private var shareCardErrorMessage: String?
 
     private let syncService = SyncService()
     private let journalService = TravelJournalService()
@@ -148,7 +152,7 @@ struct WalkRouteDetailView: View {
             }
             .padding()
         }
-        .navigationTitle("時間旅の記録")
+        .navigationTitle("マイ時空旅：\(route.overlayMap?.title ?? "古地図なし")")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: route.isSharedPublicly) {
             guard route.isSharedPublicly else { return }
@@ -186,6 +190,14 @@ struct WalkRouteDetailView: View {
                         Label("公開設定: \(currentVisibility.menuTitle)", systemImage: currentVisibility.systemImage)
                     }
                     .disabled(isUpdatingShare)
+                    if route.isSharedPublicly {
+                        Button {
+                            Task { await prepareAndShowShareSheet() }
+                        } label: {
+                            Label("シェア", systemImage: "square.and.arrow.up")
+                        }
+                        .disabled(isPreparingShare)
+                    }
                     Button(role: .destructive) {
                         isConfirmingDelete = true
                     } label: {
@@ -223,6 +235,9 @@ struct WalkRouteDetailView: View {
         }
         .sheet(item: $selectedStamp) { selection in
             StampCheckInSheet(site: selection.site, stamp: selection.stamp)
+        }
+        .sheet(isPresented: $isShowingShareSheet) {
+            ActivityShareSheet(items: shareItems)
         }
         .sheet(isPresented: $isShowingJournal) {
             TravelJournalView(
@@ -305,20 +320,39 @@ struct WalkRouteDetailView: View {
         .foregroundStyle(.secondary)
     }
 
-    /// 4行目：御朱印の数・写真の数・いいねの数。
+    /// 4行目：御朱印の数・写真の数・いいねの数（＋公開中ならシェアボタン）。
     private var countsSection: some View {
-        HStack(spacing: 12) {
-            Label("御朱印 \(stampsForRoute.count)件", systemImage: "seal.fill")
-                .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
-            Label("写真 \(photoPostsForRoute.count)件", systemImage: "camera.fill")
-                .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
-            if route.isSharedPublicly {
-                Label("いいね \(likeCount)件", systemImage: "heart.fill")
-                    .foregroundStyle(.pink)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                Label("御朱印 \(stampsForRoute.count)件", systemImage: "seal.fill")
+                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                Label("写真 \(photoPostsForRoute.count)件", systemImage: "camera.fill")
+                    .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
+                if route.isSharedPublicly {
+                    Label("いいね \(likeCount)件", systemImage: "heart.fill")
+                        .foregroundStyle(.pink)
+
+                    Button {
+                        Task { await prepareAndShowShareSheet() }
+                    } label: {
+                        if isPreparingShare {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                    .disabled(isPreparingShare)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            if let shareCardErrorMessage {
+                Text(shareCardErrorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
     }
 
     /// 5行目：旅の説明（感想）と、旅日記を作る/読むボタン。
@@ -447,6 +481,57 @@ struct WalkRouteDetailView: View {
             journalErrorMessage = error.localizedDescription
         }
         isGeneratingJournal = false
+    }
+
+    /// この時空旅の要約カード画像と、短縮URL付きの紹介メッセージを用意してから、
+    /// 標準の共有シート（SNS・LINEなど）を表示する。
+    private func prepareAndShowShareSheet() async {
+        isPreparingShare = true
+        shareCardErrorMessage = nil
+        defer { isPreparingShare = false }
+
+        guard let image = renderShareCardImage() else {
+            shareCardErrorMessage = "共有画像の作成に失敗しました。"
+            return
+        }
+
+        let longURL = "https://komap.ktrips.net/?trip=\(route.id.uuidString)"
+        let shortURL = await Self.shortenURL(longURL)
+        let message = "Komapで古地図巡りしよう！旅日記はこちら（\(shortURL)）"
+
+        shareItems = [image, message]
+        isShowingShareSheet = true
+    }
+
+    /// この時空旅の内容から、SNS・LINEで共有する要約カード画像を1枚に書き出す。
+    @MainActor
+    private func renderShareCardImage() -> UIImage? {
+        let card = TripShareCardView(route: route, stamps: stampsForRoute, photoPosts: photoPostsForRoute)
+        let renderer = ImageRenderer(content: card)
+        renderer.scale = 2
+        return renderer.uiImage
+    }
+
+    /// TinyURLの認証不要APIでURLを短縮する。失敗した場合は元のURLをそのまま返す
+    /// （共有メッセージ自体は短縮の成否に関わらず必ず送れるようにするため）。
+    private static func shortenURL(_ longURL: String) async -> String {
+        guard let encoded = longURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://tinyurl.com/api-create.php?url=\(encoded)")
+        else {
+            return longURL
+        }
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode),
+                  let shortURL = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  shortURL.hasPrefix("http")
+            else {
+                return longURL
+            }
+            return shortURL
+        } catch {
+            return longURL
+        }
     }
 
     /// この時間旅を削除する。公開中だった場合は「みんなの時空旅」からも取り除き、
