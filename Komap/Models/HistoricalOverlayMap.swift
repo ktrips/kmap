@@ -362,9 +362,25 @@ enum OldMapCatalog {
         categoryByID[overlay.id]
     }
 
+    /// `allIncludingCustom`の結果のキャッシュ。「全ての古地図を表示」中は歩行のGPS更新の
+    /// たびに参照されるため、変化がない間は配列の再構築（同梱リストとカスタム古地図の
+    /// 結合・`HistoricalOverlayMap`値のコピー）を毎回行わずに済ませる。
+    private static var allIncludingCustomCache: [HistoricalOverlayMap]?
+
     /// 同梱の古地図 + ユーザーが検索して追加した古地図。
     static var allIncludingCustom: [HistoricalOverlayMap] {
-        all + CustomOverlayMapStore.all()
+        if let allIncludingCustomCache {
+            return allIncludingCustomCache
+        }
+        let combined = all + CustomOverlayMapStore.all()
+        allIncludingCustomCache = combined
+        return combined
+    }
+
+    /// カスタム古地図が追加された時など、`allIncludingCustom`の内容が実際に変わった
+    /// タイミングで呼び、次回参照時に作り直させる。
+    static func invalidateAllIncludingCustomCache() {
+        allIncludingCustomCache = nil
     }
 
     /// 統合によって廃止されたID → 統合先IDの対応表。

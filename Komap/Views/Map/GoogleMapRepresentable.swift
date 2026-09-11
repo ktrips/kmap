@@ -149,6 +149,14 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// まだ通っていない場所用に、あらかじめぼかしておいた画像（古地図が変わる度に作り直す）。
         private var currentBlurredImage: UIImage?
         private var lastRevealedPointCount = 0
+        /// 最後にリビール画像を合成した時点の座標。GPSは5m移動するたびに更新されるが、
+        /// コリドー幅（`revealCorridorMeters`）は70mあるため、5m単位で毎回1600px四方の
+        /// 画像を全体再合成してGPUテクスチャへ再アップロードするのは無駄が大きく、
+        /// 歩行中の古地図表示のもたつきの主因になっていた。実際の見た目への影響なしに
+        /// 間引けるよう、前回合成時からの移動距離が`revealRecomputeMinDistanceMeters`
+        /// 未満の間は合成をスキップする（`lastRevealedPointCount`はそのままにしておき、
+        /// 次に間引きが解除された時にまとめて増えた区間を1回で描き足す）。
+        private var lastRevealedCoordinate: CLLocationCoordinate2D?
         /// リビール画像の合成中に、GPSの更新が続けて何度も来た場合に合成タスクが
         /// 積み重ならないようにするためのフラグ。
         private var isComposingRevealedImage = false
@@ -209,6 +217,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
         private let revealCorridorMeters: Double = 70
+        /// リビール画像の再合成を間引く最小移動距離（メートル）。コリドー幅より
+        /// 十分小さく保ち、見た目の追従が粗くならないようにする。
+        private static let revealRecomputeMinDistanceMeters: Double = 20
         /// 記録中、「まだ通っていない場所」の不透明度の下限。スライダーがこれより低くても、
         /// 宝探し演出（通った道だけくっきり）を保ったまま、歩いている間は古地図全体が
         /// はっきり見えるようにする（以前は0.6で、ぼかしと合わさって古地図全体が
@@ -370,6 +381,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentOverlayID = nil
                 currentBaseImage = nil
                 lastRevealedPointCount = 0
+                lastRevealedCoordinate = nil
                 return
             }
 
@@ -395,6 +407,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentOverlay?.map = nil
                 currentBlurredImage = nil
                 lastRevealedPointCount = 0
+                lastRevealedCoordinate = nil
 
                 let bounds = GMSCoordinateBounds(
                     coordinate: overlayMap.southWest,
@@ -500,9 +513,20 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 // 二重に暗くなり古地図がほとんど見えなくなってしまうため）。
                 currentOverlay.opacity = 1
                 // 合成処理は重いのでメインスレッドをブロックしないようバックグラウンドで行う。
-                if !isComposingRevealedImage && (isNewOverlay || livePath.count != lastRevealedPointCount) {
+                // さらに、GPSの5m更新のたびに合成するとコリドー幅（70m）に対して過剰な
+                // 頻度でテクスチャ再アップロードが走り歩行中の表示がもたつくため、
+                // 一定距離動くまでは間引く（`lastRevealedCoordinate`参照）。
+                let movedFarEnoughToRecompute: Bool = {
+                    guard let last = livePath.last else { return false }
+                    guard let lastRevealedCoordinate else { return true }
+                    let from = CLLocation(latitude: lastRevealedCoordinate.latitude, longitude: lastRevealedCoordinate.longitude)
+                    let to = CLLocation(latitude: last.latitude, longitude: last.longitude)
+                    return from.distance(from: to) >= Self.revealRecomputeMinDistanceMeters
+                }()
+                if !isComposingRevealedImage && (isNewOverlay || (livePath.count != lastRevealedPointCount && movedFarEnoughToRecompute)) {
                     let previousPointCount = isNewOverlay ? 0 : lastRevealedPointCount
                     lastRevealedPointCount = livePath.count
+                    lastRevealedCoordinate = livePath.last
                     isComposingRevealedImage = true
                     let southWest = overlayMap.southWest
                     let northEast = overlayMap.northEast
@@ -555,6 +579,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 if lastRevealedPointCount != 0 {
                     currentOverlay.icon = baseImage
                     lastRevealedPointCount = 0
+                    lastRevealedCoordinate = nil
                     lastRevealedComposedImage = nil
                 }
                 currentOverlay.opacity = opacity

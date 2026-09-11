@@ -63,6 +63,7 @@ enum CustomOverlayMapStore {
         guard let data = try? JSONEncoder().encode(current) else { return nil }
         try? data.write(to: fileURL)
         cachedRecords = current
+        OldMapCatalog.invalidateAllIncludingCustomCache()
 
         return record.overlayMap
     }
