@@ -295,6 +295,15 @@ struct WalkRouteDetailView: View {
                     Text(Self.dateFormatter.string(from: route.startedAt))
                         .font(.title3.bold())
                 }
+                Button {
+                    editedTitle = route.title ?? ""
+                    isRenaming = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("名前を変更")
                 Text(route.overlayMap?.title ?? "古地図なし")
                     .font(.subheadline.bold())
                     .foregroundStyle(.brown)
