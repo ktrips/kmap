@@ -164,7 +164,7 @@ struct WalkRouteDetailView: View {
             }
             .padding()
         }
-        .navigationTitle("マイ時空旅：\(route.overlayMap?.title ?? "古地図なし")")
+        .navigationTitle("マイ古地図：\(route.overlayMap?.title ?? "古地図なし")")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: route.isSharedPublicly) {
             guard route.isSharedPublicly else { return }
@@ -295,7 +295,7 @@ struct WalkRouteDetailView: View {
                     Text(Self.dateFormatter.string(from: route.startedAt))
                         .font(.title3.bold())
                 }
-                Text("（\(route.overlayMap?.title ?? "古地図なし")）")
+                Text(route.overlayMap?.title ?? "古地図なし")
                     .font(.subheadline.bold())
                     .foregroundStyle(.brown)
 
