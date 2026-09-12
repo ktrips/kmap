@@ -101,11 +101,13 @@ private struct MapTopLeftControls: View {
             .accessibilityLabel("マイ時空旅")
 
             Button {
-                // 歩行記録中に古地図が非表示になっている時は、選択シートを開かず
-                // その場ですぐ古地図を復活させる（「左上の古地図を押すと再度表示」）。
-                // 既に何か表示されている時は、これまで通り選び直しシートを開く。
-                if mapSession.isWalking && mapSession.selectedOverlay == nil && !mapSession.isShowingAllOverlays {
+                // 歩行記録中は選択シートを開かず、その場ですぐ古地図を復活・貼り直す
+                // （「左上の古地図を押すと再読み込み」）。GPU不具合で消えたまま古地図が
+                // 選択されている場合も、貼り直しリクエストで復帰できるようにする。
+                // 歩いていない時は、これまで通り選び直しシートを開く。
+                if mapSession.isWalking {
                     mapSession.restoreOldMapForWalking()
+                    mapSession.requestOverlayReattach()
                 } else {
                     isPresentingOldMapPicker = true
                 }
@@ -151,6 +153,8 @@ private struct MapTopRightControls: View {
 /// マップ画面の上部中央に浮かせる、選択中の古地図名のラベル。
 /// 押すと、その地域の簡単な説明とチェックポイント一覧をシートで表示する
 /// （`OldMapAreaInfoSheet`）。「全ての古地図を表示」中や、古地図を表示していない間は出さない。
+/// 歩行記録中は、シートを開く代わりにその場で古地図を再読み込みする
+/// （「真ん中上の古地図を押すと再読み込み」。GPU不具合で古地図が消えて見える対策）。
 private struct MapTopCenterOverlayLabel: View {
     @EnvironmentObject private var mapSession: MapSessionState
     @State private var isPresentingAreaInfo = false
@@ -158,7 +162,12 @@ private struct MapTopCenterOverlayLabel: View {
     var body: some View {
         if let overlay = mapSession.selectedOverlay, !mapSession.isShowingAllOverlays {
             Button {
-                isPresentingAreaInfo = true
+                if mapSession.isWalking {
+                    mapSession.restoreOldMapForWalking()
+                    mapSession.requestOverlayReattach()
+                } else {
+                    isPresentingAreaInfo = true
+                }
             } label: {
                 Text(overlay.shortTitle)
                     .font(.subheadline.bold())

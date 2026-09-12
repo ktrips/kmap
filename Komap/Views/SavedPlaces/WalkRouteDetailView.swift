@@ -206,7 +206,7 @@ struct WalkRouteDetailView: View {
                         Button {
                             Task { await prepareAndShowShareSheet() }
                         } label: {
-                            Label("シェア", systemImage: "square.and.arrow.up")
+                            Label("シェア", systemImage: "arrowshape.turn.up.right")
                         }
                         .disabled(isPreparingShare)
                     }
@@ -350,7 +350,7 @@ struct WalkRouteDetailView: View {
                         if isPreparingShare {
                             ProgressView()
                         } else {
-                            Image(systemName: "square.and.arrow.up")
+                            Image(systemName: "arrowshape.turn.up.right")
                         }
                     }
                     .disabled(isPreparingShare)

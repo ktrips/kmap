@@ -58,7 +58,10 @@ struct MapScreen: View {
     @State private var pendingWalkRoute: PendingWalkRoute?
     /// 記録中に自由なタイミングで写真を投稿するためのピッカー選択値。
     @State private var photoPostPickerItem: PhotosPickerItem?
-    /// 「写真投稿」メニューの「ライブラリから選ぶ」を押した時に、`.photosPicker`を
+    /// 「写真投稿」メニューの「iPhoneで撮る」を選んだ後、カメラ撮影・ライブラリから選ぶ
+    /// のどちらにするか確認するダイアログの表示状態。
+    @State private var isPresentingPhotoSourceChoice = false
+    /// 上の確認ダイアログで「ライブラリから選ぶ」を選んだ時に、`.photosPicker`を
     /// プログラム的に開くためのフラグ（`Menu`内に`PhotosPicker`を直接置くと
     /// 開かないため）。
     @State private var isShowingPhotoLibraryPicker = false
@@ -503,20 +506,13 @@ struct MapScreen: View {
 
     private var photoPostButton: some View {
         Menu {
+            // 「カメラで撮る」「ライブラリから選ぶ」の2項目だったものを1つにまとめ、
+            // 押した時にどちらで写真を用意するか選べるようにしている
+            // （`isPresentingPhotoSourceChoice`の確認ダイアログ）。
             Button {
-                isShowingPhotoPostCamera = true
+                isPresentingPhotoSourceChoice = true
             } label: {
-                Label("カメラで撮る", systemImage: "camera.fill")
-            }
-            // `PhotosPicker`をこのまま`Menu`の項目にすると、タップしてもメニューが
-            // 閉じるだけでピッカーが開かない（`Menu`内では`PhotosPicker`の標準の
-            // 見た目・挙動が正しく機能しないSwiftUI/PhotosUI側の既知の制約）。
-            // 代わりに普通の`Button`でフラグを立て、`.photosPicker(isPresented:)`
-            // をこのビュー自体に付けてプログラム的に開く。
-            Button {
-                isShowingPhotoLibraryPicker = true
-            } label: {
-                Label("ライブラリから選ぶ", systemImage: "photo.on.rectangle")
+                Label("iPhoneで撮る", systemImage: "camera.on.rectangle.fill")
             }
             if isCameraLinkConfigured {
                 Button {
@@ -541,6 +537,19 @@ struct MapScreen: View {
             .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         }
         .disabled(isPostingPhoto)
+        .confirmationDialog(
+            "iPhoneで撮る",
+            isPresented: $isPresentingPhotoSourceChoice,
+            titleVisibility: .visible
+        ) {
+            Button("カメラで撮影") {
+                isShowingPhotoPostCamera = true
+            }
+            Button("ライブラリから選ぶ") {
+                isShowingPhotoLibraryPicker = true
+            }
+            Button("キャンセル", role: .cancel) {}
+        }
         .photosPicker(isPresented: $isShowingPhotoLibraryPicker, selection: $photoPostPickerItem, matching: .images)
         .fullScreenCover(isPresented: $isShowingPhotoPostCamera) {
             CameraCaptureView(

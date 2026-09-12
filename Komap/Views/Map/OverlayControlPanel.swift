@@ -21,11 +21,13 @@ struct OverlayControlPanel: View {
     var body: some View {
         VStack(spacing: 14) {
             Button {
-                // 歩行記録中に古地図が非表示になっている時は、選択シートを開かず
-                // その場ですぐ古地図を復活させる（「下の古地図を押すと再度表示」）。
-                // 既に何か表示されている時は、これまで通り選び直しシートを開く。
-                if mapSession.isWalking && selectedOverlay == nil && !isShowingAllOverlays {
+                // 歩行記録中は選択シートを開かず、その場ですぐ古地図を復活・貼り直す
+                // （「下の古地図を押すと再読み込み」）。GPU不具合で消えたまま古地図が
+                // 選択されている場合も、貼り直しリクエストで復帰できるようにする。
+                // 歩いていない時は、これまで通り選び直しシートを開く。
+                if mapSession.isWalking {
                     mapSession.restoreOldMapForWalking()
+                    mapSession.requestOverlayReattach()
                     onSelect(selectedOverlay)
                 } else {
                     isPresentingPicker = true
