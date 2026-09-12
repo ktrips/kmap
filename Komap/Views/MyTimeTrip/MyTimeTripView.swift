@@ -16,17 +16,36 @@ struct MyTimeTripView: View {
     @State private var isPreparingShare = false
     @State private var selectedStamp: StampSelection?
     @State private var selectedPhotoPost: WalkPhotoPost?
+    /// 「御朱印チェックポイント」「投稿した写真」それぞれ、直近8枚を超える分を
+    /// 「前の写真を見る」を押すまで畳んでおくためのフラグ。
+    @State private var isShowingAllStampPhotos = false
+    @State private var isShowingAllPostedPhotos = false
 
     private let cardColumns = [GridItem(.adaptive(minimum: 140), spacing: 12)]
     private let syncService = SyncService()
+
+    /// 「アップした写真」の各グリッドに最初から表示する枚数。それを超える分は
+    /// 「前の写真を見る」を押すまで畳んでおく。
+    private static let collapsedPhotoCount = 8
 
     private var collectedSiteIDs: Set<String> {
         Set(collectedStamps.map(\.siteID))
     }
 
     /// 「アップした写真」の「チェックポイント」列用に、写真が添えられている御朱印だけを抽出したもの。
+    /// `collectedStamps`が新しい順のクエリのため、こちらも新しい順のまま保たれる。
     private var stampsWithPhoto: [CollectedStamp] {
         collectedStamps.filter { $0.photoFileName != nil }
+    }
+
+    /// 「御朱印チェックポイント」グリッドに表示する分（直近8枚、または展開後は全件）。
+    private var visibleStampsWithPhoto: [CollectedStamp] {
+        isShowingAllStampPhotos ? stampsWithPhoto : Array(stampsWithPhoto.prefix(Self.collapsedPhotoCount))
+    }
+
+    /// 「投稿した写真」グリッドに表示する分（直近8枚、または展開後は全件）。
+    private var visiblePhotoPosts: [WalkPhotoPost] {
+        isShowingAllPostedPhotos ? photoPosts : Array(photoPosts.prefix(Self.collapsedPhotoCount))
     }
 
     private var totalPoints: Int {
@@ -159,7 +178,7 @@ struct MyTimeTripView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if !stampsWithPhoto.isEmpty {
                     photoSubsection(title: "御朱印チェックポイント") {
-                        ForEach(stampsWithPhoto) { stamp in
+                        ForEach(visibleStampsWithPhoto) { stamp in
                             if let site = stamp.site, let photo = stamp.photo {
                                 PhotoThumbnail(image: photo, name: site.name)
                                     .onTapGesture {
@@ -168,16 +187,26 @@ struct MyTimeTripView: View {
                             }
                         }
                     }
+                    if !isShowingAllStampPhotos && stampsWithPhoto.count > Self.collapsedPhotoCount {
+                        showPreviousPhotosButton {
+                            isShowingAllStampPhotos = true
+                        }
+                    }
                 }
                 if !photoPosts.isEmpty {
                     photoSubsection(title: "投稿した写真") {
-                        ForEach(photoPosts) { post in
+                        ForEach(visiblePhotoPosts) { post in
                             if let photo = post.photo {
                                 PhotoThumbnail(image: photo, name: post.placeName)
                                     .onTapGesture {
                                         selectedPhotoPost = post
                                     }
                             }
+                        }
+                    }
+                    if !isShowingAllPostedPhotos && photoPosts.count > Self.collapsedPhotoCount {
+                        showPreviousPhotosButton {
+                            isShowingAllPostedPhotos = true
                         }
                     }
                 }
@@ -195,6 +224,17 @@ struct MyTimeTripView: View {
                 content()
             }
         }
+    }
+
+    /// 直近8枚に畳んでいる写真グリッドの下に出す、それより前の写真も表示するボタン。
+    private func showPreviousPhotosButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text("前の写真を見る")
+                .font(.caption.bold())
+                .foregroundStyle(.brown)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - 写真をタップした時のページ送りシート
