@@ -15,13 +15,16 @@ struct WatchCollectedStampInfo: Identifiable, Equatable {
     let siteSummary: String
 }
 
-/// iPhone側の「Komap」アプリとの連携をまとめる。2つのモードがある。
+/// iPhone側の「Komap」アプリとの連携をまとめる。3つのモードがある。
 ///
 /// - Watch単体モード: Watchの「スタート」で自分自身のGPS（`WatchWorkoutLocationTracker`）
 ///   を使って記録する。iPhone側アプリが起動していなくても記録・保存できるよう、
 ///   終了時に軌跡をまるごと`transferUserInfo`でiPhoneへ送る。
 /// - iPhone連動モード: iPhone側で「スタート」された記録を、従来通りコマンド送信で
-///   一時停止・再開・終了だけ遠隔操作する（GPSはiPhone側のまま）。
+///   一時停止・再開・終了だけ遠隔操作する（GPSはiPhone側のまま）。このモードでも、
+///   Watchが接続していれば裏でこちらのGPSも「伴走」させ、より正確な軌跡になり得る
+///   座標をiPhoneへ送り返す（`startCompanionTracking`／`applyContext`参照。画面上の
+///   表示はあくまで「iPhoneと連動中」のまま変えない）。
 @MainActor
 final class WatchSessionManager: NSObject, ObservableObject {
     enum RecordingState {
@@ -51,6 +54,17 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// 単発送信でおおむね追従できるので、間引いても実用上問題ない）。
     private var lastSnapshotSentAt: Date?
     private let snapshotMinInterval: TimeInterval = 15
+
+    /// iPhoneで記録中の時、Watchも接続していればこちらのGPSでも「伴走」して、
+    /// より正確な軌跡をiPhoneへ送り返すためのトラッカー（`isSelfTracking == false`の間だけ使う）。
+    /// Watch単体モードの`tracker`とは別に持ち、両者が同時に動くことはない
+    /// （`isSelfTracking`で排他になっている）。
+    private var companionTracker: WatchWorkoutLocationTracker?
+    /// 今iPhoneと伴走中のセッションID。iPhoneから届く`activeSessionID`と比較し、
+    /// 新しい記録が始まった時だけ作り直す（同じ記録中に何度も状態が届いても
+    /// トラッカーを作り直さない）。
+    private var companionSessionID: UUID?
+    private var lastCompanionSnapshotSentAt: Date?
 
     override init() {
         session = WCSession.isSupported() ? WCSession.default : nil
@@ -232,12 +246,24 @@ final class WatchSessionManager: NSObject, ObservableObject {
         if !isSelfTracking {
             let isRecording = context["isRecording"] as? Bool ?? false
             let isPaused = context["isPaused"] as? Bool ?? false
+            let incomingSessionID = (context["activeSessionID"] as? String).flatMap(UUID.init(uuidString:))
             if !isRecording {
                 state = .idle
+                stopCompanionTracking()
             } else if isPaused {
                 state = .paused
+                if companionSessionID != nil, companionSessionID == incomingSessionID {
+                    companionTracker?.pause()
+                }
             } else {
                 state = .recording
+                if let incomingSessionID {
+                    if companionSessionID != incomingSessionID {
+                        startCompanionTracking(sessionID: incomingSessionID)
+                    } else {
+                        companionTracker?.resume()
+                    }
+                }
             }
         }
 
@@ -245,6 +271,69 @@ final class WatchSessionManager: NSObject, ObservableObject {
         let mapTitles = context["mapTitles"] as? [String] ?? []
         availableMaps = zip(mapIDs, mapTitles).map { WatchMapOption(id: $0, title: $1) }
         selectedMapID = context["selectedMapID"] as? String
+    }
+
+    /// iPhoneでの記録に、Watch自身のGPSを「伴走」させて開始する。Watch単体モード
+    /// （`start()`）とは違い、`isSelfTracking`は`true`にせず、Watch側の画面は
+    /// 「iPhoneと連動中」の表示のまま変えない（座標を集めて送り返すだけに徹する）。
+    private func startCompanionTracking(sessionID: UUID) {
+        companionSessionID = sessionID
+        lastCompanionSnapshotSentAt = nil
+        let tracker = WatchWorkoutLocationTracker()
+        companionTracker = tracker
+        tracker.onLocationUpdate = { [weak self] coordinate in
+            self?.sendCompanionLocationUpdate(coordinate)
+        }
+        tracker.start()
+    }
+
+    /// 伴走トラッキングを終える（iPhoneの記録が終わった時、またはWatch自身の
+    /// 記録に切り替わった時）。
+    private func stopCompanionTracking() {
+        guard let tracker = companionTracker else { return }
+        companionTracker = nil
+        companionSessionID = nil
+        Task {
+            _ = await tracker.stop()
+        }
+    }
+
+    /// 伴走中の現在地をiPhoneへ転送する。`watchLocationUpdate`と同様、頻繁な
+    /// 更新なのでベストエフォート（`sendMessage`）で送りつつ、iPhoneが到達不能な
+    /// 間の埋め合わせとして累積軌跡のスナップショットも定期的に送る。
+    private func sendCompanionLocationUpdate(_ coordinate: CLLocationCoordinate2D) {
+        guard let sessionID = companionSessionID else { return }
+        if let session, session.activationState == .activated, session.isReachable {
+            session.sendMessage(
+                [
+                    "command": "companionLocationUpdate",
+                    "sessionID": sessionID.uuidString,
+                    "lat": coordinate.latitude,
+                    "lon": coordinate.longitude,
+                ],
+                replyHandler: nil,
+                errorHandler: nil
+            )
+        }
+        sendCompanionSnapshot()
+    }
+
+    private func sendCompanionSnapshot() {
+        guard let session, session.activationState == .activated,
+              let tracker = companionTracker, let sessionID = companionSessionID
+        else { return }
+        if let lastCompanionSnapshotSentAt, Date().timeIntervalSince(lastCompanionSnapshotSentAt) < snapshotMinInterval {
+            return
+        }
+        let path = tracker.path
+        guard !path.isEmpty else { return }
+        lastCompanionSnapshotSentAt = Date()
+        try? session.updateApplicationContext([
+            "companionSessionID": sessionID.uuidString,
+            "companionLatitudes": path.map(\.latitude),
+            "companionLongitudes": path.map(\.longitude),
+            "companionUpdatedAt": Date().timeIntervalSince1970,
+        ])
     }
 }
 

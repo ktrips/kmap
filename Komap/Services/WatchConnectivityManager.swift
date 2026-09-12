@@ -36,6 +36,13 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         /// 後で操作可能になった時にこれで軌跡に追いつけるようにする。内容は常に最新の
         /// 累積軌跡全体に置き換わる。
         case watchTrackingSnapshot(sessionID: String, coordinates: [CLLocationCoordinate2D])
+        /// iPhoneで記録中（`sessionID`＝`activeWalkSessionID`）、Watchも接続していれば
+        /// そちらのGPSも「伴走」させて、より正確な現在地としてiPhone側へ届く更新。
+        /// Watch単体モード（`watchLocationUpdate`）とは違い、iPhone側の記録・保存フロー
+        /// そのものはiPhoneのまま、座標の出どころだけWatchに寄せるためのもの。
+        case companionLocationUpdate(sessionID: String, coordinate: CLLocationCoordinate2D)
+        /// 伴走トラッキングの累積軌跡スナップショット（`watchTrackingSnapshot`の伴走版）。
+        case companionTrackingSnapshot(sessionID: String, coordinates: [CLLocationCoordinate2D])
 
         static func == (lhs: Command, rhs: Command) -> Bool {
             switch (lhs, rhs) {
@@ -52,6 +59,10 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             case let (.watchLocationUpdate(a), .watchLocationUpdate(b)):
                 return a.latitude == b.latitude && a.longitude == b.longitude
             case let (.watchTrackingSnapshot(idA, coordsA), .watchTrackingSnapshot(idB, coordsB)):
+                return idA == idB && coordsA.count == coordsB.count
+            case let (.companionLocationUpdate(idA, a), .companionLocationUpdate(idB, b)):
+                return idA == idB && a.latitude == b.latitude && a.longitude == b.longitude
+            case let (.companionTrackingSnapshot(idA, coordsA), .companionTrackingSnapshot(idB, coordsB)):
                 return idA == idB && coordsA.count == coordsB.count
             default:
                 return false
@@ -76,11 +87,16 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
     /// 現在の記録状態・選択中の古地図をWatchへ反映する。Watch側アプリが起動していなくても、
     /// 次回起動時に最新の状態が届くよう`updateApplicationContext`を使う。
+    ///
+    /// `activeSessionID`はiPhoneで記録中のセッションID。Watchが接続していれば、これを
+    /// 手がかりにWatch側が自分のGPSでも同じ記録に「伴走」し、より正確な軌跡を
+    /// iPhoneへ送り返せるようにする（`Command.companionLocationUpdate`参照）。
     func updateState(
         isRecording: Bool,
         isPaused: Bool,
         availableMaps: [HistoricalOverlayMap],
-        selectedMapID: String?
+        selectedMapID: String?,
+        activeSessionID: UUID? = nil
     ) {
         guard let session, session.activationState == .activated else { return }
         try? session.updateApplicationContext([
@@ -89,6 +105,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "mapIDs": availableMaps.map(\.id),
             "mapTitles": availableMaps.map(\.title),
             "selectedMapID": selectedMapID as Any,
+            "activeSessionID": activeSessionID?.uuidString as Any,
         ])
     }
 
@@ -170,17 +187,25 @@ extension WatchConnectivityManager: WCSessionDelegate {
     private nonisolated static let maxSnapshotAge: TimeInterval = 5 * 60
 
     private nonisolated static func parseTrackingSnapshot(from context: [String: Any]) -> Command? {
-        guard let sessionID = context["trackingSessionID"] as? String,
-              let latitudes = context["trackingLatitudes"] as? [Double],
-              let longitudes = context["trackingLongitudes"] as? [Double],
-              latitudes.count == longitudes.count,
-              let updatedAt = context["trackingUpdatedAt"] as? TimeInterval,
-              Date().timeIntervalSince1970 - updatedAt <= maxSnapshotAge
-        else {
-            return nil
+        if let sessionID = context["trackingSessionID"] as? String,
+           let latitudes = context["trackingLatitudes"] as? [Double],
+           let longitudes = context["trackingLongitudes"] as? [Double],
+           latitudes.count == longitudes.count,
+           let updatedAt = context["trackingUpdatedAt"] as? TimeInterval,
+           Date().timeIntervalSince1970 - updatedAt <= maxSnapshotAge {
+            let coordinates = zip(latitudes, longitudes).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) }
+            return .watchTrackingSnapshot(sessionID: sessionID, coordinates: coordinates)
         }
-        let coordinates = zip(latitudes, longitudes).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) }
-        return .watchTrackingSnapshot(sessionID: sessionID, coordinates: coordinates)
+        if let sessionID = context["companionSessionID"] as? String,
+           let latitudes = context["companionLatitudes"] as? [Double],
+           let longitudes = context["companionLongitudes"] as? [Double],
+           latitudes.count == longitudes.count,
+           let updatedAt = context["companionUpdatedAt"] as? TimeInterval,
+           Date().timeIntervalSince1970 - updatedAt <= maxSnapshotAge {
+            let coordinates = zip(latitudes, longitudes).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) }
+            return .companionTrackingSnapshot(sessionID: sessionID, coordinates: coordinates)
+        }
+        return nil
     }
 
     nonisolated func session(
@@ -228,6 +253,12 @@ extension WatchConnectivityManager: WCSessionDelegate {
         case "watchLocationUpdate":
             guard let lat = message["lat"] as? Double, let lon = message["lon"] as? Double else { return nil }
             return .watchLocationUpdate(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+        case "companionLocationUpdate":
+            guard let sessionID = message["sessionID"] as? String,
+                  let lat = message["lat"] as? Double,
+                  let lon = message["lon"] as? Double
+            else { return nil }
+            return .companionLocationUpdate(sessionID: sessionID, coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon))
         case "watchTrackingFinished":
             guard let sessionID = message["sessionID"] as? String,
                   let latitudes = message["latitudes"] as? [Double],

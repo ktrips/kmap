@@ -81,6 +81,11 @@ struct MapScreen: View {
     /// Watch単体のGPSで記録中、Watchから転送されてきた軌跡。iPhone側の地図にも
     /// リアルタイムで表示するために使う（GPS自体はWatch側のまま）。
     @State private var watchTrackedPath: [CLLocationCoordinate2D] = []
+    /// iPhoneで記録中（`activeWalkSessionID`）、Watchも接続していれば伴走させている
+    /// Watch自身のGPSから届いた軌跡。iPhone単体のGPSより正確なことが多いため、
+    /// 記録の表示・保存には、より多くの点を捉えられている方（＝より完全な方）を使う
+    /// （`displayedLiveWalkPath`／`stopWalkRecording`参照）。
+    @State private var companionWatchPath: [CLLocationCoordinate2D] = []
     /// カメラで写真を撮って投稿するためのシート表示状態。
     @State private var isShowingPhotoPostCamera = false
     /// 現在地にカメラを追従させ続けるかどうか。基本は現在地中心のままにし、
@@ -167,10 +172,13 @@ struct MapScreen: View {
         activeWalkSessionID ?? activeWatchSessionID
     }
 
-    /// 地図に描く「記録中の軌跡」。iPhoneで記録中はiPhone自身のGPS、Apple Watch単体で
-    /// 記録中はWatchから転送された軌跡を使う。
+    /// 地図に描く「記録中の軌跡」。Apple Watch単体で記録中はWatchから転送された軌跡、
+    /// iPhoneで記録中は、Watchが伴走していてiPhone自身より多くの点を捉えられていれば
+    /// そちらを、そうでなければiPhone自身のGPSを使う。
     private var displayedLiveWalkPath: [CLLocationCoordinate2D] {
-        isWatchTrackingActive ? watchTrackedPath : locationManager.walkPath
+        if isWatchTrackingActive { return watchTrackedPath }
+        if companionWatchPath.count > locationManager.walkPath.count { return companionWatchPath }
+        return locationManager.walkPath
     }
 
     private var isCheckInSheetPresented: Binding<Bool> {
@@ -584,6 +592,7 @@ struct MapScreen: View {
     private func startWalkRecording() {
         activeWalkSessionID = UUID()
         activeWalkStartedAt = Date()
+        companionWatchPath = []
         stepCounter.start()
         Task { await healthKitStepReader.requestAuthorizationIfNeeded() }
         locationManager.startRecordingWalk()
@@ -605,7 +614,11 @@ struct MapScreen: View {
     /// 記録を終える。`autoSave`が`true`の時（Apple Watchからの「終了」など、
     /// 保存確認ダイアログを見せられない場面）は確認を挟まずそのまま保存する。
     private func stopWalkRecording(autoSave: Bool) {
-        let path = locationManager.stopRecordingWalk()
+        let iPhonePath = locationManager.stopRecordingWalk()
+        // Watchが伴走していて、iPhone自身より多くの点を捉えられていれば
+        // （＝より完全な軌跡を記録できていれば）、そちらを正式な記録として使う。
+        let path = companionWatchPath.count > iPhonePath.count ? companionWatchPath : iPhonePath
+        companionWatchPath = []
         guard path.count >= 2, let sessionID = activeWalkSessionID, let startedAt = activeWalkStartedAt else {
             activeWalkSessionID = nil
             activeWalkStartedAt = nil
@@ -713,6 +726,19 @@ struct MapScreen: View {
             if coordinates.count > watchTrackedPath.count {
                 watchTrackedPath = coordinates
             }
+        case .companionLocationUpdate(let sessionID, let coordinate):
+            // iPhoneで記録中、Watchが伴走して送ってきた現在地。別セッション
+            // （既に終わった記録など）からの取りこぼれは無視する。
+            guard let activeWalkSessionID, sessionID == activeWalkSessionID.uuidString else { return }
+            companionWatchPath.append(coordinate)
+            checkForNewStamps(near: coordinate)
+        case .companionTrackingSnapshot(let sessionID, let coordinates):
+            // iPhoneがロック中などで`companionLocationUpdate`を取りこぼしていた間も、
+            // ここで追いつく（`watchTrackingSnapshot`の伴走版）。
+            guard let activeWalkSessionID, sessionID == activeWalkSessionID.uuidString else { return }
+            if coordinates.count > companionWatchPath.count {
+                companionWatchPath = coordinates
+            }
         }
     }
 
@@ -744,13 +770,16 @@ struct MapScreen: View {
         }
     }
 
-    /// 現在の記録状態・選択中の古地図をWatchへ送る。
+    /// 現在の記録状態・選択中の古地図をWatchへ送る。iPhoneで記録中のセッションIDも
+    /// 一緒に送ることで、Watchが接続していればそちらのGPSでも伴走してもらえるようにする
+    /// （`companionWatchPath`参照）。
     private func syncWatchState() {
         watchConnectivity.updateState(
             isRecording: locationManager.isRecordingWalk,
             isPaused: locationManager.isWalkPaused,
             availableMaps: OldMapCatalog.allIncludingCustom,
-            selectedMapID: mapSession.selectedOverlay?.id
+            selectedMapID: mapSession.selectedOverlay?.id,
+            activeSessionID: locationManager.isRecordingWalk ? activeWalkSessionID : nil
         )
     }
 
@@ -853,6 +882,7 @@ struct MapScreen: View {
     /// Watchの保存確認シートで「破棄」が選ばれた時、記録中のGPS計測を止めて何も保存しない。
     private func discardActiveWalkRecording() {
         _ = locationManager.stopRecordingWalk()
+        companionWatchPath = []
         activeWalkSessionID = nil
         activeWalkStartedAt = nil
     }
