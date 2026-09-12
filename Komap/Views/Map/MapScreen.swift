@@ -514,33 +514,32 @@ struct MapScreen: View {
     }
 
     private var photoPostButton: some View {
-        Menu {
-            Button {
-                isShowingPhotoPostCamera = true
-            } label: {
-                Label("iPhoneで撮る", systemImage: "camera.on.rectangle.fill")
-            }
+        Group {
+            // 連携カメラが設定されていない時は選ぶ余地がないため、メニューを
+            // 挟まず直接「iPhoneで撮る」を立ち上げる。設定されている時だけ
+            // 「連携カメラを使う」との選択メニューを見せる。
             if isCameraLinkConfigured {
-                Button {
-                    Task { await postPhotoFromLinkedCamera() }
+                Menu {
+                    Button {
+                        isShowingPhotoPostCamera = true
+                    } label: {
+                        Label("iPhoneで撮る", systemImage: "camera.on.rectangle.fill")
+                    }
+                    Button {
+                        Task { await postPhotoFromLinkedCamera() }
+                    } label: {
+                        Label("連携カメラを使う", systemImage: "network")
+                    }
                 } label: {
-                    Label("連携カメラを使う", systemImage: "network")
+                    photoPostButtonLabel
+                }
+            } else {
+                Button {
+                    isShowingPhotoPostCamera = true
+                } label: {
+                    photoPostButtonLabel
                 }
             }
-        } label: {
-            Group {
-                if isPostingPhoto {
-                    ProgressView()
-                } else {
-                    Label("写真投稿", systemImage: "camera.fill")
-                }
-            }
-            .font(.subheadline.bold())
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .foregroundStyle(.primary)
-            .background(.regularMaterial, in: Capsule())
-            .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         }
         .disabled(isPostingPhoto)
         .photosPicker(isPresented: $isShowingPhotoLibraryPicker, selection: $photoPostPickerItem, matching: .images)
@@ -577,6 +576,23 @@ struct MapScreen: View {
                 .padding(.bottom, 40)
             }
         }
+    }
+
+    /// 「写真投稿」ボタンの見た目（メニュー表示・直接ボタン表示の両方で共通）。
+    private var photoPostButtonLabel: some View {
+        Group {
+            if isPostingPhoto {
+                ProgressView()
+            } else {
+                Label("写真投稿", systemImage: "camera.fill")
+            }
+        }
+        .font(.subheadline.bold())
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .foregroundStyle(.primary)
+        .background(.regularMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
     }
 
     /// 「スタート」で記録を開始し、もう一度押すと記録を終える。
