@@ -124,10 +124,10 @@ struct MyTimeTripView: View {
                 WalkRouteDetailView(route: route)
             }
             .sheet(item: $selectedStamp) { selection in
-                StampCheckInSheet(site: selection.site, stamp: selection.stamp)
+                StampCheckInGallerySheet(initialStamp: selection.stamp, stamps: stampsWithPhoto)
             }
             .sheet(item: $selectedPhotoPost) { post in
-                PhotoPostPreviewSheet(post: post)
+                PhotoPostGallerySheet(initialPost: post, posts: photoPosts)
             }
             .sheet(item: shareImageBinding) { holder in
                 ActivityView(items: [holder.image])
@@ -158,7 +158,7 @@ struct MyTimeTripView: View {
         TimeTripSection(title: "アップした写真", systemImage: "photo.on.rectangle.angled") {
             VStack(alignment: .leading, spacing: 20) {
                 if !stampsWithPhoto.isEmpty {
-                    photoSubsection(title: "チェックポイント") {
+                    photoSubsection(title: "御朱印チェックポイント") {
                         ForEach(stampsWithPhoto) { stamp in
                             if let site = stamp.site, let photo = stamp.photo {
                                 PhotoThumbnail(image: photo, name: site.name)
@@ -170,7 +170,7 @@ struct MyTimeTripView: View {
                     }
                 }
                 if !photoPosts.isEmpty {
-                    photoSubsection(title: "プラスポイント") {
+                    photoSubsection(title: "投稿した写真") {
                         ForEach(photoPosts) { post in
                             if let photo = post.photo {
                                 PhotoThumbnail(image: photo, name: post.placeName)
@@ -193,6 +193,77 @@ struct MyTimeTripView: View {
                 .foregroundStyle(.secondary)
             LazyVGrid(columns: photoGridColumns, spacing: 8) {
                 content()
+            }
+        }
+    }
+
+    // MARK: - 写真をタップした時のページ送りシート
+
+    /// 「御朱印チェックポイント」のサムネイルをタップした時に開く。一覧に並んでいる
+    /// （複数の時空旅をまたいだ）写真つき御朱印を、そのままの並び順で左右にフリックして
+    /// 前後の写真の詳細を見られるようにする。
+    private struct StampCheckInGallerySheet: View {
+        @State private var stamps: [CollectedStamp]
+        @State private var selectedStampID: UUID
+
+        init(initialStamp: CollectedStamp, stamps: [CollectedStamp]) {
+            _stamps = State(initialValue: stamps)
+            _selectedStampID = State(initialValue: initialStamp.id)
+        }
+
+        var body: some View {
+            TabView(selection: $selectedStampID) {
+                ForEach(stamps) { stamp in
+                    if let site = stamp.site {
+                        StampCheckInSheet(site: site, stamp: stamp)
+                            .tag(stamp.id)
+                    }
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: stamps.count > 1 ? .always : .never))
+        }
+    }
+
+    /// 「投稿した写真」のサムネイルをタップした時に開く。`PhotoPostPreviewSheet`（地図上の
+    /// 写真ピンから開いた時用）は同じ時空旅の投稿だけをクエリしてページ送りするが、
+    /// こちらは一覧に並んでいる（複数の時空旅をまたいだ）配列をそのままページ送りする。
+    private struct PhotoPostGallerySheet: View {
+        @State private var posts: [WalkPhotoPost]
+        @State private var selectedPostID: UUID
+        @Environment(\.dismiss) private var dismiss
+
+        init(initialPost: WalkPhotoPost, posts: [WalkPhotoPost]) {
+            _posts = State(initialValue: posts)
+            _selectedPostID = State(initialValue: initialPost.id)
+        }
+
+        var body: some View {
+            NavigationStack {
+                TabView(selection: $selectedPostID) {
+                    ForEach(posts) { post in
+                        PhotoPostPageView(post: post) {
+                            handleDeleted(post.id)
+                        }
+                        .tag(post.id)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: posts.count > 1 ? .always : .never))
+                .navigationTitle("投稿した写真")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("閉じる") { dismiss() }
+                    }
+                }
+            }
+        }
+
+        private func handleDeleted(_ postID: UUID) {
+            posts.removeAll { $0.id == postID }
+            if posts.isEmpty {
+                dismiss()
+            } else if selectedPostID == postID, let first = posts.first {
+                selectedPostID = first.id
             }
         }
     }

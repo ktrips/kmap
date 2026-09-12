@@ -63,8 +63,10 @@ struct PhotoPostPreviewSheet: View {
 }
 
 /// 1件分の投稿写真の中身（画像・獲得ポイント・連携プリント・場所の解説・
-/// 削除／非公開の操作）。`PhotoPostPreviewSheet`の各ページとして使う。
-private struct PhotoPostPageView: View {
+/// 削除／非公開の操作）。`PhotoPostPreviewSheet`の各ページとして使う
+/// （`MyTimeTripView`の`PhotoPostGallerySheet`からも、複数の時空旅をまたいだ
+/// 一覧をページ送りするために再利用する）。
+struct PhotoPostPageView: View {
     @Bindable var post: WalkPhotoPost
     var onDelete: () -> Void
 
