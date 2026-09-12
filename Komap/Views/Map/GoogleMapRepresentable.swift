@@ -4,6 +4,51 @@ import CoreLocation
 import GoogleMaps
 import SwiftUI
 
+/// 件数に上限を持たせた画像キャッシュ。上限を超えたら、最も長くアクセスされていない
+/// ものから捨てる（簡易LRU）。古地図のデコード結果キャッシュのように、キー自体は
+/// アプリの寿命中増え続けうるが、実際に画面に必要なのは直近に見ていた数枚だけ、
+/// という用途で無制限にメモリを使い続けないようにするために使う。
+private struct BoundedImageCache {
+    private var storage: [String: UIImage] = [:]
+    /// 古い方が先頭。アクセス（読み書き）のたびに末尾へ移動する。
+    private var accessOrder: [String] = []
+    private let capacity: Int
+
+    init(capacity: Int) {
+        self.capacity = capacity
+    }
+
+    subscript(key: String) -> UIImage? {
+        mutating get {
+            guard let value = storage[key] else { return nil }
+            touch(key)
+            return value
+        }
+        set {
+            guard let newValue else {
+                storage.removeValue(forKey: key)
+                accessOrder.removeAll { $0 == key }
+                return
+            }
+            storage[key] = newValue
+            touch(key)
+            evictLeastRecentlyUsedIfNeeded()
+        }
+    }
+
+    private mutating func touch(_ key: String) {
+        accessOrder.removeAll { $0 == key }
+        accessOrder.append(key)
+    }
+
+    private mutating func evictLeastRecentlyUsedIfNeeded() {
+        while accessOrder.count > capacity {
+            let oldest = accessOrder.removeFirst()
+            storage.removeValue(forKey: oldest)
+        }
+    }
+}
+
 /// `GMSMapView` をSwiftUIに橋渡しするラッパー。
 ///
 /// 現在地表示・古地図のグラウンドオーバーレイ（不透明度つき）・
@@ -733,7 +778,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 単体表示（`applyOverlay`）でダウンサンプルした結果を、古地図IDごとに使い回す
         /// キャッシュ。同梱画像はアプリ起動中に内容が変わらないため、同じ古地図を
         /// 選び直しても2回目以降は重いデコード・縮小処理をスキップし、即座に表示できる。
-        private static var singleOverlayImageCache: [String: UIImage] = [:]
+        /// 件数に上限を持たせ、古地図を何枚も切り替えるセッションで（1枚あたり1600px四方
+        /// までのデコード済み画像が）メモリに溜まり続けないようにする。
+        private static var singleOverlayImageCache = BoundedImageCache(capacity: 6)
 
         /// ぼかし画像の生成をバックグラウンドで行い、完了時に（今も同じ古地図を
         /// 選択中であれば）`currentBlurredImage`へ反映する。
@@ -760,7 +807,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// `downsampledForAllOverlays`の結果をキー（画像名+範囲）ごとに使い回すキャッシュ。
         /// 同梱画像はアプリ起動中に内容が変わらないため、「全ての古地図を表示」を
         /// 何度も開き直しても、2回目以降は重いデコード・縮小処理をスキップできる。
-        private static var downsampledImageCache: [String: UIImage] = [:]
+        /// 件数に上限を持たせ、メモリに溜まり続けないようにする（`singleOverlayImageCache`と同様）。
+        private static var downsampledImageCache = BoundedImageCache(capacity: 8)
 
         /// 古地図選択時にチェックポイントへカメラフィットする際の、これ以上は
         /// ズームしない上限。広域画像を使い回している古地図でチェックポイントが
