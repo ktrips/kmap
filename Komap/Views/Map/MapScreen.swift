@@ -58,13 +58,14 @@ struct MapScreen: View {
     @State private var pendingWalkRoute: PendingWalkRoute?
     /// 記録中に自由なタイミングで写真を投稿するためのピッカー選択値。
     @State private var photoPostPickerItem: PhotosPickerItem?
-    /// 「写真投稿」メニューの「iPhoneで撮る」を選んだ後、カメラ撮影・ライブラリから選ぶ
-    /// のどちらにするか確認するダイアログの表示状態。
-    @State private var isPresentingPhotoSourceChoice = false
-    /// 上の確認ダイアログで「ライブラリから選ぶ」を選んだ時に、`.photosPicker`を
-    /// プログラム的に開くためのフラグ（`Menu`内に`PhotosPicker`を直接置くと
-    /// 開かないため）。
+    /// 「写真投稿」メニューの「iPhoneで撮る」で開いたカメラ画面の左下ボタンから
+    /// ライブラリに切り替えた時に、`.photosPicker`をプログラム的に開くためのフラグ
+    /// （`Menu`内に`PhotosPicker`を直接置くと開かないため）。
     @State private var isShowingPhotoLibraryPicker = false
+    /// カメラ画面の左下ボタンでライブラリに切り替える時、`fullScreenCover`の
+    /// 閉じるアニメーションと`.photosPicker`の表示が同時に起きて競合しないよう、
+    /// カメラが完全に閉じ終わってからライブラリを開くための一時フラグ。
+    @State private var shouldShowPhotoLibraryAfterCameraDismiss = false
     @State private var isPostingPhoto = false
     /// 写真投稿で獲得したポイントを一瞬だけ知らせるトースト表示。
     @State private var pointsToastMessage: String?
@@ -506,11 +507,8 @@ struct MapScreen: View {
 
     private var photoPostButton: some View {
         Menu {
-            // 「カメラで撮る」「ライブラリから選ぶ」の2項目だったものを1つにまとめ、
-            // 押した時にどちらで写真を用意するか選べるようにしている
-            // （`isPresentingPhotoSourceChoice`の確認ダイアログ）。
             Button {
-                isPresentingPhotoSourceChoice = true
+                isShowingPhotoPostCamera = true
             } label: {
                 Label("iPhoneで撮る", systemImage: "camera.on.rectangle.fill")
             }
@@ -518,7 +516,7 @@ struct MapScreen: View {
                 Button {
                     Task { await postPhotoFromLinkedCamera() }
                 } label: {
-                    Label("連携カメラで撮る", systemImage: "network")
+                    Label("連携カメラを使う", systemImage: "network")
                 }
             }
         } label: {
@@ -537,29 +535,39 @@ struct MapScreen: View {
             .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         }
         .disabled(isPostingPhoto)
-        .confirmationDialog(
-            "iPhoneで撮る",
-            isPresented: $isPresentingPhotoSourceChoice,
-            titleVisibility: .visible
-        ) {
-            Button("カメラで撮影") {
-                isShowingPhotoPostCamera = true
-            }
-            Button("ライブラリから選ぶ") {
-                isShowingPhotoLibraryPicker = true
-            }
-            Button("キャンセル", role: .cancel) {}
-        }
         .photosPicker(isPresented: $isShowingPhotoLibraryPicker, selection: $photoPostPickerItem, matching: .images)
-        .fullScreenCover(isPresented: $isShowingPhotoPostCamera) {
-            CameraCaptureView(
-                onCapture: { image in
+        .fullScreenCover(isPresented: $isShowingPhotoPostCamera, onDismiss: {
+            guard shouldShowPhotoLibraryAfterCameraDismiss else { return }
+            shouldShowPhotoLibraryAfterCameraDismiss = false
+            isShowingPhotoLibraryPicker = true
+        }) {
+            ZStack(alignment: .bottomLeading) {
+                CameraCaptureView(
+                    onCapture: { image in
+                        isShowingPhotoPostCamera = false
+                        postPhoto(image)
+                    },
+                    onCancel: { isShowingPhotoPostCamera = false }
+                )
+                .ignoresSafeArea()
+
+                // 「iPhoneで撮る」を選ぶとまずカメラが立ち上がるが、その場で
+                // ライブラリの写真を使いたい場合もあるため、標準カメラアプリの
+                // ライブラリショートカットと同じ位置（左下）にボタンを重ねて置く。
+                // カメラが閉じきってからライブラリを開く（`onDismiss`参照）。
+                Button {
+                    shouldShowPhotoLibraryAfterCameraDismiss = true
                     isShowingPhotoPostCamera = false
-                    postPhoto(image)
-                },
-                onCancel: { isShowingPhotoPostCamera = false }
-            )
-            .ignoresSafeArea()
+                } label: {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 48, height: 48)
+                        .background(.black.opacity(0.35), in: Circle())
+                }
+                .padding(.leading, 20)
+                .padding(.bottom, 40)
+            }
         }
     }
 
