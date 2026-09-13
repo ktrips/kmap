@@ -255,15 +255,15 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.7166, longitude: 139.7929)
     )
 
-    // 現在の地図（OpenStreetMap）から、赤坂〜二子玉川間の大山街道沿いを取得し、
+    // 現在の地図（OpenStreetMap）から、赤坂〜明治神宮〜二子玉川間の大山街道沿いを取得し、
     // セピア調フィルターをかけて古地図風に加工した画像。実際の歴史史料ではない
     // （`akasakaKioicho`と同じ「現在の地図から加工した古地図風画像」の扱い）。
     // ピンアイコン等が写り込んでいない素の地図から作成したため、inpaintによる除去は行っていない。
     static let oyamaKaido = HistoricalOverlayMap(
         id: "oyama-kaido",
-        title: "大山街道（赤坂〜二子玉川）",
+        title: "大山街道（赤坂〜明治神宮〜二子）",
         era: "古地図風（現在の地図をもとに加工）",
-        summary: "江戸時代の大山詣でで賑わった大山街道（矢倉沢往還）のうち、赤坂から渋谷・三軒茶屋を経て、多摩川の渡し場があった二子玉川までをたどる、現在の地図をもとにした古地図風の画像です。",
+        summary: "江戸時代の大山詣でで賑わった大山街道（矢倉沢往還）のうち、赤坂から明治神宮・渋谷・三軒茶屋を経て、多摩川の渡し場があった二子玉川までをたどる、現在の地図をもとにした古地図風の画像です。",
         imageAssetName: "OldMap_OyamaKaido",
         southWest: CLLocationCoordinate2D(latitude: 35.585851593232356, longitude: 139.6142578125),
         northEast: CLLocationCoordinate2D(latitude: 35.6929946320988, longitude: 139.74609375)

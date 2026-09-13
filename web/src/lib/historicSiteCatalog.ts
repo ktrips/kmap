@@ -82,8 +82,6 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "oyamakaido-akasaka", name: "赤坂見附", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6775, lng: 139.7370 } },
   // 元は「明治神宮・表参道」古地図（廃止）のチェックポイント。古地図の廃止に伴い、大山街道へ移動した。
   { id: "meijijingu-shrine", name: "明治神宮", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6764, lng: 139.6993 } },
-  { id: "meijijingu-harajuku-station", name: "原宿駅", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6702, lng: 139.7027 } },
-  { id: "meijijingu-omotesando-hills", name: "表参道ヒルズ", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6672, lng: 139.7106 } },
   { id: "meijijingu-gaien-gallery", name: "聖徳記念絵画館", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6772, lng: 139.7193 } },
   { id: "oyamakaido-shibuya-dogenzaka", name: "渋谷・道玄坂", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6580, lng: 139.6975 } },
   { id: "oyamakaido-sangenjaya", name: "三軒茶屋（大山道の追分）", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6438, lng: 139.6708 } },

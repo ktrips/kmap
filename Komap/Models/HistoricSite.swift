@@ -530,7 +530,7 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6553, longitude: 139.7236)
         ),
 
-        // 大山街道（赤坂〜二子玉川）
+        // 大山街道（赤坂〜明治神宮〜二子）
         HistoricSite(
             id: "oyamakaido-akasaka",
             overlayMapID: OldMapCatalog.oyamaKaido.id,
@@ -546,20 +546,6 @@ enum HistoricSiteCatalog {
             name: "明治神宮",
             summary: "明治天皇と昭憲皇太后を祀る神社。1920年（大正9年）創建。代々木の森は創建にあわせて全国から献木された人工林。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6764, longitude: 139.6993)
-        ),
-        HistoricSite(
-            id: "meijijingu-harajuku-station",
-            overlayMapID: OldMapCatalog.oyamaKaido.id,
-            name: "原宿駅",
-            summary: "明治神宮の最寄駅として1906年開業。この地図が描かれた1891年時点では、まだ原宿村ののどかな風景が広がっていた。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6702, longitude: 139.7027)
-        ),
-        HistoricSite(
-            id: "meijijingu-omotesando-hills",
-            overlayMapID: OldMapCatalog.oyamaKaido.id,
-            name: "表参道ヒルズ",
-            summary: "明治神宮の参道として整備された表参道沿い。ケヤキ並木は神宮創建にあわせて植えられた。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6672, longitude: 139.7106)
         ),
         HistoricSite(
             id: "meijijingu-gaien-gallery",

@@ -97,7 +97,7 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
   {
     id: "oyama-kaido",
-    title: "大山街道（赤坂〜二子玉川）",
+    title: "大山街道（赤坂〜明治神宮〜二子）",
     era: "古地図風（現在の地図をもとに加工）",
     imageUrl: "/old-maps/old_map_oyama_kaido.jpg",
     southWest: { lat: 35.585851593232356, lng: 139.6142578125 },
