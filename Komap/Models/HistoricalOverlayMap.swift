@@ -240,19 +240,6 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.755, longitude: 139.790)
     )
 
-    // 同じ「1891 Meiji Map of Tokyo or Edo, Japan」のフル解像度画像から、原宿・代々木周辺
-    // （明治神宮・神宮外苑は当時まだ存在しないため、その前身にあたる代々木御料地・青山練兵場
-    // 一帯の町割り）を切り出したもの。位置合わせは地図上の「原宿」等の地名表記を基準にした概算。
-    static let meijiJinguOmotesando = HistoricalOverlayMap(
-        id: "meiji-jingu-omotesando-meiji",
-        title: "明治神宮・表参道",
-        era: "明治時代（1891年・明治24年頃、社殿創建前の代々木御料地一帯）",
-        summary: "後に明治神宮・表参道となる、代々木・原宿・青山練兵場一帯の古地図です。神宮の鎮座は1920年（大正9年）のため、この地図の時点ではまだ深い森と御料地・練兵場が広がっています。",
-        imageAssetName: "OldMap_MeijiJinguOmotesando",
-        southWest: CLLocationCoordinate2D(latitude: 35.65776, longitude: 139.69495),
-        northEast: CLLocationCoordinate2D(latitude: 35.68296, longitude: 139.73031)
-    )
-
     // 銀座・歌舞伎座は、当初は自作のオリジナル「古地図風」イラスト（`OldMap_GinzaKabukiza`）
     // だったが、日本橋・神田明神と同じ「東京實測全圖」実写版（`OldMap_Nihonbashi`）を
     // 使うよう変更した。日本橋のすぐ南に銀座・築地があり、この画像自体がもともと
@@ -268,19 +255,6 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.7166, longitude: 139.7929)
     )
 
-    // 神楽坂・早稲田・新宿も、現在の地図のスクリーンショットからピンアイコンを除去して
-    // セピア調に加工した「古地図風」画像。実際の歴史史料のスキャンではない
-    // （`akasakaKioicho`/`oyamaKaido`と同じ扱い）。
-    static let kagurazakaWasedaShinjuku = HistoricalOverlayMap(
-        id: "kagurazaka-waseda-shinjuku-meiji",
-        title: "神楽坂・早稲田",
-        era: "古地図風（現在の地図をもとに加工）",
-        summary: "早稲田大学の学生街と、江戸時代から続く花街・神楽坂をあわせたエリア。現在の地図をもとにした古地図風の画像です。",
-        imageAssetName: "OldMap_KagurazakaWasedaShinjuku",
-        southWest: CLLocationCoordinate2D(latitude: 35.685, longitude: 139.696),
-        northEast: CLLocationCoordinate2D(latitude: 35.712, longitude: 139.744)
-    )
-
     // 現在の地図（OpenStreetMap）から、赤坂〜二子玉川間の大山街道沿いを取得し、
     // セピア調フィルターをかけて古地図風に加工した画像。実際の歴史史料ではない
     // （`akasakaKioicho`と同じ「現在の地図から加工した古地図風画像」の扱い）。
@@ -289,7 +263,7 @@ enum OldMapCatalog {
         id: "oyama-kaido",
         title: "大山街道（赤坂〜二子玉川）",
         era: "古地図風（現在の地図をもとに加工）",
-        summary: "江戸時代の大山詣でで賑わった大山街道（矢倉沢往還）のうち、赤坂から青山・渋谷・三軒茶屋・用賀を経て、多摩川の渡し場があった二子玉川までをたどる、現在の地図をもとにした古地図風の画像です。",
+        summary: "江戸時代の大山詣でで賑わった大山街道（矢倉沢往還）のうち、赤坂から渋谷・三軒茶屋を経て、多摩川の渡し場があった二子玉川までをたどる、現在の地図をもとにした古地図風の画像です。",
         imageAssetName: "OldMap_OyamaKaido",
         southWest: CLLocationCoordinate2D(latitude: 35.585851593232356, longitude: 139.6142578125),
         northEast: CLLocationCoordinate2D(latitude: 35.6929946320988, longitude: 139.74609375)
@@ -328,7 +302,7 @@ enum OldMapCatalog {
         edoCastle, asakusa, meijiWriters, nihonbashi,
         goshikiFudo, bashoOkuNoHosomichi, akasakaKioicho,
         tokaido, nakasendo, ginzaKabukiza,
-        meijiJinguOmotesando, oyamaKaido, kagurazakaWasedaShinjuku,
+        oyamaKaido,
         kiminonaSeichi, ghibliSeichi,
     ]
 
@@ -345,8 +319,6 @@ enum OldMapCatalog {
         meijiWriters.id: .historicSites,
         nihonbashi.id: .historicSites,
         akasakaKioicho.id: .historicSites,
-        meijiJinguOmotesando.id: .historicSites,
-        kagurazakaWasedaShinjuku.id: .historicSites,
         ginzaKabukiza.id: .historicSites,
         tokaido.id: .kaido,
         nakasendo.id: .kaido,
@@ -392,6 +364,8 @@ enum OldMapCatalog {
         "roppongi-meiji": "akasaka-kioicho-meiji",
         "kasumigaseki-toranomon-meiji": "edo-castle-1850s",
         "kudanshita-chidorigafuchi-meiji": "edo-castle-1850s",
+        "meiji-jingu-omotesando-meiji": "oyama-kaido",
+        "kagurazaka-waseda-shinjuku-meiji": "kiminona-seichi",
     ]
 
     /// 保存されているIDを、廃止されていれば統合先のIDに読み替えてから古地図を探す。

@@ -96,28 +96,12 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     northEast: { lat: 35.755, lng: 139.79 },
   },
   {
-    id: "meiji-jingu-omotesando-meiji",
-    title: "明治神宮・表参道",
-    era: "明治時代（1891年・明治24年頃、社殿創建前の代々木御料地一帯）",
-    imageUrl: "/old-maps/old_map_meijijingu_omotesando.jpg",
-    southWest: { lat: 35.65776, lng: 139.69495 },
-    northEast: { lat: 35.68296, lng: 139.73031 },
-  },
-  {
     id: "oyama-kaido",
     title: "大山街道（赤坂〜二子玉川）",
     era: "古地図風（現在の地図をもとに加工）",
     imageUrl: "/old-maps/old_map_oyama_kaido.jpg",
     southWest: { lat: 35.585851593232356, lng: 139.6142578125 },
     northEast: { lat: 35.6929946320988, lng: 139.74609375 },
-  },
-  {
-    id: "kagurazaka-waseda-shinjuku-meiji",
-    title: "神楽坂・早稲田",
-    era: "古地図風（現在の地図をもとに加工）",
-    imageUrl: "/old-maps/old_map_kagurazaka_waseda_shinjuku.jpg",
-    southWest: { lat: 35.685, lng: 139.696 },
-    northEast: { lat: 35.712, lng: 139.744 },
   },
   {
     id: "kiminona-seichi",
@@ -150,6 +134,8 @@ const MERGED_INTO: Record<string, string> = {
   "roppongi-meiji": "akasaka-kioicho-meiji",
   "kasumigaseki-toranomon-meiji": "edo-castle-1850s",
   "kudanshita-chidorigafuchi-meiji": "edo-castle-1850s",
+  "meiji-jingu-omotesando-meiji": "oyama-kaido",
+  "kagurazaka-waseda-shinjuku-meiji": "kiminona-seichi",
 };
 
 export function findOldMap(id: string | null): OldMapEntry | undefined {
