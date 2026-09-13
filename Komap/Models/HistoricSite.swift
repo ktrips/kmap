@@ -368,13 +368,6 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6739, longitude: 139.7362)
         ),
         HistoricSite(
-            id: "akasaka-hie-shrine",
-            overlayMapID: OldMapCatalog.akasakaKioicho.id,
-            name: "日枝神社",
-            summary: "徳川将軍家の産土神として篤く崇敬された、江戸三大祭のひとつ山王祭で知られる神社。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6733, longitude: 139.7392)
-        ),
-        HistoricSite(
             id: "kioicho-geihinkan",
             overlayMapID: OldMapCatalog.akasakaKioicho.id,
             name: "迎賓館赤坂離宮（紀州藩邸跡）",
@@ -521,13 +514,6 @@ enum HistoricSiteCatalog {
             name: "麻布十番",
             summary: "江戸時代から続く商店街。かつての古川沿いの町人地で、今も昔ながらの賑わいが残る。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6558, longitude: 139.7350)
-        ),
-        HistoricSite(
-            id: "roppongi-arisugawa-park",
-            overlayMapID: OldMapCatalog.akasakaKioicho.id,
-            name: "有栖川宮記念公園",
-            summary: "盛岡藩南部家の下屋敷、後に有栖川宮家の御用地となった地。起伏に富んだ地形が名残を伝える。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6553, longitude: 139.7236)
         ),
 
         // 大山街道（赤坂〜明治神宮〜二子）

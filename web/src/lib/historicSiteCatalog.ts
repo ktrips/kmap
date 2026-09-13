@@ -57,7 +57,6 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "kasumigaseki-toranomon-kotohira", name: "虎ノ門金刀比羅宮", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6699, lng: 139.7497 } },
   { id: "kasumigaseki-tameike", name: "溜池跡", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6693, lng: 139.7413 } },
   { id: "akasaka-hikawa-shrine", name: "赤坂氷川神社", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6739, lng: 139.7362 } },
-  { id: "akasaka-hie-shrine", name: "日枝神社", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6733, lng: 139.7392 } },
   { id: "kioicho-geihinkan", name: "迎賓館赤坂離宮（紀州藩邸跡）", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6797, lng: 139.7327 } },
   { id: "kioicho-sophia-univ", name: "上智大学（尾張藩邸跡）", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6857, lng: 139.7305 } },
   { id: "kioicho-new-otani", name: "ホテルニューオータニ（彦根藩井伊家邸跡）", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6788, lng: 139.7343 } },
@@ -78,7 +77,6 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "roppongi-nogi-shrine", name: "乃木神社", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6667, lng: 139.7268 } },
   { id: "roppongi-azabudai", name: "麻布台（大名屋敷跡）", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6631, lng: 139.7395 } },
   { id: "roppongi-azabujuban", name: "麻布十番", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6558, lng: 139.7350 } },
-  { id: "roppongi-arisugawa-park", name: "有栖川宮記念公園", overlayMapID: "akasaka-kioicho-meiji", coordinate: { lat: 35.6553, lng: 139.7236 } },
   { id: "oyamakaido-akasaka", name: "赤坂見附", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6775, lng: 139.7370 } },
   // 元は「明治神宮・表参道」古地図（廃止）のチェックポイント。古地図の廃止に伴い、大山街道へ移動した。
   { id: "meijijingu-shrine", name: "明治神宮", overlayMapID: "oyama-kaido", coordinate: { lat: 35.6764, lng: 139.6993 } },
