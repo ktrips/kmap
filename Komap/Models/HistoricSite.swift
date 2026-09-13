@@ -45,13 +45,6 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6822, longitude: 139.7565)
         ),
         HistoricSite(
-            id: "edo-castle-nijubashi",
-            overlayMapID: OldMapCatalog.edoCastle.id,
-            name: "二重橋",
-            summary: "江戸城正門にあたる、皇居を象徴する橋。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6825, longitude: 139.7528)
-        ),
-        HistoricSite(
             id: "edo-castle-otemon",
             overlayMapID: OldMapCatalog.edoCastle.id,
             name: "大手門",
@@ -537,36 +530,6 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6553, longitude: 139.7236)
         ),
 
-        // 明治神宮・表参道・神宮外苑
-        HistoricSite(
-            id: "meijijingu-shrine",
-            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
-            name: "明治神宮",
-            summary: "明治天皇と昭憲皇太后を祀る神社。1920年（大正9年）創建。代々木の森は創建にあわせて全国から献木された人工林。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6764, longitude: 139.6993)
-        ),
-        HistoricSite(
-            id: "meijijingu-harajuku-station",
-            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
-            name: "原宿駅",
-            summary: "明治神宮の最寄駅として1906年開業。この地図が描かれた1891年時点では、まだ原宿村ののどかな風景が広がっていた。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6702, longitude: 139.7027)
-        ),
-        HistoricSite(
-            id: "meijijingu-omotesando-hills",
-            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
-            name: "表参道ヒルズ",
-            summary: "明治神宮の参道として整備された表参道沿い。ケヤキ並木は神宮創建にあわせて植えられた。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6672, longitude: 139.7106)
-        ),
-        HistoricSite(
-            id: "meijijingu-gaien-gallery",
-            overlayMapID: OldMapCatalog.meijiJinguOmotesando.id,
-            name: "聖徳記念絵画館",
-            summary: "明治天皇の事績を描いた絵画を収める、神宮外苑のシンボル的建物。1926年竣工。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6772, longitude: 139.7193)
-        ),
-
         // 大山街道（赤坂〜二子玉川）
         HistoricSite(
             id: "oyamakaido-akasaka",
@@ -575,12 +538,35 @@ enum HistoricSiteCatalog {
             summary: "大山街道（矢倉沢往還）の江戸側の起点付近。江戸城の外堀に設けられた見附（門）のひとつがあった。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6775, longitude: 139.7370)
         ),
+        // 元は「明治神宮・表参道」古地図（廃止）のチェックポイント。古地図の廃止に伴い、
+        // 御朱印チェックポイントとして大山街道へ移動した。
         HistoricSite(
-            id: "oyamakaido-aoyama",
+            id: "meijijingu-shrine",
             overlayMapID: OldMapCatalog.oyamaKaido.id,
-            name: "青山（青山通り）",
-            summary: "大山街道の道筋がそのまま現在の青山通り（国道246号）として残るエリア。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6725, longitude: 139.7256)
+            name: "明治神宮",
+            summary: "明治天皇と昭憲皇太后を祀る神社。1920年（大正9年）創建。代々木の森は創建にあわせて全国から献木された人工林。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6764, longitude: 139.6993)
+        ),
+        HistoricSite(
+            id: "meijijingu-harajuku-station",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "原宿駅",
+            summary: "明治神宮の最寄駅として1906年開業。この地図が描かれた1891年時点では、まだ原宿村ののどかな風景が広がっていた。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6702, longitude: 139.7027)
+        ),
+        HistoricSite(
+            id: "meijijingu-omotesando-hills",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "表参道ヒルズ",
+            summary: "明治神宮の参道として整備された表参道沿い。ケヤキ並木は神宮創建にあわせて植えられた。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6672, longitude: 139.7106)
+        ),
+        HistoricSite(
+            id: "meijijingu-gaien-gallery",
+            overlayMapID: OldMapCatalog.oyamaKaido.id,
+            name: "聖徳記念絵画館",
+            summary: "明治天皇の事績を描いた絵画を収める、神宮外苑のシンボル的建物。1926年竣工。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6772, longitude: 139.7193)
         ),
         HistoricSite(
             id: "oyamakaido-shibuya-dogenzaka",
@@ -604,13 +590,6 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6252, longitude: 139.6553)
         ),
         HistoricSite(
-            id: "oyamakaido-youga",
-            overlayMapID: OldMapCatalog.oyamaKaido.id,
-            name: "用賀",
-            summary: "大山街道の宿駅的な役割を担った村。旧道の道筋が今も一部残る。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6229, longitude: 139.6321)
-        ),
-        HistoricSite(
             id: "oyamakaido-futakotamagawa",
             overlayMapID: OldMapCatalog.oyamaKaido.id,
             name: "二子玉川（多摩川の渡し）",
@@ -618,35 +597,6 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6099, longitude: 139.6262)
         ),
 
-        // 神楽坂・早稲田
-        HistoricSite(
-            id: "kws-hanazono-shrine",
-            overlayMapID: OldMapCatalog.kagurazakaWasedaShinjuku.id,
-            name: "花園神社",
-            summary: "新宿の総鎮守として江戸時代から信仰を集める神社。酉の市でも知られる。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6931, longitude: 139.7043)
-        ),
-        HistoricSite(
-            id: "kws-waseda-okuma",
-            overlayMapID: OldMapCatalog.kagurazakaWasedaShinjuku.id,
-            name: "早稲田大学 大隈講堂",
-            summary: "大隈重信が創設した早稲田大学の象徴的な講堂。周辺には学生街が広がる。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.7089, longitude: 139.7197)
-        ),
-        HistoricSite(
-            id: "kws-anahachimangu",
-            overlayMapID: OldMapCatalog.kagurazakaWasedaShinjuku.id,
-            name: "穴八幡宮",
-            summary: "早稲田の高台に鎮座する古社。江戸時代から金運・出世の御利益で知られる。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.7078, longitude: 139.7213)
-        ),
-        HistoricSite(
-            id: "kws-kagurazaka-zenkokuji",
-            overlayMapID: OldMapCatalog.kagurazakaWasedaShinjuku.id,
-            name: "神楽坂・毘沙門天善國寺",
-            summary: "江戸時代から続く花街・神楽坂のシンボル的な寺院。石畳の路地に今も花柳界の風情が残る。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.7017, longitude: 139.7397)
-        ),
 
         // 銀座・歌舞伎座
         HistoricSite(
@@ -722,25 +672,27 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6844, longitude: 139.7031)
         ),
         HistoricSite(
-            id: "kiminona-busta-shinjuku",
-            overlayMapID: OldMapCatalog.kiminonaSeichi.id,
-            name: "バスタ新宿",
-            summary: "新宿駅南口の高速バスターミナル。三葉が東京へ降り立つ場面のモデルとされる。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6886, longitude: 139.7008)
-        ),
-        HistoricSite(
             id: "kiminona-cafe-la-boheme",
             overlayMapID: OldMapCatalog.kiminonaSeichi.id,
             name: "カフェ・ラ・ボエム（新宿御苑店）",
             summary: "瀧のアルバイト先のモデルとされる、新宿御苑そばのカフェ。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6903, longitude: 139.7154)
         ),
+        // 元は「神楽坂・早稲田」古地図（廃止）のチェックポイント。古地図の廃止に伴い、
+        // 御朱印チェックポイントとして君の名は聖地巡礼へ移動した。
         HistoricSite(
-            id: "kiminona-shibuya-tsutaya",
+            id: "kws-hanazono-shrine",
             overlayMapID: OldMapCatalog.kiminonaSeichi.id,
-            name: "SHIBUYA TSUTAYA",
-            summary: "渋谷スクランブル交差点に面する複合施設。劇中の渋谷の雑踏シーンのモデル地。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6597, longitude: 139.7016)
+            name: "花園神社",
+            summary: "新宿の総鎮守として江戸時代から信仰を集める神社。酉の市でも知られる。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6931, longitude: 139.7043)
+        ),
+        HistoricSite(
+            id: "kws-kagurazaka-zenkokuji",
+            overlayMapID: OldMapCatalog.kiminonaSeichi.id,
+            name: "神楽坂・毘沙門天善國寺",
+            summary: "江戸時代から続く花街・神楽坂のシンボル的な寺院。石畳の路地に今も花柳界の風情が残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.7017, longitude: 139.7397)
         ),
 
         // ジブリ映画の聖地巡り（東京都内）
