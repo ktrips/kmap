@@ -676,11 +676,25 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6960, longitude: 139.5704)
         ),
         HistoricSite(
-            id: "ghibli-inokashira-park",
+            id: "ghibli-musashino-park",
             overlayMapID: OldMapCatalog.ghibliSeichi.id,
-            name: "井の頭恩賜公園",
-            summary: "三鷹の森ジブリ美術館に隣接する緑豊かな公園。池のボート乗り場は散策の定番コース。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.7024, longitude: 139.5738)
+            name: "武蔵野公園（小金井）",
+            summary: "野川沿いに広がる自然豊かな公園。スタジオジブリのアトリエ（小金井市）にほど近い。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6998, longitude: 139.5210)
+        ),
+        HistoricSite(
+            id: "ghibli-shirahige-cream-puff",
+            overlayMapID: OldMapCatalog.ghibliSeichi.id,
+            name: "白髭のシュークリーム（世田谷代田）",
+            summary: "トトロの形をした大きなシュークリームで知られる、ジブリファンに人気の菓子店。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6636, longitude: 139.6634)
+        ),
+        HistoricSite(
+            id: "ghibli-shinjuku-gyoen",
+            overlayMapID: OldMapCatalog.ghibliSeichi.id,
+            name: "新宿御苑",
+            summary: "都心にありながら緑豊かな庭園が広がる、ジブリ作品の風景を思わせる憩いの場。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6852, longitude: 139.7100)
         ),
         HistoricSite(
             id: "ghibli-edo-tokyo-open-air-museum",
