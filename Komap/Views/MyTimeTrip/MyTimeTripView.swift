@@ -96,14 +96,9 @@ struct MyTimeTripView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("表示", selection: $contentTab) {
-                    ForEach(ContentTab.allCases) { tab in
-                        Text(tab.rawValue).tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 8)
+                contentTabPicker
+                    .padding(.horizontal)
+                    .padding(.top, 8)
 
                 if contentTab == .everyone {
                     EveryoneTimeTripView()
@@ -131,7 +126,6 @@ struct MyTimeTripView: View {
                     }
                 }
             }
-            .navigationTitle(contentTab.rawValue)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -174,6 +168,34 @@ struct MyTimeTripView: View {
                 ActivityView(items: [holder.image])
             }
         }
+    }
+
+    // MARK: - 「マイ時空旅」「みんなの時空旅」の切り替え
+
+    /// 標準の`Picker(.segmented)`だと文字が小さいため、選択中のタブだけ太字にできる
+    /// 独自のセグメントUIにしている。
+    private var contentTabPicker: some View {
+        HStack(spacing: 4) {
+            ForEach(ContentTab.allCases) { tab in
+                Button {
+                    contentTab = tab
+                } label: {
+                    Text(tab.rawValue)
+                        .font(.body)
+                        .fontWeight(contentTab == tab ? .bold : .regular)
+                        .foregroundStyle(contentTab == tab ? .primary : .secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            contentTab == tab ? Color(.tertiarySystemFill) : Color.clear,
+                            in: Capsule()
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(Color(.secondarySystemBackground), in: Capsule())
     }
 
     // MARK: - 自分がスタート〜終了した地図
