@@ -13,6 +13,10 @@ struct MapScreen: View {
     /// 「未設定なのに連携カメラの選択肢が残ったまま」になり得るため、
     /// `@AppStorage`で同じキーを直接監視し、確実に再描画されるようにする。
     @AppStorage("cameraLinkHost") private var cameraLinkHostRaw: String = ""
+    /// `AppSettings.currentLocationIconStyle`と同じキーを`@AppStorage`で直接監視し、
+    /// 「設定」画面で見た目を変えたらこのマップ画面（常時マウントされたまま）の
+    /// 現在地マークにもすぐ反映されるようにする（`cameraLinkHostRaw`と同じ理由）。
+    @AppStorage("currentLocationIconStyle") private var currentLocationIconStyleRaw: String = CurrentLocationIconStyle.blueDot.rawValue
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
@@ -143,6 +147,10 @@ struct MapScreen: View {
         !cameraLinkHostRaw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var currentLocationIconStyle: CurrentLocationIconStyle {
+        CurrentLocationIconStyle(rawValue: currentLocationIconStyleRaw) ?? .blueDot
+    }
+
     /// 現在選択中の古地図に紐づくチェックポイント（5箇所程度）。
     /// 「全ての古地図を表示」中は、同梱・登録済みの古地図すべてのチェックポイントを返す。
     /// 同じ実在の場所が複数の古地図（谷中七福神と上野の不忍池辯天堂など）にまたがって
@@ -202,6 +210,7 @@ struct MapScreen: View {
                 overlayMap: mapSession.selectedOverlay,
                 overlayOpacity: Float(mapSession.overlayOpacity),
                 currentLocation: locationManager.currentLocation,
+                currentLocationIconStyle: currentLocationIconStyle,
                 showAllOverlays: mapSession.isShowingAllOverlays,
                 moveCameraRequest: mapSession.cameraMoveRequest,
                 reattachOverlayRequest: mapSession.overlayReattachRequest,

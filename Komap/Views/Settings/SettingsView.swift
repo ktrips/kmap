@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var syncMessage: String?
     @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
     @State private var photoFilterStyle: PhotoFilterStyle = AppSettings.photoFilterStyle
+    @State private var currentLocationIconStyle: CurrentLocationIconStyle = AppSettings.currentLocationIconStyle
 
     @State private var isShowingAdvancedSettings = false
     @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
@@ -36,6 +37,7 @@ struct SettingsView: View {
             Form {
                 accountSection
                 overlayOpacitySection
+                currentLocationIconSection
                 photoFilterSection
 
                 Section {
@@ -170,6 +172,41 @@ struct SettingsView: View {
             Text("古地図のデフォルト濃度")
         } footer: {
             Text("マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
+        }
+    }
+
+    private var currentLocationIconSection: some View {
+        Section {
+            HStack(spacing: 18) {
+                ForEach(CurrentLocationIconStyle.allCases) { style in
+                    Button {
+                        currentLocationIconStyle = style
+                        AppSettings.currentLocationIconStyle = style
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(uiImage: style.icon(emphasized: false))
+                                .padding(6)
+                                .background(
+                                    Circle().stroke(
+                                        currentLocationIconStyle == style ? Color.accentColor : Color.clear,
+                                        lineWidth: 2
+                                    )
+                                )
+                            Text(style.title)
+                                .font(.caption2)
+                                .foregroundStyle(currentLocationIconStyle == style ? .primary : .secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+        } header: {
+            Text("現在地マークの見た目")
+        } footer: {
+            Text("歩いている時、地図上の自分の位置に表示するマークです。御朱印のマーカーは朱色のピンのため見分けられます。")
         }
     }
 

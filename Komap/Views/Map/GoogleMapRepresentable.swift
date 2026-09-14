@@ -58,6 +58,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     var overlayOpacity: Float
     /// 現在地。自前で描く現在地マーク（`applyCurrentLocationMarker`）の位置に使う。
     var currentLocation: CLLocationCoordinate2D?
+    /// 現在地マークの見た目。「設定」画面で選べる。
+    var currentLocationIconStyle: CurrentLocationIconStyle = .blueDot
     /// `true`の間は`overlayMap`単体ではなく、同梱・登録済みの古地図すべてを
     /// 地図上に重ねて表示する（「全ての古地図を表示」選択時）。
     var showAllOverlays: Bool = false
@@ -152,7 +154,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             mapView.animate(to: GMSCameraPosition.camera(withTarget: request.coordinate, zoom: request.zoom ?? mapView.camera.zoom))
         }
 
-        context.coordinator.applyCurrentLocationMarker(currentLocation, emphasized: isRecordingWalk, to: mapView)
+        context.coordinator.applyCurrentLocationMarker(currentLocation, emphasized: isRecordingWalk, style: currentLocationIconStyle, to: mapView)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -261,6 +263,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 直近に描いた現在地マークが「強調表示」だったかどうか。歩行記録中は
         /// 大きく目立つ見た目にするため、この状態が変わった時だけアイコンを作り直す。
         private var isCurrentLocationMarkerEmphasized = false
+        /// 直近に描いた現在地マークの見た目スタイル。「設定」で変えた時だけアイコンを作り直す。
+        private var currentLocationIconStyleUsed: CurrentLocationIconStyle?
         /// 直近に投稿写真ピンへ適用した「記録中で薄く表示」状態。
         private var arePhotoPostsDimmed = false
 
@@ -1238,7 +1242,13 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 現在地マークを描く。Google純正の「青い点」は使わず、写真ピンなど他の
         /// どのマーカーよりも必ず前面に出て、かつサイズも大きく分かりやすい
         /// 自前のマーカーにする。歩行記録中（`emphasized`）はさらに一回り大きくする。
-        func applyCurrentLocationMarker(_ coordinate: CLLocationCoordinate2D?, emphasized: Bool, to mapView: GMSMapView) {
+        /// 見た目（`style`）は「設定」画面で選べる（`CurrentLocationIconStyle`）。
+        func applyCurrentLocationMarker(
+            _ coordinate: CLLocationCoordinate2D?,
+            emphasized: Bool,
+            style: CurrentLocationIconStyle,
+            to mapView: GMSMapView
+        ) {
             guard let coordinate else {
                 currentLocationMarker?.map = nil
                 currentLocationMarker = nil
@@ -1247,57 +1257,21 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             if let marker = currentLocationMarker {
                 marker.position = coordinate
-                if emphasized != isCurrentLocationMarkerEmphasized {
+                if emphasized != isCurrentLocationMarkerEmphasized || style != currentLocationIconStyleUsed {
                     isCurrentLocationMarkerEmphasized = emphasized
-                    marker.icon = Self.currentLocationIcon(emphasized: emphasized)
+                    currentLocationIconStyleUsed = style
+                    marker.icon = style.icon(emphasized: emphasized)
                 }
             } else {
                 isCurrentLocationMarkerEmphasized = emphasized
+                currentLocationIconStyleUsed = style
                 let marker = GMSMarker(position: coordinate)
-                marker.icon = Self.currentLocationIcon(emphasized: emphasized)
+                marker.icon = style.icon(emphasized: emphasized)
                 marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
                 marker.zIndex = Self.currentLocationMarkerZIndex
                 marker.isTappable = false
                 marker.map = mapView
                 currentLocationMarker = marker
-            }
-        }
-
-        /// 現在地マークのアイコン。青い円＋白い縁取り。歩行記録中（`emphasized`）は
-        /// 一回り大きく、外側にもう一段リングを足してさらに目立たせる。
-        private static func currentLocationIcon(emphasized: Bool) -> UIImage {
-            let diameter: CGFloat = emphasized ? 40 : 26
-            let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))
-            return renderer.image { context in
-                let cg = context.cgContext
-                let center = CGPoint(x: diameter / 2, y: diameter / 2)
-
-                if emphasized {
-                    // 外側の薄いリング（現在地の存在感を広げる）。
-                    let outerRadius = diameter / 2 - 1
-                    cg.setFillColor(UIColor.systemBlue.withAlphaComponent(0.22).cgColor)
-                    cg.addArc(center: center, radius: outerRadius, startAngle: 0, endAngle: .pi * 2, clockwise: true)
-                    cg.fillPath()
-                }
-
-                // 白い縁取り。
-                let dotDiameter: CGFloat = emphasized ? 26 : 20
-                let dotRect = CGRect(
-                    x: center.x - dotDiameter / 2,
-                    y: center.y - dotDiameter / 2,
-                    width: dotDiameter,
-                    height: dotDiameter
-                )
-                cg.setFillColor(UIColor.white.cgColor)
-                cg.addEllipse(in: dotRect)
-                cg.fillPath()
-
-                // 中の青い点。
-                let innerInset: CGFloat = 3.5
-                let innerRect = dotRect.insetBy(dx: innerInset, dy: innerInset)
-                cg.setFillColor(UIColor.systemBlue.cgColor)
-                cg.addEllipse(in: innerRect)
-                cg.fillPath()
             }
         }
 

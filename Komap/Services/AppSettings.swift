@@ -4,6 +4,7 @@ import Foundation
 /// （写真の加工スタイル・連携カメラ／連携プリンターのURLなど）。`UserDefaults`に保存する。
 enum AppSettings {
     private static let photoFilterStyleKey = "photoFilterStyle"
+    private static let currentLocationIconStyleKey = "currentLocationIconStyle"
     private static let cameraLinkHostKey = "cameraLinkHost"
     private static let printerLinkHostKey = "printerLinkHost"
     private static let printerSyncStampsKey = "printerSyncStamps"
@@ -21,6 +22,15 @@ enum AppSettings {
             return PhotoFilterStyle(rawValue: raw) ?? .none
         }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: photoFilterStyleKey) }
+    }
+
+    /// 歩いている時、地図上に表示する現在地マークの見た目。
+    static var currentLocationIconStyle: CurrentLocationIconStyle {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: currentLocationIconStyleKey) else { return .blueDot }
+            return CurrentLocationIconStyle(rawValue: raw) ?? .blueDot
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: currentLocationIconStyleKey) }
     }
 
     /// 連携カメラのホスト名／IP、または完全なURL（例: "m5cam.local"）。未設定なら`nil`。
