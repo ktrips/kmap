@@ -34,6 +34,10 @@ enum AuthServiceError: LocalizedError {
 final class AuthService: NSObject, ObservableObject {
     @Published private(set) var userID: String?
     @Published private(set) var displayName: String?
+    /// Googleサインインで検証済みのメールアドレス。友達招待（メールアドレス指定）の
+    /// 受信側マッチングに使う（Firestoreセキュリティルール側では`request.auth.token.email`
+    /// を参照するため、偽装できない値として扱える）。
+    @Published private(set) var email: String?
     @Published private(set) var isSigningIn = false
     @Published var lastError: String?
 
@@ -47,10 +51,12 @@ final class AuthService: NSObject, ObservableObject {
         guard isFirebaseConfigured else { return }
         userID = Auth.auth().currentUser?.uid
         displayName = Auth.auth().currentUser?.displayName
+        email = Auth.auth().currentUser?.email
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in
                 self?.userID = user?.uid
                 self?.displayName = user?.displayName
+                self?.email = user?.email
             }
         }
     }

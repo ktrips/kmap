@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @StateObject private var authService = AuthService()
     @StateObject private var mapSession = MapSessionState()
+    private let syncService = SyncService()
 
     var body: some View {
         Group {
@@ -14,6 +15,12 @@ struct RootView: View {
         }
         .environmentObject(authService)
         .environmentObject(mapSession)
+        // サインインするたび、自分の検証済みメールアドレス宛に届いている友達招待が
+        // あれば受け取れる状態にする（`friendRequests`の`toUID`を自分のuidで確定させる）。
+        .task(id: authService.userID) {
+            guard let userID = authService.userID, let email = authService.email else { return }
+            await syncService.claimFriendRequestsAddressedToMe(userID: userID, email: email)
+        }
     }
 }
 

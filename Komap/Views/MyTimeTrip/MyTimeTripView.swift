@@ -18,6 +18,7 @@ struct MyTimeTripView: View {
         var id: String { rawValue }
     }
     @State private var contentTab: ContentTab = .mine
+    @State private var isPresentingInviteFriend = false
     @State private var shareImage: UIImage?
     @State private var isPreparingShare = false
     @State private var selectedStamp: StampSelection?
@@ -117,10 +118,10 @@ struct MyTimeTripView: View {
                         } else {
                             ScrollView {
                                 VStack(alignment: .leading, spacing: 28) {
+                                    pointsSection
                                     if !walkRoutes.isEmpty {
                                         walkRoutesSection
                                     }
-                                    pointsSection
                                     if !stampsWithPhoto.isEmpty || !photoPosts.isEmpty {
                                         photosSection
                                     }
@@ -159,6 +160,15 @@ struct MyTimeTripView: View {
                         .disabled(collectedStamps.isEmpty || isPreparingShare)
                     }
                 }
+                if contentTab == .everyone {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isPresentingInviteFriend = true
+                        } label: {
+                            Label("友達を招待", systemImage: "person.badge.plus")
+                        }
+                    }
+                }
             }
             .navigationDestination(for: SavedPlace.self) { place in
                 SavedPlaceDetailView(place: place)
@@ -175,7 +185,31 @@ struct MyTimeTripView: View {
             .sheet(item: shareImageBinding) { holder in
                 ActivityView(items: [holder.image])
             }
+            .sheet(isPresented: $isPresentingInviteFriend) {
+                InviteFriendSheet()
+            }
+            .task(id: pointsSnapshot) {
+                guard let userID = authService.userID else { return }
+                let displayName = authService.displayName ?? "ユーザー"
+                await syncService.updateMyPublicStats(
+                    userID: userID,
+                    displayName: displayName,
+                    weeklyPoints: pointsSnapshot.weekly,
+                    totalPoints: pointsSnapshot.total
+                )
+            }
         }
+    }
+
+    /// ランキング（`userPublicStats`）へ反映する今週/通算ポイントのスナップショット。
+    /// `.task(id:)`で変化を検知し、変わった時だけFirestoreへ書き込む。
+    private struct PointsSnapshot: Equatable {
+        let weekly: Int
+        let total: Int
+    }
+
+    private var pointsSnapshot: PointsSnapshot {
+        PointsSnapshot(weekly: thisWeekPoints, total: totalPoints)
     }
 
     // MARK: - 「マイ時空旅」「みんなの時空旅」の切り替え

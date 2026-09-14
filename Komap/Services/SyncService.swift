@@ -50,6 +50,21 @@ struct SyncService {
         Firestore.firestore().collection("sharedTrips")
     }
 
+    /// ランキング表示用の公開統計（表示名・今週/通算ポイント）。本人だけが自分の文書を書ける。
+    private var userPublicStatsCollection: CollectionReference {
+        Firestore.firestore().collection("userPublicStats")
+    }
+
+    /// 友達申請。
+    private var friendRequestsCollection: CollectionReference {
+        Firestore.firestore().collection("friendRequests")
+    }
+
+    /// 承認済みの友達関係（1組1文書）。
+    private var friendshipsCollection: CollectionReference {
+        Firestore.firestore().collection("friendships")
+    }
+
     private func stampPhotoStoragePath(userID: String, stampID: UUID) -> String {
         "users/\(userID)/stamps/\(stampID.uuidString).jpg"
     }
@@ -422,6 +437,145 @@ struct SyncService {
         let (likes, comments) = try await (likeAggregate, commentAggregate)
         return (likes.count.intValue, comments.count.intValue)
     }
+
+    // MARK: - ランキング（userPublicStats）
+
+    /// 自分のランキング用公開統計を更新する。「My Trips」でポイントを表示するたびに呼び、
+    /// 常に最新の今週/通算ポイントがランキングへ反映されるようにする。
+    func updateMyPublicStats(userID: String, displayName: String, weeklyPoints: Int, totalPoints: Int) async {
+        guard isFirebaseConfigured else { return }
+        let data: [String: Any] = [
+            "displayName": displayName,
+            "weeklyPoints": weeklyPoints,
+            "totalPoints": totalPoints,
+            "updatedAt": Timestamp(date: Date()),
+        ]
+        try? await userPublicStatsCollection.document(userID).setData(data, merge: true)
+    }
+
+    /// 今週のポイントが多い順のランキングを取得する。
+    func fetchLeaderboard(limit: Int = 50) async throws -> [RemoteUserStats] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let snapshot = try await userPublicStatsCollection
+            .order(by: "weeklyPoints", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return snapshot.documents.compactMap { RemoteUserStats(id: $0.documentID, data: $0.data()) }
+    }
+
+    /// 表示名の前方一致でユーザーを検索する（友達招待の「ユーザー名で追加」用）。
+    func searchUsers(displayNamePrefix: String, limit: Int = 20) async throws -> [RemoteUserStats] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        guard !displayNamePrefix.isEmpty else { return [] }
+        let end = displayNamePrefix + "\u{f8ff}"
+        let snapshot = try await userPublicStatsCollection
+            .order(by: "displayName")
+            .start(at: [displayNamePrefix])
+            .end(at: [end])
+            .limit(to: limit)
+            .getDocuments()
+        return snapshot.documents.compactMap { RemoteUserStats(id: $0.documentID, data: $0.data()) }
+    }
+
+    // MARK: - 友達招待（friendRequests / friendships）
+
+    /// 検索で見つかった相手（uid確定済み）へ友達申請を送る。
+    func sendFriendRequest(fromUID: String, fromDisplayName: String, toUID: String) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let data: [String: Any] = [
+            "fromUID": fromUID,
+            "fromDisplayName": fromDisplayName,
+            "toUID": toUID,
+            "toEmail": NSNull(),
+            "status": "pending",
+            "createdAt": Timestamp(date: Date()),
+        ]
+        try await friendRequestsCollection.addDocument(data: data)
+    }
+
+    /// メールアドレス指定で友達申請を送る。相手がまだこのアプリでサインインしたことが
+    /// なくても送信でき、後から`claimFriendRequestsAddressedToMe`で受け取られる。
+    func sendFriendRequest(fromUID: String, fromDisplayName: String, toEmail: String) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let data: [String: Any] = [
+            "fromUID": fromUID,
+            "fromDisplayName": fromDisplayName,
+            "toUID": NSNull(),
+            "toEmail": toEmail.lowercased(),
+            "status": "pending",
+            "createdAt": Timestamp(date: Date()),
+        ]
+        try await friendRequestsCollection.addDocument(data: data)
+    }
+
+    /// サインイン時に一度呼ぶ。自分の検証済みメールアドレス宛に届いている
+    /// （`toUID`がまだ確定していない）招待があれば、自分のuidを書き込んで受け取る。
+    func claimFriendRequestsAddressedToMe(userID: String, email: String) async {
+        guard isFirebaseConfigured else { return }
+        guard let snapshot = try? await friendRequestsCollection
+            .whereField("toEmail", isEqualTo: email.lowercased())
+            .whereField("toUID", isEqualTo: NSNull())
+            .getDocuments() else { return }
+        for document in snapshot.documents {
+            try? await document.reference.updateData(["toUID": userID])
+        }
+    }
+
+    /// 自分が送った・受け取った友達申請の一覧を取得する。
+    func fetchFriendRequests(userID: String) async throws -> [RemoteFriendRequest] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        async let incomingSnapshot = friendRequestsCollection
+            .whereField("toUID", isEqualTo: userID)
+            .getDocuments()
+        async let outgoingSnapshot = friendRequestsCollection
+            .whereField("fromUID", isEqualTo: userID)
+            .getDocuments()
+        let (incoming, outgoing) = try await (incomingSnapshot, outgoingSnapshot)
+        var seen = Set<String>()
+        return (incoming.documents + outgoing.documents).compactMap {
+            RemoteFriendRequest(id: $0.documentID, data: $0.data())
+        }.filter { seen.insert($0.id).inserted }
+    }
+
+    /// 届いた友達申請を承認し、友達関係（`friendships`）を作成する。
+    func acceptFriendRequest(_ request: RemoteFriendRequest, myUID: String) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        try await friendRequestsCollection.document(request.id).updateData(["status": "accepted"])
+
+        let otherUID = request.fromUID == myUID ? request.toUID : request.fromUID
+        guard let otherUID else { return }
+        let pairKey = [myUID, otherUID].sorted().joined(separator: "_")
+        let data: [String: Any] = [
+            "uids": [myUID, otherUID],
+            "requestId": request.id,
+            "createdAt": Timestamp(date: Date()),
+        ]
+        try await friendshipsCollection.document(pairKey).setData(data)
+    }
+
+    /// 届いた友達申請を却下する。
+    func declineFriendRequest(_ request: RemoteFriendRequest) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        try await friendRequestsCollection.document(request.id).updateData(["status": "declined"])
+    }
+
+    /// 送った友達申請を取り消す。
+    func cancelFriendRequest(_ request: RemoteFriendRequest) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        try await friendRequestsCollection.document(request.id).updateData(["status": "cancelled"])
+    }
+
+    /// 自分の友達（uidの配列）を取得する。
+    func fetchFriendUIDs(userID: String) async throws -> [String] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let snapshot = try await friendshipsCollection
+            .whereField("uids", arrayContains: userID)
+            .getDocuments()
+        return snapshot.documents.compactMap { document -> String? in
+            guard let uids = document.data()["uids"] as? [String] else { return nil }
+            return uids.first { $0 != userID }
+        }
+    }
 }
 
 /// Firestoreから読み取った1件分のデータ（`SavedPlace` への変換用の軽量DTO）。
@@ -551,6 +705,54 @@ struct RemoteTripComment: Identifiable {
         self.authorUserID = authorUserID
         self.authorDisplayName = data["authorDisplayName"] as? String ?? "名無し"
         self.text = text
+        self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+    }
+}
+
+/// 「みんなの時空旅」ランキング用、`userPublicStats/{uid}`から読み取った軽量DTO。
+struct RemoteUserStats: Identifiable {
+    /// Firestore文書ID＝uid。
+    let id: String
+    let displayName: String
+    let weeklyPoints: Int
+    let totalPoints: Int
+
+    init?(id: String, data: [String: Any]) {
+        guard let displayName = data["displayName"] as? String else { return nil }
+        self.id = id
+        self.displayName = displayName
+        self.weeklyPoints = (data["weeklyPoints"] as? Int) ?? 0
+        self.totalPoints = (data["totalPoints"] as? Int) ?? 0
+    }
+}
+
+/// 友達申請1件（`friendRequests/{id}`）。
+struct RemoteFriendRequest: Identifiable {
+    enum Status: String {
+        case pending, accepted, declined, cancelled
+    }
+
+    let id: String
+    let fromUID: String
+    let fromDisplayName: String
+    /// 受信側のuid。メールアドレス指定の招待で相手が未サインインの間は`nil`。
+    let toUID: String?
+    /// メールアドレス指定の招待の宛先（小文字化済み）。ユーザー名指定の招待では`nil`。
+    let toEmail: String?
+    let status: Status
+    let createdAt: Date
+
+    init?(id: String, data: [String: Any]) {
+        guard let fromUID = data["fromUID"] as? String,
+              let statusRaw = data["status"] as? String,
+              let status = Status(rawValue: statusRaw)
+        else { return nil }
+        self.id = id
+        self.fromUID = fromUID
+        self.fromDisplayName = (data["fromDisplayName"] as? String) ?? "ユーザー"
+        self.toUID = data["toUID"] as? String
+        self.toEmail = data["toEmail"] as? String
+        self.status = status
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
     }
 }

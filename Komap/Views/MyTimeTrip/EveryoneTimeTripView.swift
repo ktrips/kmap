@@ -8,8 +8,10 @@ struct EveryoneTimeTripView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var selectedTrip: RemoteSharedTrip?
+    @State private var leaderboard: [RemoteUserStats] = []
 
     private let syncService = SyncService()
+    private static let leaderboardLimit = 10
 
     var body: some View {
         Group {
@@ -42,6 +44,10 @@ struct EveryoneTimeTripView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 4) {
+                        if !leaderboard.isEmpty {
+                            LeaderboardSection(entries: leaderboard)
+                                .padding(.bottom, 20)
+                        }
                         ForEach(trips) { trip in
                             SharedTripRow(trip: trip)
                                 .padding(.vertical, 8)
@@ -67,12 +73,76 @@ struct EveryoneTimeTripView: View {
     private func load() async {
         isLoading = true
         errorMessage = nil
+        async let tripsResult = syncService.fetchAllSharedTrips()
+        async let leaderboardResult = syncService.fetchLeaderboard(limit: Self.leaderboardLimit)
         do {
-            trips = try await syncService.fetchAllSharedTrips()
+            trips = try await tripsResult
         } catch {
             errorMessage = "みんなの時空旅を取得できませんでした: \(error.localizedDescription)"
         }
+        leaderboard = (try? await leaderboardResult) ?? []
         isLoading = false
+    }
+}
+
+/// 今週のポイントが多い順のランキング。1位には王冠アイコンを表示する。
+private struct LeaderboardSection: View {
+    let entries: [RemoteUserStats]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("今週のランキング")
+                .font(.headline)
+            VStack(spacing: 8) {
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, stats in
+                    LeaderboardRow(rank: index + 1, stats: stats)
+                }
+            }
+        }
+    }
+}
+
+private struct LeaderboardRow: View {
+    let rank: Int
+    let stats: RemoteUserStats
+
+    private static let goldColor = Color(red: 0.86, green: 0.63, blue: 0.24)
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Group {
+                if rank == 1 {
+                    Image(systemName: "crown.fill")
+                        .foregroundStyle(Self.goldColor)
+                        .font(.system(size: 20))
+                } else {
+                    Text("\(rank)")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 28)
+
+            Text(stats.displayName)
+                .font(.subheadline.bold())
+                .lineLimit(1)
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(stats.weeklyPoints) pt")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(Self.goldColor)
+                Text("通算 \(stats.totalPoints) pt")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(10)
+        .background(
+            rank == 1 ? Self.goldColor.opacity(0.12) : Color.secondary.opacity(0.06),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
     }
 }
 
