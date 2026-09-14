@@ -23,6 +23,8 @@ struct TravelJournalView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var likeCount = 0
+    /// タップされた投稿写真。大きく・前後にスワイプできる詳細（`PhotoPostPreviewSheet`）を開く。
+    @State private var selectedPhotoPost: WalkPhotoPost?
 
     private let syncService = SyncService()
 
@@ -90,6 +92,9 @@ struct TravelJournalView: View {
                 guard route.isSharedPublicly else { return }
                 guard let counts = try? await syncService.fetchEngagementCounts(tripID: route.id.uuidString) else { return }
                 likeCount = counts.likeCount
+            }
+            .sheet(item: $selectedPhotoPost) { post in
+                PhotoPostPreviewSheet(post: post)
             }
         }
     }
@@ -202,11 +207,22 @@ struct TravelJournalView: View {
                     image: post.photo,
                     placeholderSystemImage: "camera.fill",
                     placeholderColor: Color(red: 0.86, green: 0.63, blue: 0.24),
-                    title: post.placeName ?? post.postedAt.formatted(date: .omitted, time: .shortened),
-                    detail: post.storyBody
+                    title: post.displayTitle ?? post.postedAt.formatted(date: .omitted, time: .shortened),
+                    subtitle: photoSubtitle(for: post),
+                    detail: post.storyBody,
+                    onTapImage: post.photo != nil ? { selectedPhotoPost = post } : nil
                 )
             }
         }
+    }
+
+    /// 付けた名前を表示に使った場合、GPSから取得した場所名があれば小さく添える
+    /// （名前が無ければ場所名の方がそのまま見出しに使われるため、ここでは出さない）。
+    private func photoSubtitle(for post: WalkPhotoPost) -> String? {
+        let trimmedUserTitle = post.userTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmedUserTitle, !trimmedUserTitle.isEmpty else { return nil }
+        guard let placeName = post.placeName, !placeName.isEmpty, placeName != trimmedUserTitle else { return nil }
+        return placeName
     }
 
     /// 既にAIで生成済みの、その御朱印スポットの詳細（`CheckpointStory`）があればその本文を返す。
@@ -224,27 +240,43 @@ private struct JournalGalleryRow: View {
     let placeholderSystemImage: String
     let placeholderColor: Color
     let title: String
+    /// 見出し（`title`）の下に、さらに小さく添える補足（例: 名前を付けた写真の、GPSから
+    /// 取得した場所名）。無ければ何も出さない。
+    var subtitle: String? = nil
     let detail: String?
+    /// 写真をタップした時に呼ばれる。`nil`ならタップしても何も起きない
+    /// （写真が無い＝プレースホルダー表示の時など）。
+    var onTapImage: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 84, height: 84)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            } else {
-                Image(systemName: placeholderSystemImage)
-                    .font(.system(size: 32))
-                    .foregroundStyle(placeholderColor)
-                    .frame(width: 84, height: 84)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Group {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: placeholderSystemImage)
+                        .font(.system(size: 32))
+                        .foregroundStyle(placeholderColor)
+                        .background(.regularMaterial)
+                }
+            }
+            .frame(width: 84, height: 84)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .onTapGesture {
+                onTapImage?()
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.bold())
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 if let detail, !detail.isEmpty {
                     Text(detail)
                         .font(.caption)

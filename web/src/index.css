@@ -1255,6 +1255,38 @@ code {
   padding-left: 1.2em;
 }
 
+.photo-lightbox-overlay {
+  padding: 24px;
+}
+
+.photo-lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+  object-fit: contain;
+  cursor: default;
+}
+
+.photo-lightbox-close {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 101;
+}
+
+.trip-journal-gallery-photo {
+  cursor: pointer;
+}
+
 .modal-body li {
   margin-bottom: 6px;
 }

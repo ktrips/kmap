@@ -5,6 +5,7 @@ import { sitesForOverlay } from "../lib/historicSiteCatalog";
 import { saveTripDetails } from "../lib/tripEditing";
 import { useTripComments } from "../lib/useTripComments";
 import { useTripLikes } from "../lib/useTripLikes";
+import { PhotoLightbox } from "./PhotoLightbox";
 import { TripMapView } from "./TripMapView";
 import type { UnifiedTrip } from "../types/unifiedTrip";
 
@@ -59,6 +60,7 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<{ url: string; alt: string } | null>(null);
 
   // 選ぶ時空旅を切り替えたら、編集中だった内容は破棄する。
   useEffect(() => {
@@ -239,7 +241,13 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
           <p className="trip-journal-gallery-title">御朱印・チェックポイント</p>
           {trip.stampPhotos.map((photo) => (
             <div key={photo.url} className="trip-journal-gallery-item">
-              <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
+              <img
+                src={photo.url}
+                alt={photo.label}
+                className="trip-journal-gallery-photo"
+                loading="lazy"
+                onClick={() => setLightboxPhoto({ url: photo.url, alt: photo.label })}
+              />
               <div className="trip-journal-gallery-text">
                 <p className="trip-journal-gallery-name">{photo.label}</p>
                 {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
@@ -255,7 +263,13 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
           <p className="trip-journal-gallery-title">投稿した写真</p>
           {trip.postPhotos.map((photo) => (
             <div key={photo.url} className="trip-journal-gallery-item">
-              <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
+              <img
+                src={photo.url}
+                alt={photo.label}
+                className="trip-journal-gallery-photo"
+                loading="lazy"
+                onClick={() => setLightboxPhoto({ url: photo.url, alt: photo.label })}
+              />
               <div className="trip-journal-gallery-text">
                 {photo.label && <p className="trip-journal-gallery-name">{photo.label}</p>}
                 {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
@@ -302,6 +316,10 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
           </button>
         </form>
       </div>
+
+      {lightboxPhoto && (
+        <PhotoLightbox url={lightboxPhoto.url} alt={lightboxPhoto.alt} onClose={() => setLightboxPhoto(null)} />
+      )}
     </div>
   );
 }
