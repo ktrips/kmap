@@ -11,9 +11,11 @@ interface Props {
   /** trueの間は、左側のアプリ名の代わりに「一覧」ボタンを表示する（詳細を見ている時用）。 */
   showListButton?: boolean;
   onShowList?: () => void;
+  /** 左上のアプリアイコンを押した時。選択中の時空旅・地点を解除してホームに戻す。 */
+  onGoHome?: () => void;
 }
 
-export function Header({ user, tripCount, onSignOut, showListButton = false, onShowList }: Props) {
+export function Header({ user, tripCount, onSignOut, showListButton = false, onShowList, onGoHome }: Props) {
   const { status, errorMessage, adminReport, requestInvite } = useTestFlightInvite();
 
   const adminMailtoHref = adminReport
@@ -42,8 +44,8 @@ export function Header({ user, tripCount, onSignOut, showListButton = false, onS
         <button
           type="button"
           className="app-header-icon-button"
-          onClick={onShowList}
-          aria-label="一覧を表示"
+          onClick={onGoHome ?? onShowList}
+          aria-label="ホームに戻る"
         >
           <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
         </button>

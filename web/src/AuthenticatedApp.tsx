@@ -102,6 +102,14 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
     setIsSidebarOpen(true);
   };
 
+  // 左上のアイコンを押した時、選んでいた時空旅・地点を解除してホーム（一覧のみの
+  // 状態）に戻す。モバイル・PCどちらでも同じ挙動にする。
+  const handleGoHome = () => {
+    setSelectedTripId(null);
+    setSelectedId(null);
+    setIsSidebarOpen(true);
+  };
+
   return (
     <div className="app-shell">
       <Header
@@ -110,6 +118,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
         onSignOut={onSignOut}
         showListButton={!isSidebarOpen}
         onShowList={() => setIsSidebarOpen(true)}
+        onGoHome={handleGoHome}
       />
       <div className="app-body">
         {isSidebarOpen && (

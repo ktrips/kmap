@@ -73,6 +73,13 @@ export function PublicSharedTripsView({
     }
   };
 
+  // 左上のアイコンを押した時、選んでいた時空旅を解除してホーム（一覧＋案内のみの
+  // 状態）に戻す。モバイル・PCどちらでも同じ挙動にする。
+  const handleGoHome = () => {
+    setSelectedTripId(null);
+    setIsSidebarOpen(true);
+  };
+
   // 見出し・Googleサインインの案内。モバイルではこれまで通りヘッダーの下（一覧の上）に
   // 表示するが、モバイルでない時はヘッダー直下には出さず、代わりに右側の表示ペインの
   // 「リストから、時空旅を選んでください。」の上（＝何も選んでいない時だけ）に表示する。
@@ -111,8 +118,8 @@ export function PublicSharedTripsView({
           <button
             type="button"
             className="app-header-icon-button"
-            onClick={() => setIsSidebarOpen(true)}
-            aria-label="一覧を表示"
+            onClick={handleGoHome}
+            aria-label="ホームに戻る"
           >
             <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
           </button>
