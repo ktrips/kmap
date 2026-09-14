@@ -119,6 +119,14 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     southWest: { lat: 35.5439, lng: 139.44 },
     northEast: { lat: 35.8112, lng: 139.768 },
   },
+  {
+    id: "tokyo-toilet-perfect-days",
+    title: "東京トイレット（Perfect Days）",
+    era: "現代（映画『PERFECT DAYS』の聖地巡礼スポット）",
+    imageUrl: "/old-maps/old_map_tokyo_toilet.jpg",
+    southWest: { lat: 35.645, lng: 139.663 },
+    northEast: { lat: 35.678, lng: 139.724 },
+  },
 ];
 
 /**

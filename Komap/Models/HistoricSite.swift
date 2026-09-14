@@ -719,6 +719,113 @@ enum HistoricSiteCatalog {
             summary: "日本テレビタワー2階に設置された、宮崎駿監督デザインのからくり時計。1日に数回、仕掛けが動き出す。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6607, longitude: 139.7597)
         ),
+
+        // 東京トイレット（Perfect Days、渋谷区「THE TOKYO TOILET」）
+        HistoricSite(
+            id: "tokyo-toilet-ebisu-east-park",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "タコ公園のイカトイレ（恵比寿東公園）",
+            summary: "赤いタコの滑り台で知られる「タコ公園」に立つ、槇文彦デザインの真っ白な「イカ」の形をしたトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6495, longitude: 139.7124)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-nabeshima-shoto-park",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "森のコミチ（鍋島松濤公園）",
+            summary: "緑豊かな鍋島松濤公園に溶け込む、隈研吾デザインの木漏れ日のようなトイレ「森のコミチ」。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6614, longitude: 139.6883)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-yoyogi-fukamachi-mini-park",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "ザ・トウメイ・トイレット（代々木深町小公園）",
+            summary: "坂茂デザイン。普段は透明なガラスの壁が、鍵をかけると不透明に変わる話題のトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6697, longitude: 139.6825)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-yoyogi-hachiman",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "スリーマッシュルーム（代々木八幡）",
+            summary: "伊東豊雄デザイン。代々木八幡の森からきのこが3本生えてきたような、可愛らしい3棟のトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6706, longitude: 139.6853)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-nishihara-itchome-park",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "アンドン・トイレット（西原一丁目公園）",
+            summary: "坂倉竹之助デザイン。夜になると行灯のようにやわらかく光り、公園を優しく照らすトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6725, longitude: 139.6791)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-jingu-dori-park",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "あまやどり（神宮通公園）",
+            summary: "小林純子デザイン。大きな屋根が特徴的な、雨宿りできる東屋のようなトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6663, longitude: 139.7015)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-ebisu-park",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "恵比寿公園トイレ",
+            summary: "片山正通デザイン。通称「ロケット公園」に立つ、ロケットのような塔を持つユニークなトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6478, longitude: 139.7076)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-higashi-sanchome",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "トライアングル（東三丁目）",
+            summary: "田村奈穂デザイン。JR恵比寿駅の線路沿いに立つ、三角形のシルエットが目を引くトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6524, longitude: 139.7089)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-jingumae",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "ザ・ハウス（神宮前）",
+            summary: "NIGO®デザイン。原宿の路地に佇む、昔ながらの民家のような佇まいのトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6708, longitude: 139.7069)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-ebisu-station-west-exit",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "ホワイト（恵比寿駅西口）",
+            summary: "佐藤可士和デザイン。白いアルミルーバーに包まれた、清潔感あふれる箱のようなトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6473, longitude: 139.7095)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-nanago-dori-park",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "ハイ・トイレット（七号通り公園）",
+            summary: "佐藤カズオデザイン。声で「Hi」と話しかけると鍵が開く、手を使わないハイテクなトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6752, longitude: 139.6866)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-sasazuka-greenway",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "まちのあかりのトイレ（笹塚緑道）",
+            summary: "後藤達也（東京大学DLXデザインラボ）デザイン。夜には温かい灯りが緑道を照らす、街の明かりのようなトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6743, longitude: 139.6676)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-hatagaya",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "ウィズ・トイレット（幡ヶ谷）",
+            summary: "槇文彦デザイン。京王線幡ヶ谷〜笹塚間に立つ、中央の広場を囲むように個室が並ぶトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6735, longitude: 139.6749)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-nishisando",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "器・泉（西参道）",
+            summary: "藤本壮介デザイン。まるで水が湧き出る器のような、白く滑らかな曲面のトイレ。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6748, longitude: 139.6978)
+        ),
+        HistoricSite(
+            id: "tokyo-toilet-hiroo-higashi-park",
+            overlayMapID: OldMapCatalog.tokyoToilet.id,
+            name: "モニュメンタム（広尾東公園）",
+            summary: "マーク・ニューソンデザイン。公園に置かれた彫刻のようなモニュメントが、近づくとトイレだとわかる仕掛け。",
+            coordinate: CLLocationCoordinate2D(latitude: 35.6516, longitude: 139.7213)
+        ),
     ]
 
     static func site(withID id: String) -> HistoricSite? {

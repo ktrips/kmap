@@ -269,7 +269,7 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.6929946320988, longitude: 139.74609375)
     )
 
-    // 「アニメ聖地巡礼」向けは、他の古地図（史実の古地図・現在の地図をセピア加工したもの）と
+    // 「アニメ・映画聖地巡礼」向けは、他の古地図（史実の古地図・現在の地図をセピア加工したもの）と
     // 区別するため、実在の道路データを使わないオリジナルのイラストを使う。特定作品の
     // キャラクター・場面・絵柄を再現せず、あくまで作品の雰囲気（この地図は黄昏時の彗星と
     // 山並み）だけを表現した完全オリジナルデザイン。位置合わせ座標は、実際の緯度経度に
@@ -297,20 +297,33 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.8112, longitude: 139.768)
     )
 
+    // 「東京トイレット（Perfect Days）」も、`kiminonaSeichi`/`ghibliSeichi`と同じく
+    // 実在の道路データ・建築デザインを再現しないオリジナルイラスト（渋谷区内に点在する
+    // 「THE TOKYO TOILET」の各施設を、装飾的なピクトグラムのマーカーで示した冒険地図風）。
+    static let tokyoToilet = HistoricalOverlayMap(
+        id: "tokyo-toilet-perfect-days",
+        title: "東京トイレット（Perfect Days）",
+        era: "現代（映画『PERFECT DAYS』の聖地巡礼スポット）",
+        summary: "世界的建築家・クリエイターが手がけた渋谷区内の公共トイレ群「THE TOKYO TOILET」。映画『PERFECT DAYS』の舞台としても知られる、恵比寿から幡ヶ谷・広尾にかけての各施設をめぐります。",
+        imageAssetName: "OldMap_TokyoToilet",
+        southWest: CLLocationCoordinate2D(latitude: 35.645, longitude: 139.663),
+        northEast: CLLocationCoordinate2D(latitude: 35.678, longitude: 139.724)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, nihonbashi,
         goshikiFudo, bashoOkuNoHosomichi, akasakaKioicho,
         tokaido, nakasendo, ginzaKabukiza,
         oyamaKaido,
-        kiminonaSeichi, ghibliSeichi,
+        kiminonaSeichi, ghibliSeichi, tokyoToilet,
     ]
 
     /// 古地図選択シートでの分類（`OldMapPickerSheet`のセクション分けに使う）。
     enum Category: String, CaseIterable {
         case historicSites = "旧跡・名所巡り"
         case kaido = "街道巡り"
-        case animePilgrimage = "アニメ聖地巡礼"
+        case animePilgrimage = "アニメ・映画聖地巡礼"
     }
 
     private static let categoryByID: [String: Category] = [
@@ -327,6 +340,7 @@ enum OldMapCatalog {
         goshikiFudo.id: .kaido,
         kiminonaSeichi.id: .animePilgrimage,
         ghibliSeichi.id: .animePilgrimage,
+        tokyoToilet.id: .animePilgrimage,
     ]
 
     /// この古地図が属する分類。同梱リストにない（ユーザーが検索して追加した）古地図は`nil`。
