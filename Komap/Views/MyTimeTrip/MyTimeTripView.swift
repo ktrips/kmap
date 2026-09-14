@@ -98,7 +98,6 @@ struct MyTimeTripView: View {
                             if !walkRoutes.isEmpty {
                                 walkRoutesSection
                             }
-                            stampsSection
                             pointsSection
                             if !stampsWithPhoto.isEmpty || !photoPosts.isEmpty {
                                 photosSection
@@ -319,23 +318,6 @@ struct MyTimeTripView: View {
                     todayPoints: todayPoints,
                     thisWeekPoints: thisWeekPoints,
                     totalPoints: totalPoints
-                )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    // MARK: - 御朱印
-
-    private var stampsSection: some View {
-        TimeTripSection(title: "御朱印", systemImage: "seal.fill") {
-            NavigationLink {
-                StampListView()
-            } label: {
-                StampSummaryCard(
-                    title: "すべての御朱印",
-                    collectedCount: collectedStamps.count,
-                    totalCount: HistoricSiteCatalog.all.count
                 )
             }
             .buttonStyle(.plain)
@@ -770,54 +752,6 @@ struct StampSelection: Identifiable {
 }
 
 /// 「御朱印」カードのサマリー表示。集めた数と、タップで一覧へ進めることを示す。
-private struct StampSummaryCard: View {
-    var title: String
-    let collectedCount: Int
-    let totalCount: Int
-
-    private var progress: Double {
-        totalCount == 0 ? 0 : Double(collectedCount) / Double(totalCount)
-    }
-
-    var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 6)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(
-                        Color(red: 0.72, green: 0.53, blue: 0.15),
-                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                Image(systemName: "seal.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
-            }
-            .frame(width: 48, height: 48)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-                Text("\(collectedCount) / \(totalCount) 集めました")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.footnote.bold())
-                .foregroundStyle(.secondary)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-}
-
 /// 「時空ポイント」カードのサマリー表示。今日・今週・通算の3つの獲得ポイントを示す。
 private struct PointsSummaryCard: View {
     let todayPoints: Int
