@@ -139,7 +139,19 @@ private struct MapTopLeftControls: View {
         }
         .sheet(isPresented: $isPresentingStampBook) {
             NavigationStack {
-                StampListView()
+                StampListView(title: "マイ御朱印")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button {
+                                isPresentingStampBook = false
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "map")
+                                    Text("マップに戻る")
+                                }
+                            }
+                        }
+                    }
             }
         }
     }
