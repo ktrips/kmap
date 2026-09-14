@@ -34,9 +34,11 @@ final class LocationManager: NSObject, ObservableObject {
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         // 徒歩ルート記録で細かすぎる点を拾いすぎないよう、5m未満の移動は無視する。
         manager.distanceFilter = 5
-        // 「徒歩で移動中」であることをiOSに伝え、静止時のGPS測位を自動で間引く等、
-        // バッテリー消費を抑える制御を任せる。
-        manager.activityType = .fitness
+        // `.fitness`は屋内運動（トレッドミル等）向けの間引きが働き、屋外歩行中でも
+        // GPS更新が実際に長時間止まってしまうことがあった（歩行中に古地図の「めくれ」
+        // 演出・貼り直し健全化がGPS更新頼みのため、更新が止まると古地図が消えたまま
+        // 戻らなくなる不具合の原因になっていた）。バッテリー節約よりも記録の途切れなさを
+        // 優先し、既定の`.other`のままにしておく。
     }
 
     func requestPermissionIfNeeded() {
