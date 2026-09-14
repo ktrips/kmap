@@ -39,7 +39,7 @@ final class HealthKitWorkoutSaver {
         let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: .local())
 
         do {
-            try await builder.beginCollection(withStart: startedAt)
+            try await beginCollection(builder, start: startedAt)
 
             let distance = totalDistance(of: coordinates)
             if distance > 0 {
@@ -49,18 +49,66 @@ final class HealthKitWorkoutSaver {
                     start: startedAt,
                     end: endedAt
                 )
-                try await builder.addSamples([sample])
+                try await addSamples([sample], to: builder)
             }
 
-            try await builder.endCollection(withEnd: endedAt)
-            guard let workout = try await builder.finishWorkout() else { return }
+            try await endCollection(builder, end: endedAt)
+            guard let workout = try await finishWorkout(builder) else { return }
 
             let routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: .local())
             let locations = timestampedLocations(from: coordinates, start: startedAt, end: endedAt)
-            try await routeBuilder.insertRouteData(locations)
-            try await routeBuilder.finishRoute(with: workout, metadata: nil)
+            try await insertRouteData(locations, into: routeBuilder)
+            try await finishRoute(routeBuilder, workout: workout)
         } catch {
             // 保存に失敗しても、アプリ内の記録（WalkRoute）自体には影響させない。
+        }
+    }
+
+    private func beginCollection(_ builder: HKWorkoutBuilder, start: Date) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            builder.beginCollection(withStart: start) { _, error in
+                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+            }
+        }
+    }
+
+    private func addSamples(_ samples: [HKSample], to builder: HKWorkoutBuilder) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            builder.add(samples) { _, error in
+                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+            }
+        }
+    }
+
+    private func endCollection(_ builder: HKWorkoutBuilder, end: Date) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            builder.endCollection(withEnd: end) { _, error in
+                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+            }
+        }
+    }
+
+    private func finishWorkout(_ builder: HKWorkoutBuilder) async throws -> HKWorkout? {
+        try await withCheckedThrowingContinuation { continuation in
+            builder.finishWorkout { workout, error in
+                if let error { continuation.resume(throwing: error) } else { continuation.resume(returning: workout) }
+            }
+        }
+    }
+
+    private func insertRouteData(_ locations: [CLLocation], into routeBuilder: HKWorkoutRouteBuilder) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            routeBuilder.insertRouteData(locations) { _, error in
+                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+            }
+        }
+    }
+
+    private func finishRoute(_ routeBuilder: HKWorkoutRouteBuilder, workout: HKWorkout) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            routeBuilder.finishRoute(with: workout, metadata: nil) { _, error in
+                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+            }
         }
     }
 
