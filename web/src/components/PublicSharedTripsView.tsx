@@ -53,6 +53,10 @@ export function PublicSharedTripsView({
   );
   const selectedTrip = trips.find((trip) => trip.id === selectedTripId) ?? null;
   const activeVisitorCount = usePresence();
+  // ヘッダーの「ログイン」ボタンを出す条件。モバイルでは従来通り一覧を閉じている時
+  // （＝詳細を全画面表示している時）。モバイルでない時は一覧を閉じることが無くなった
+  // ため、代わりに「旅を選んでいる時」に出す。
+  const showLoginHeaderButton = isMobile ? !isSidebarOpen : selectedTrip !== null;
 
   const handleSelectTrip = (trip: UnifiedTrip) => {
     setSelectedTripId(trip.id);
@@ -121,11 +125,7 @@ export function PublicSharedTripsView({
             </button>
           )}
         </div>
-        {isSidebarOpen ? (
-          <button type="button" className="howto-header-button" onClick={() => setIsHowToOpen(true)}>
-            📖 使い方
-          </button>
-        ) : (
+        {showLoginHeaderButton ? (
           <button
             type="button"
             className="login-header-button"
@@ -133,6 +133,10 @@ export function PublicSharedTripsView({
             disabled={isSigningIn}
           >
             {isSigningIn ? "サインイン中..." : "ログイン"}
+          </button>
+        ) : (
+          <button type="button" className="howto-header-button" onClick={() => setIsHowToOpen(true)}>
+            📖 使い方
           </button>
         )}
       </header>
