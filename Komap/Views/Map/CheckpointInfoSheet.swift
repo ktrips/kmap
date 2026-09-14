@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 /// チェックポイント（史跡・御朱印の場所）マーカー上の小さなアイコンボタンをタップした時に
 /// 表示する、その地域にまつわる情報シート。
@@ -15,6 +16,9 @@ import SwiftUI
 struct CheckpointInfoSheet: View {
     let site: HistoricSite
     let overlayMap: HistoricalOverlayMap?
+    /// 御朱印のチェックイン時に撮った写真（獲得済みで、かつ写真があれば）。
+    /// あれば、AIの物語生成時にその写真の内容も踏まえた説明にする。
+    var checkInPhoto: UIImage? = nil
     /// 既にこのチェックポイントの御朱印を獲得済みかどうか。獲得済みなら
     /// 手動チェックインの項目は出さない。
     var isAlreadyCollected: Bool = false
@@ -180,10 +184,12 @@ struct CheckpointInfoSheet: View {
         }
 
         do {
+            // 御朱印を獲得済みでチェックイン写真があれば、その内容も踏まえた説明にする。
             let story = try await service.generateStory(
                 for: site.coordinate,
                 overlayMap: overlayMap,
-                placeName: site.name
+                placeName: site.name,
+                photo: checkInPhoto
             )
             save(title: story.title, body: story.body, isManuallyEdited: false)
         } catch {
@@ -200,7 +206,8 @@ struct CheckpointInfoSheet: View {
             let story = try await service.generateStory(
                 for: site.coordinate,
                 overlayMap: overlayMap,
-                placeName: site.name
+                placeName: site.name,
+                photo: checkInPhoto
             )
             save(title: story.title, body: story.body, isManuallyEdited: false)
         } catch {

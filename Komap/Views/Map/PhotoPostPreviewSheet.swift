@@ -78,6 +78,8 @@ struct PhotoPostPageView: View {
     @State private var printMessage: String?
     @State private var isConfirmingDelete = false
     @State private var isUpdatingVisibility = false
+    @State private var editableUserTitle: String = ""
+    @State private var isRegeneratingStory = false
 
     private let geocoder = CLGeocoder()
     private let historyService = AIHistoryService()
@@ -112,6 +114,18 @@ struct PhotoPostPageView: View {
 
                 Divider()
 
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("名前")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    TextField("この写真に名前をつける（任意）", text: $editableUserTitle)
+                        .textFieldStyle(.roundedBorder)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            commitUserTitleIfChanged()
+                        }
+                }
+
                 if let placeName = post.placeName {
                     Label(placeName, systemImage: "mappin.and.ellipse")
                         .font(.subheadline.bold())
@@ -125,6 +139,18 @@ struct PhotoPostPageView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+
+                    Button {
+                        Task { await regenerateStory() }
+                    } label: {
+                        if isRegeneratingStory {
+                            ProgressView()
+                        } else {
+                            Label("AIの説明を作り直す", systemImage: "arrow.clockwise")
+                                .font(.caption)
+                        }
+                    }
+                    .disabled(isRegeneratingStory)
                 } else if isLoadingInfo {
                     HStack(spacing: 8) {
                         ProgressView()
@@ -152,6 +178,7 @@ struct PhotoPostPageView: View {
             Text("獲得したポイントも含めて取り消され、元に戻せません。")
         }
         .task {
+            editableUserTitle = post.userTitle ?? ""
             await loadInfoIfNeeded()
         }
     }
@@ -272,13 +299,17 @@ struct PhotoPostPageView: View {
 
         if post.storyTitle == nil {
             do {
+                // 初回生成時から、写真の内容（被写体・雰囲気）を踏まえた説明文にする。
                 let story = try await historyService.generateStory(
                     for: post.coordinate,
                     overlayMap: nil,
-                    placeName: post.placeName
+                    placeName: post.placeName,
+                    userTitle: post.userTitle,
+                    photo: post.photo
                 )
                 post.storyTitle = story.title
                 post.storyBody = story.body
+                post.storyUpdatedAt = Date()
             } catch {
                 infoErrorMessage = error.localizedDescription
             }
@@ -290,5 +321,41 @@ struct PhotoPostPageView: View {
         try? await syncService.upload(post, userID: authService.userID)
 
         isLoadingInfo = false
+    }
+
+    /// 「名前」欄の編集を確定し、変わっていればAIの説明も作り直す
+    /// （付けた名前を手がかりに、より興味深い説明文になるようにするため）。
+    private func commitUserTitleIfChanged() {
+        let trimmed = editableUserTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newValue = trimmed.isEmpty ? nil : trimmed
+        guard newValue != post.userTitle else { return }
+        post.userTitle = newValue
+        try? modelContext.save()
+        Task {
+            await regenerateStory()
+        }
+    }
+
+    /// 名前・写真・位置情報から、AIの説明文を改めて生成し直す。
+    private func regenerateStory() async {
+        isRegeneratingStory = true
+        infoErrorMessage = nil
+        defer { isRegeneratingStory = false }
+        do {
+            let story = try await historyService.generateStory(
+                for: post.coordinate,
+                overlayMap: nil,
+                placeName: post.placeName,
+                userTitle: post.userTitle,
+                photo: post.photo
+            )
+            post.storyTitle = story.title
+            post.storyBody = story.body
+            post.storyUpdatedAt = Date()
+            try? modelContext.save()
+            try? await syncService.upload(post, userID: authService.userID)
+        } catch {
+            infoErrorMessage = error.localizedDescription
+        }
     }
 }

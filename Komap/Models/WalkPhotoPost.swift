@@ -20,10 +20,16 @@ final class WalkPhotoPost {
     var walkRouteID: UUID?
     /// 逆ジオコーディングで取得した場所の名称。一度取得したら保存し、再取得しない。
     var placeName: String?
+    /// ユーザーがこの写真に付けた名前。設定されていれば、`placeName`より優先して
+    /// 表示し、AIによる説明文生成の手がかりにも使う。
+    var userTitle: String?
     /// AIが生成したその場所の物語（見出し）。一度取得したら保存し、再取得しない。
     var storyTitle: String?
     /// AIが生成したその場所の物語（本文）。一度取得したら保存し、再取得しない。
     var storyBody: String?
+    /// `storyTitle`/`storyBody`を最後に生成・更新した日時。旅日記を再生成すべきか
+    /// （`WalkRoute.travelJournalGeneratedAt`より新しい追加情報があるか）の判定に使う。
+    var storyUpdatedAt: Date?
     /// Firebase Storageへアップロード済みの画像URL。未アップロードなら`nil`。
     var cloudPhotoURL: String?
     /// `true`の間は、この時空旅が「みんなの時空旅」に公開されていても、
@@ -56,5 +62,15 @@ final class WalkPhotoPost {
 
     var photo: UIImage? {
         StampPhotoStore.load(photoFileName)
+    }
+
+    /// 一覧・旅日記などで見せる、この写真の名前。ユーザーが付けた名前があればそれを、
+    /// 無ければ逆ジオコーディングした場所名を使う。
+    var displayTitle: String? {
+        let trimmedUserTitle = userTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedUserTitle, !trimmedUserTitle.isEmpty {
+            return trimmedUserTitle
+        }
+        return placeName
     }
 }

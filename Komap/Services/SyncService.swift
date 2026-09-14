@@ -169,8 +169,10 @@ struct SyncService {
             "longitude": post.longitude,
             "walkRouteID": post.walkRouteID?.uuidString as Any? ?? NSNull(),
             "placeName": post.placeName as Any? ?? NSNull(),
+            "userTitle": post.userTitle as Any? ?? NSNull(),
             "storyTitle": post.storyTitle as Any? ?? NSNull(),
             "storyBody": post.storyBody as Any? ?? NSNull(),
+            "storyUpdatedAt": post.storyUpdatedAt.map(Timestamp.init(date:)) as Any? ?? NSNull(),
         ]
 
         try await photoPostsCollection(for: userID)
@@ -271,7 +273,7 @@ struct SyncService {
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
                     postPhotos.append([
                         "url": url.absoluteString,
-                        "placeName": post.placeName ?? "",
+                        "placeName": post.displayTitle ?? "",
                         "detail": post.storyBody ?? "",
                     ])
                 }

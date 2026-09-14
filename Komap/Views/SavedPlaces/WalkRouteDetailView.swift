@@ -102,6 +102,23 @@ struct WalkRouteDetailView: View {
     /// 史跡カタログの`summary`）を`siteID`をキーにまとめたもの。公開データ
     /// （`sharedTrips`）に、御朱印の写真と一緒に説明文も添えられるようにするために使う。
     /// 新規のAI生成は行わない（生成済みのものだけをそのまま使う、読み取り専用の軽い処理）。
+    /// 前回旅日記を生成した後に、投稿写真の説明（`storyUpdatedAt`）や御朱印の説明
+    /// （`CheckpointStory.updatedAt`）が更新されていれば`true`。「作り直す」ボタンの横に
+    /// 案内を出し、新しい情報を反映した旅日記に更新できることを知らせるために使う。
+    private var hasNewerContentThanJournal: Bool {
+        guard let generatedAt = route.travelJournalGeneratedAt else { return false }
+        if photoPostsForRoute.contains(where: { ($0.storyUpdatedAt ?? .distantPast) > generatedAt }) {
+            return true
+        }
+        guard !stampsForRoute.isEmpty else { return false }
+        let siteIDs = Set(stampsForRoute.map(\.siteID))
+        let descriptor = FetchDescriptor<CheckpointStory>(
+            predicate: #Predicate { siteIDs.contains($0.siteID) }
+        )
+        let stories = (try? modelContext.fetch(descriptor)) ?? []
+        return stories.contains { $0.updatedAt > generatedAt }
+    }
+
     private func checkpointDetailTexts() -> [String: String] {
         guard !stampsForRoute.isEmpty else { return [:] }
         let siteIDs = Set(stampsForRoute.map(\.siteID))
@@ -458,6 +475,12 @@ struct WalkRouteDetailView: View {
                     .buttonStyle(.bordered)
                     .disabled(isGeneratingJournal)
                     .accessibilityLabel("旅日記を作り直す")
+                }
+
+                if !isGeneratingJournal && hasNewerContentThanJournal {
+                    Label("写真・御朱印の説明が更新されています。作り直すと反映されます。", systemImage: "sparkles")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             } else {
                 Button {

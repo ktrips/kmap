@@ -319,6 +319,7 @@ struct MapScreen: View {
             CheckpointInfoSheet(
                 site: site,
                 overlayMap: OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID },
+                checkInPhoto: collectedStamps.first { $0.siteID == site.id }?.photo,
                 isAlreadyCollected: cachedCollectedSiteIDs.contains(site.id),
                 nearbyPastRouteID: nearbyPastRouteID(for: site),
                 isCurrentlyNearby: isCurrentlyNearby(site),

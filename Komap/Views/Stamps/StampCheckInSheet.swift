@@ -293,10 +293,12 @@ struct StampCheckInSheet: View {
         isLoadingStory = true
         storyErrorMessage = nil
         do {
+            // 写真を追加・変更済みなら、その内容も踏まえた説明にする。
             story = try await historyService.generateStory(
                 for: site.coordinate,
                 overlayMap: overlayMap,
-                placeName: site.name
+                placeName: site.name,
+                photo: stamp.photo
             )
         } catch {
             storyErrorMessage = error.localizedDescription

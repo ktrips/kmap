@@ -127,10 +127,12 @@ struct TravelJournalService {
             }
 
             do {
+                // チェックイン時の写真があれば、その内容も踏まえた説明にする。
                 let story = try await historyService.generateStory(
                     for: site.coordinate,
                     overlayMap: overlayMap,
-                    placeName: site.name
+                    placeName: site.name,
+                    photo: stamp.photo
                 )
                 let saved = CheckpointStory(siteID: site.id, title: story.title, body: story.body)
                 modelContext.insert(saved)
@@ -182,7 +184,7 @@ struct TravelJournalService {
         if !photoPosts.isEmpty {
             lines.append("\n道中で投稿した写真:")
             for post in photoPosts {
-                let place = post.placeName ?? "場所不明の地点"
+                let place = post.displayTitle ?? "場所不明の地点"
                 let time = post.postedAt.formatted(date: .omitted, time: .shortened)
                 if let storyTitle = post.storyTitle, let storyBody = post.storyBody {
                     lines.append("- \(time) \(place)「\(storyTitle)」: \(storyBody)")
