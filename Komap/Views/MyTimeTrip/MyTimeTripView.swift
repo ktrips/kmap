@@ -196,7 +196,7 @@ struct MyTimeTripView: View {
                     photoSubsection(title: "投稿した写真") {
                         ForEach(visiblePhotoPosts) { post in
                             if let photo = post.photo {
-                                PhotoThumbnail(image: photo, name: post.placeName)
+                                PhotoThumbnail(image: photo, name: post.displayTitle)
                                     .onTapGesture {
                                         selectedPhotoPost = post
                                     }
