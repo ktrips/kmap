@@ -60,6 +60,16 @@ final class LocationManager: NSObject, ObservableObject {
         manager.startUpdatingLocation()
     }
 
+    /// クラッシュ・強制終了から復帰した際、一時保存しておいた軌跡（`coordinates`）に
+    /// 続けて記録を再開する。`startRecordingWalk`と違い、軌跡を空にせず引き継ぐ。
+    func resumeRecordingWalk(from coordinates: [CLLocationCoordinate2D]) {
+        walkPath = coordinates
+        isRecordingWalk = true
+        isWalkPaused = false
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.startUpdatingLocation()
+    }
+
     /// 記録を一時停止する。位置情報の取得自体は続けるが、軌跡への追記を止める。
     func pauseRecordingWalk() {
         guard isRecordingWalk else { return }

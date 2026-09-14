@@ -32,9 +32,16 @@ struct PhotoStorageService {
     }
 
     /// 画像を圧縮してアップロードし、ダウンロードURLを返す。
+    ///
+    /// - Important: 呼び出し元（SwiftUIのView）は`@MainActor`のことが多く、この関数の
+    ///   最初の`await`より前のコードはそのまま呼び出し元のスレッドで動いてしまう。
+    ///   リサイズ・JPEG圧縮は軽くないため、`Task.detached`で明示的にバックグラウンドへ
+    ///   逃がしてからアップロードする（メインスレッドを塞いでクラッシュに見える
+    ///   強制終了を招かないため）。
     func upload(_ image: UIImage, path: String) async throws -> URL {
         guard let storage else { throw StorageServiceError.firebaseNotConfigured }
-        guard let data = Self.compressedJPEGData(image) else { throw StorageServiceError.compressionFailed }
+        guard let data = await Task.detached(priority: .userInitiated, operation: { Self.compressedJPEGData(image) }).value
+        else { throw StorageServiceError.compressionFailed }
 
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"

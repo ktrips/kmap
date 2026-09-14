@@ -56,6 +56,9 @@ struct MapScreen: View {
     /// 「記録終了」を押した直後、保存するかどうかの確認待ちになっているルート。
     /// 「保存する」が選ばれたらこの内容で`WalkRoute`を作成する。
     @State private var pendingWalkRoute: PendingWalkRoute?
+    /// 前回の記録中にアプリが落ちる等して正常に終われず、一時保存だけ残っていた場合の
+    /// 復元候補。`nil`でない間、復元方法を選ぶダイアログを出す。
+    @State private var recoveredWalkDraft: InProgressWalkDraftStore.Draft?
     /// 記録中に自由なタイミングで写真を投稿するためのピッカー選択値。
     @State private var photoPostPickerItem: PhotosPickerItem?
     /// 「写真投稿」メニューの「iPhoneで撮る」で開いたカメラ画面の左下ボタンから
@@ -332,6 +335,29 @@ struct MapScreen: View {
             recomputeSavedWalkPaths()
             recomputeCollectedSiteIDs()
             mapSession.isWalking = locationManager.isRecordingWalk || isWatchTrackingActive
+            // 今まさに記録中でなければ、前回落ちる等して残っていた一時保存がないか確認する。
+            if activeWalkSessionID == nil, recoveredWalkDraft == nil {
+                recoveredWalkDraft = InProgressWalkDraftStore.load()
+            }
+        }
+        .confirmationDialog(
+            "前回の記録が中断されています",
+            isPresented: Binding(
+                get: { recoveredWalkDraft != nil },
+                set: { isPresented in if !isPresented { recoveredWalkDraft = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: recoveredWalkDraft
+        ) { draft in
+            Button("続きから記録を再開する") { resumeRecordedWalk(draft) }
+            Button("ここまでを保存する") { savePartialRecoveredWalk(draft) }
+            Button("破棄する", role: .destructive) {
+                InProgressWalkDraftStore.clear()
+                recoveredWalkDraft = nil
+            }
+            Button("あとで決める", role: .cancel) {}
+        } message: { draft in
+            Text("前回の記録（\(draft.coordinates.count)地点）が、アプリの終了により保存されずに残っています。")
         }
         // ルートの追加・削除、および地図上の表示/非表示の切り替えを、それぞれ軽い
         // メタデータ（ID一覧・非表示フラグ一覧）の変化で検知する。座標配列そのもの
@@ -364,6 +390,7 @@ struct MapScreen: View {
         .onChange(of: locationManager.walkPath.count) { _, _ in
             guard let latest = locationManager.walkPath.last else { return }
             checkForNewStamps(near: latest)
+            saveInProgressWalkDraftIfNeeded()
         }
         .onChange(of: locationManager.locationUpdateTick) { _, _ in
             // 記録中でない時（古地図を切り替えて眺めているだけの時など）まで追従すると、
@@ -646,6 +673,7 @@ struct MapScreen: View {
         guard path.count >= 2, let sessionID = activeWalkSessionID, let startedAt = activeWalkStartedAt else {
             activeWalkSessionID = nil
             activeWalkStartedAt = nil
+            InProgressWalkDraftStore.clear()
             return
         }
         let endedAt = Date()
@@ -669,10 +697,61 @@ struct MapScreen: View {
                 save(pending)
                 activeWalkSessionID = nil
                 activeWalkStartedAt = nil
+                InProgressWalkDraftStore.clear()
             } else {
                 pendingWalkRoute = pending
             }
         }
+    }
+
+    /// 記録中、GPSが更新されるたびに一時保存を書き出す（クラッシュ・強制終了対策）。
+    /// 保存・破棄いずれかで記録が正式に終わったら`InProgressWalkDraftStore.clear()`で消す。
+    private func saveInProgressWalkDraftIfNeeded() {
+        guard let sessionID = activeWalkSessionID, let startedAt = activeWalkStartedAt else { return }
+        InProgressWalkDraftStore.save(
+            sessionID: sessionID,
+            startedAt: startedAt,
+            overlayMapID: mapSession.selectedOverlay?.id,
+            overlayOpacity: mapSession.overlayOpacity,
+            coordinates: locationManager.walkPath
+        )
+    }
+
+    /// 一時保存されていた前回の記録に、続けてGPS記録を再開する。
+    private func resumeRecordedWalk(_ draft: InProgressWalkDraftStore.Draft) {
+        activeWalkSessionID = draft.sessionID
+        activeWalkStartedAt = draft.startedAt
+        companionWatchPath = []
+        stepCounter.start()
+        Task { await healthKitStepReader.requestAuthorizationIfNeeded() }
+        if let overlayMapID = draft.overlayMapID, let overlay = OldMapCatalog.resolve(id: overlayMapID) {
+            mapSession.selectedOverlay = overlay
+        }
+        mapSession.overlayOpacity = draft.overlayOpacity
+        locationManager.resumeRecordingWalk(from: draft.coordinates)
+        isFollowingCurrentLocation = true
+        showOldMapForWalkingIfNeeded()
+        recoveredWalkDraft = nil
+    }
+
+    /// 一時保存されていた前回の記録を、そこまでの内容で保存するかどうかの
+    /// 確認ダイアログ（既存の`WalkSaveDecisionSheet`）へそのまま渡す。
+    private func savePartialRecoveredWalk(_ draft: InProgressWalkDraftStore.Draft) {
+        recoveredWalkDraft = nil
+        guard draft.coordinates.count >= 2 else {
+            InProgressWalkDraftStore.clear()
+            return
+        }
+        pendingWalkRoute = PendingWalkRoute(
+            id: draft.sessionID,
+            coordinates: draft.coordinates,
+            startedAt: draft.startedAt,
+            endedAt: Date(),
+            stepCount: nil,
+            overlayMapID: draft.overlayMapID,
+            overlayOpacity: draft.overlayOpacity
+        )
+        InProgressWalkDraftStore.clear()
     }
 
     /// 記録中の一時停止・再開を切り替える。
@@ -838,18 +917,37 @@ struct MapScreen: View {
     /// 撮影・選択した写真を保存し、ポイントを付与した`WalkPhotoPost`を作成する。
     /// 「設定」で選んだ加工を適用し、連携プリンターが設定されていればそちらへも転送する。
     /// Apple Watch側にもトーストで知らせる。
+    ///
+    /// - Important: 画像加工（CoreImageのGPUレンダリング）・リサイズ・JPEG圧縮・
+    ///   ディスク書き込みは重く、以前はここで同期的にメインスレッド上で行っていた。
+    ///   歩行中の連続したGPS処理と重なるとメインスレッドが長時間ブロックされ、
+    ///   OSにアプリごと強制終了される（＝クラッシュしたように見える）ことがあった
+    ///   ため、`Task.detached`でバックグラウンドへ逃がし、メインスレッドでは
+    ///   SwiftDataへの保存とUI更新だけを行うようにしている。
     private func postPhoto(_ rawImage: UIImage) {
-        let uiImage = AppSettings.photoFilterStyle.apply(to: rawImage)
-        guard let filename = StampPhotoStore.save(uiImage),
-              let coordinate = locationManager.currentLocation ?? locationManager.walkPath.last ?? watchTrackedPath.last
+        guard let coordinate = locationManager.currentLocation ?? locationManager.walkPath.last ?? watchTrackedPath.last
         else { return }
 
         photoSyncErrorMessage = nil
+        let filterStyle = AppSettings.photoFilterStyle
+        let sessionID = currentSessionID
+
+        Task.detached(priority: .userInitiated) {
+            let uiImage = filterStyle.apply(to: rawImage)
+            guard let filename = StampPhotoStore.save(uiImage) else { return }
+            await self.finishPostingPhoto(uiImage: uiImage, filename: filename, coordinate: coordinate, sessionID: sessionID)
+        }
+    }
+
+    /// `postPhoto`のバックグラウンド画像処理が終わった後、メインスレッドで行う
+    /// 残りの処理（SwiftDataへの保存・クラウドアップロード・トースト表示）。
+    @MainActor
+    private func finishPostingPhoto(uiImage: UIImage, filename: String, coordinate: CLLocationCoordinate2D, sessionID: UUID?) {
         Task { await PrinterLinkService().printPhotoPostIfEnabled(uiImage) }
         let post = WalkPhotoPost(
             photoFileName: filename,
             coordinate: coordinate,
-            walkRouteID: currentSessionID
+            walkRouteID: sessionID
         )
         modelContext.insert(post)
         watchConnectivity.notifyPhotoPosted(points: post.points)
@@ -892,6 +990,7 @@ struct MapScreen: View {
         pendingWalkRoute = nil
         activeWalkSessionID = nil
         activeWalkStartedAt = nil
+        InProgressWalkDraftStore.clear()
     }
 
     /// 「保存しない」が選ばれた、またはダイアログが閉じられた時、記録を破棄する。
@@ -901,6 +1000,7 @@ struct MapScreen: View {
         pendingWalkRoute = nil
         activeWalkSessionID = nil
         activeWalkStartedAt = nil
+        InProgressWalkDraftStore.clear()
     }
 
     /// Watchの保存確認シートで「破棄」が選ばれた時、記録中のGPS計測を止めて何も保存しない。
@@ -909,6 +1009,7 @@ struct MapScreen: View {
         companionWatchPath = []
         activeWalkSessionID = nil
         activeWalkStartedAt = nil
+        InProgressWalkDraftStore.clear()
     }
 
     private func save(_ pending: PendingWalkRoute) {
