@@ -411,19 +411,11 @@ struct WalkRouteDetailView: View {
             Text("投稿した写真")
                 .font(.headline)
 
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
-                ForEach(photoPostsForRoute) { post in
-                    if let photo = post.photo {
-                        Image(uiImage: photo)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 100)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .onTapGesture {
-                                selectedPhotoPost = post
-                            }
+            ForEach(photoPostsForRoute) { post in
+                PhotoPostRow(post: post)
+                    .onTapGesture {
+                        selectedPhotoPost = post
                     }
-                }
             }
         }
     }
@@ -681,6 +673,46 @@ struct WalkRouteDetailView: View {
 }
 
 /// この時間旅で獲得した1つのチェックポイント（史跡・御朱印・アップした写真）を表す行。
+/// 投稿した写真1件分の行。御朱印・チェックポイントの`CheckpointRow`と見た目
+/// （サムネイル・名前・説明・日時のレイアウト）を揃え、同じ一覧として並んでも
+/// 表記のレベル感が揃って見えるようにしている。
+private struct PhotoPostRow: View {
+    let post: WalkPhotoPost
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            if let photo = post.photo {
+                Image(uiImage: photo)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            } else {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
+                    .frame(width: 56, height: 56)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(post.displayTitle ?? "投稿した写真")
+                    .font(.subheadline.bold())
+                if let storyBody = post.storyBody {
+                    Text(storyBody)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                Text(post.postedAt, format: .dateTime.hour().minute())
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+    }
+}
+
 private struct CheckpointRow: View {
     let site: HistoricSite
     let stamp: CollectedStamp
