@@ -14,7 +14,7 @@ export interface HistoricSiteEntry {
 export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "edo-castle-sakuradamon", name: "桜田門", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6773, lng: 139.7539 } },
   { id: "edo-castle-wadakuramon", name: "和田倉門", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6822, lng: 139.7565 } },
-  { id: "edo-castle-otemon", name: "大手門", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.6873, lng: 139.7565 } },
+  { id: "edo-castle-otemon", name: "大手門", overlayMapID: "edo-castle-1850s", coordinate: { lat: 35.685893, lng: 139.760429 } },
   { id: "asakusa-kaminarimon", name: "雷門", overlayMapID: "asakusa-edo", coordinate: { lat: 35.7107, lng: 139.7964 } },
   { id: "asakusa-nakamise", name: "仲見世通り", overlayMapID: "asakusa-edo", coordinate: { lat: 35.7115, lng: 139.7967 } },
   { id: "asakusa-sensoji", name: "浅草寺本堂", overlayMapID: "asakusa-edo", coordinate: { lat: 35.7148, lng: 139.7967 } },

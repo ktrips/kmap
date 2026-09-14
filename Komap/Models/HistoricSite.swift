@@ -49,7 +49,9 @@ enum HistoricSiteCatalog {
             overlayMapID: OldMapCatalog.edoCastle.id,
             name: "大手門",
             summary: "江戸城の正面玄関にあたる、最も格式の高い門。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6873, longitude: 139.7565)
+            // 以前の座標は大手町のオフィス街内で、実際には入れない位置だったため、
+            // 皇居東御苑の入口として実際に入場できる大手門の位置に修正した。
+            coordinate: CLLocationCoordinate2D(latitude: 35.685893, longitude: 139.760429)
         ),
 
         // 浅草・浅草寺周辺（江戸時代）
