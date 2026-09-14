@@ -189,17 +189,14 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
               {trip.kind === "shared" && trip.ownerDisplayName && (
                 <span className="trip-meta-owner">👤 {trip.ownerDisplayName}</span>
               )}
+              <span>🚶 {distanceLabel(trip.totalDistanceMeters)}</span>
+              {trip.stepCount !== null && <span>👣 {trip.stepCount}歩</span>}
+              {duration && <span>🕐 {duration}</span>}
             </p>
 
             {trip.description && trip.description.length > 0 && (
               <p className="trip-description-text">{trip.description}</p>
             )}
-
-            <p className="trip-meta-row">
-              <span>🚶 {distanceLabel(trip.totalDistanceMeters)}</span>
-              {trip.stepCount !== null && <span>👣 {trip.stepCount}歩</span>}
-              {duration && <span>🕐 {duration}</span>}
-            </p>
           </>
         )}
 
