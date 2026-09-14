@@ -63,6 +63,37 @@ export function PublicSharedTripsView({
     }
   };
 
+  // 見出し・Googleサインインの案内。モバイルではこれまで通りヘッダーの下（一覧の上）に
+  // 表示するが、モバイルでない時はヘッダー直下には出さず、代わりに右側の表示ペインの
+  // 「リストから、時空旅を選んでください。」の上（＝何も選んでいない時だけ）に表示する。
+  const introContent = (
+    <div className="public-intro">
+      <div className="public-intro-headline">
+        <h1>そうだ、時空旅しよう</h1>
+      </div>
+      {isFirebaseConfigured && (
+        <div className="public-intro-cta">
+          <button
+            className="google-button google-button-large google-button-accent"
+            onClick={onSignInWithGoogle}
+            disabled={isSigningIn}
+          >
+            {isSigningIn ? (
+              "サインイン中..."
+            ) : (
+              <span className="google-button-content">
+                <span className="google-button-title">Googleでサインイン</span>
+                <span className="google-button-bullet">・みんなの時空旅(古地図・御朱印)を見れる！</span>
+                <span className="google-button-bullet">・iOSアプリダウンロードで自分で旅を作れる！</span>
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+      {error && <p className="error-text">{error}</p>}
+    </div>
+  );
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -106,33 +137,7 @@ export function PublicSharedTripsView({
         )}
       </header>
 
-      {isSidebarOpen && (
-        <div className="public-intro">
-          <div className="public-intro-headline">
-            <h1>そうだ、時空旅しよう</h1>
-          </div>
-          {isFirebaseConfigured && (
-            <div className="public-intro-cta">
-              <button
-                className="google-button google-button-large google-button-accent"
-                onClick={onSignInWithGoogle}
-                disabled={isSigningIn}
-              >
-                {isSigningIn ? (
-                  "サインイン中..."
-                ) : (
-                  <span className="google-button-content">
-                    <span className="google-button-title">Googleでサインイン</span>
-                    <span className="google-button-bullet">・みんなの時空旅(古地図・御朱印)を見れる！</span>
-                    <span className="google-button-bullet">・iOSアプリダウンロードで自分で旅を作れる！</span>
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
-          {error && <p className="error-text">{error}</p>}
-        </div>
-      )}
+      {isMobile && isSidebarOpen && introContent}
 
       {isHowToOpen && (
         <HowToUseModal onClose={() => setIsHowToOpen(false)} onSignInWithGoogle={onSignInWithGoogle} />
@@ -158,6 +163,7 @@ export function PublicSharedTripsView({
           </aside>
         )}
         <main className="app-main">
+          {!isMobile && !selectedTrip && introContent}
           <TripDetail trip={selectedTrip} currentUser={null} onRequestSignIn={onSignInWithGoogle} />
         </main>
       </div>
