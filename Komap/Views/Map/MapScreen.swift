@@ -104,6 +104,7 @@ struct MapScreen: View {
     private let stepCounter = StepCounter()
     /// Apple Watchと連携して歩いた記録の歩数を、Apple Healthからより正確に取得するために使う。
     private let healthKitStepReader = HealthKitStepReader()
+    private let healthKitWorkoutSaver = HealthKitWorkoutSaver()
 
     /// この距離（メートル）以内にチェックポイントへ近づいたら御朱印を獲得する。
     private let stampCollectionRadiusMeters: CLLocationDistance = 60
@@ -656,6 +657,7 @@ struct MapScreen: View {
         companionWatchPath = []
         stepCounter.start()
         Task { await healthKitStepReader.requestAuthorizationIfNeeded() }
+        Task { await healthKitWorkoutSaver.requestAuthorizationIfNeeded() }
         locationManager.startRecordingWalk()
         isFollowingCurrentLocation = true
         if let coordinate = locationManager.currentLocation {
@@ -679,6 +681,9 @@ struct MapScreen: View {
         // Watchが伴走していて、iPhone自身より多くの点を捉えられていれば
         // （＝より完全な軌跡を記録できていれば）、そちらを正式な記録として使う。
         let path = companionWatchPath.count > iPhonePath.count ? companionWatchPath : iPhonePath
+        // Watchが伴走していた場合、Watch自身の`HKWorkoutSession`で既に
+        // ヘルスケアへワークアウトが保存されているため、iPhone側では二重に保存しない。
+        let hadWatchCompanion = !companionWatchPath.isEmpty
         companionWatchPath = []
         guard path.count >= 2, let sessionID = activeWalkSessionID, let startedAt = activeWalkStartedAt else {
             activeWalkSessionID = nil
@@ -701,7 +706,8 @@ struct MapScreen: View {
                 endedAt: endedAt,
                 stepCount: stepCount,
                 overlayMapID: mapSession.selectedOverlay?.id,
-                overlayOpacity: mapSession.overlayOpacity
+                overlayOpacity: mapSession.overlayOpacity,
+                hadWatchCompanion: hadWatchCompanion
             )
             if autoSave {
                 save(pending)
@@ -734,6 +740,7 @@ struct MapScreen: View {
         companionWatchPath = []
         stepCounter.start()
         Task { await healthKitStepReader.requestAuthorizationIfNeeded() }
+        Task { await healthKitWorkoutSaver.requestAuthorizationIfNeeded() }
         if let overlayMapID = draft.overlayMapID, let overlay = OldMapCatalog.resolve(id: overlayMapID) {
             mapSession.selectedOverlay = overlay
         }
@@ -1038,6 +1045,16 @@ struct MapScreen: View {
         if let userID = authService.userID {
             Task { try? await syncService.upload(route, userID: userID) }
         }
+
+        if !pending.hadWatchCompanion {
+            Task {
+                await healthKitWorkoutSaver.saveWalk(
+                    coordinates: pending.coordinates,
+                    startedAt: pending.startedAt,
+                    endedAt: pending.endedAt
+                )
+            }
+        }
     }
 
     /// 過去に保存した旅の軌跡のいずれかが、このチェックポイントの近くを通っていれば、
@@ -1143,6 +1160,9 @@ private struct PendingWalkRoute {
     let stepCount: Int?
     let overlayMapID: String?
     let overlayOpacity: Double
+    /// Watchが伴走していたか。伴走時はWatch自身が既にヘルスケアへワークアウトを
+    /// 保存しているため、`save(_:)`はこれが`false`の時だけiPhone側からも保存する。
+    var hadWatchCompanion: Bool = false
 }
 
 /// 「完了」を押した直後に出す保存確認シート。
