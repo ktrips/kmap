@@ -263,7 +263,7 @@ struct WalkRouteDetailView: View {
             PhotoPostPreviewSheet(post: post)
         }
         .sheet(item: $selectedStamp) { selection in
-            StampCheckInSheet(site: selection.site, stamp: selection.stamp)
+            RouteStampGallerySheet(initialStamp: selection.stamp, stamps: stampsForRoute)
         }
         .sheet(isPresented: $isShowingShareSheet) {
             ActivityShareSheet(items: shareItems)
@@ -788,6 +788,32 @@ struct WalkRouteMapView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: GMSMapView, context: Context) {}
+}
+
+/// 御朱印一覧の1件をタップした時に開く。同じ時空旅で巡った御朱印を、
+/// 左右にフリックして前後の詳細も見られるようにする
+/// （`MyTimeTripView`の`StampCheckInGallerySheet`と同じ考え方で、こちらは
+/// この時空旅の分だけに絞り込んだ配列をページ送りする）。
+private struct RouteStampGallerySheet: View {
+    @State private var stamps: [CollectedStamp]
+    @State private var selectedStampID: UUID
+
+    init(initialStamp: CollectedStamp, stamps: [CollectedStamp]) {
+        _stamps = State(initialValue: stamps)
+        _selectedStampID = State(initialValue: initialStamp.id)
+    }
+
+    var body: some View {
+        TabView(selection: $selectedStampID) {
+            ForEach(stamps) { stamp in
+                if let site = stamp.site {
+                    StampCheckInSheet(site: site, stamp: stamp)
+                        .tag(stamp.id)
+                }
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: stamps.count > 1 ? .always : .never))
+    }
 }
 
 #Preview {
