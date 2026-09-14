@@ -156,6 +156,22 @@ struct SyncService {
         }
     }
 
+    /// 「みんなの時空旅」（`sharedTrips`。自分が公開したものも含む）を、
+    /// 開始日時が新しい順に取得する。マップ画面の「マイ時空旅」タブから、
+    /// 他ユーザーも含めた公開済み時空旅を時系列で一覧表示するために使う。
+    func fetchAllSharedTrips(limit: Int = 60) async throws -> [RemoteSharedTrip] {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+
+        let snapshot = try await sharedTripsCollection
+            .order(by: "startedAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { document in
+            RemoteSharedTrip(id: document.documentID, data: document.data())
+        }
+    }
+
     /// 投稿写真（`WalkPhotoPost`）を `users/{uid}/photoPosts/{id}` へアップロードする。
     func upload(_ post: WalkPhotoPost, userID: String?) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
@@ -435,6 +451,70 @@ struct RemotePlace {
         self.era = era
         self.storyText = storyText
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+    }
+}
+
+/// 「みんなの時空旅」の写真1枚分（`sharedTrips/{id}`の`stampPhotos`/`postPhotos`の1要素）。
+struct RemoteSharedPhoto: Identifiable {
+    var id: String { url }
+    let url: String
+    let label: String
+    let detail: String
+}
+
+/// Firestoreの`sharedTrips/{id}`（「みんなの時空旅」に公開された1件）を読み取る軽量DTO。
+/// `WalkRoute`のようにSwiftDataへ保存はせず、一覧・詳細の表示にその場で使うだけのもの。
+struct RemoteSharedTrip: Identifiable {
+    let id: String
+    let ownerUserID: String
+    let ownerDisplayName: String?
+    let title: String?
+    let notes: String?
+    let startedAt: Date
+    let endedAt: Date?
+    let stepCount: Int?
+    let overlayMapID: String?
+    let totalDistanceMeters: Double
+    let stampPhotos: [RemoteSharedPhoto]
+    let postPhotos: [RemoteSharedPhoto]
+    let travelJournalTitle: String?
+    let travelJournalMarkdown: String?
+
+    /// 一覧の行に使う、最初に見つかった写真（投稿写真を優先し、無ければ御朱印の写真）。
+    var thumbnailURL: URL? {
+        (postPhotos.first ?? stampPhotos.first).flatMap { URL(string: $0.url) }
+    }
+
+    var overlayMap: HistoricalOverlayMap? {
+        OldMapCatalog.resolve(id: overlayMapID)
+    }
+
+    init?(id: String, data: [String: Any]) {
+        guard let startedAtTimestamp = data["startedAt"] as? Timestamp else { return nil }
+        self.id = id
+        self.ownerUserID = data["ownerUserID"] as? String ?? ""
+        self.ownerDisplayName = data["ownerDisplayName"] as? String
+        self.title = data["title"] as? String
+        self.notes = data["notes"] as? String
+        self.startedAt = startedAtTimestamp.dateValue()
+        self.endedAt = (data["endedAt"] as? Timestamp)?.dateValue()
+        self.stepCount = data["stepCount"] as? Int
+        self.overlayMapID = data["overlayMapID"] as? String
+        self.totalDistanceMeters = data["totalDistanceMeters"] as? Double ?? 0
+        self.stampPhotos = Self.parsePhotos(data["stampPhotos"], labelKey: "siteName")
+        self.postPhotos = Self.parsePhotos(data["postPhotos"], labelKey: "placeName")
+        self.travelJournalTitle = data["travelJournalTitle"] as? String
+        self.travelJournalMarkdown = data["travelJournalMarkdown"] as? String
+    }
+
+    private static func parsePhotos(_ raw: Any?, labelKey: String) -> [RemoteSharedPhoto] {
+        guard let array = raw as? [[String: Any]] else { return [] }
+        return array.compactMap { entry in
+            guard let url = entry["url"] as? String, !url.isEmpty else { return nil }
+            let label = (entry[labelKey] as? String) ?? ""
+            let detail = (entry["detail"] as? String) ?? ""
+            return RemoteSharedPhoto(url: url, label: label, detail: detail)
+        }
     }
 }
 

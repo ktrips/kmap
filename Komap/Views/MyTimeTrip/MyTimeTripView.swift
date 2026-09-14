@@ -12,6 +12,12 @@ struct MyTimeTripView: View {
     @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var collectedStamps: [CollectedStamp]
     @Query(sort: \WalkPhotoPost.postedAt, order: .reverse) private var photoPosts: [WalkPhotoPost]
 
+    private enum ContentTab: String, CaseIterable, Identifiable {
+        case mine = "マイ時空旅"
+        case everyone = "みんなの時空旅"
+        var id: String { rawValue }
+    }
+    @State private var contentTab: ContentTab = .mine
     @State private var shareImage: UIImage?
     @State private var isPreparingShare = false
     @State private var selectedStamp: StampSelection?
@@ -89,28 +95,43 @@ struct MyTimeTripView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if places.isEmpty && walkRoutes.isEmpty && collectedStamps.isEmpty && photoPosts.isEmpty {
-                    emptyState
+            VStack(spacing: 0) {
+                Picker("表示", selection: $contentTab) {
+                    ForEach(ContentTab.allCases) { tab in
+                        Text(tab.rawValue).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
+
+                if contentTab == .everyone {
+                    EveryoneTimeTripView()
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 28) {
-                            if !walkRoutes.isEmpty {
-                                walkRoutesSection
-                            }
-                            pointsSection
-                            if !stampsWithPhoto.isEmpty || !photoPosts.isEmpty {
-                                photosSection
-                            }
-                            if !places.isEmpty {
-                                storiesSection
+                    Group {
+                        if places.isEmpty && walkRoutes.isEmpty && collectedStamps.isEmpty && photoPosts.isEmpty {
+                            emptyState
+                        } else {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 28) {
+                                    if !walkRoutes.isEmpty {
+                                        walkRoutesSection
+                                    }
+                                    pointsSection
+                                    if !stampsWithPhoto.isEmpty || !photoPosts.isEmpty {
+                                        photosSection
+                                    }
+                                    if !places.isEmpty {
+                                        storiesSection
+                                    }
+                                }
+                                .padding()
                             }
                         }
-                        .padding()
                     }
                 }
             }
-            .navigationTitle("マイ時空旅")
+            .navigationTitle(contentTab.rawValue)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -122,17 +143,19 @@ struct MyTimeTripView: View {
                         }
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        prepareAndShowShareSheet()
-                    } label: {
-                        if isPreparingShare {
-                            ProgressView()
-                        } else {
-                            Label("共有", systemImage: "square.and.arrow.up")
+                if contentTab == .mine {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            prepareAndShowShareSheet()
+                        } label: {
+                            if isPreparingShare {
+                                ProgressView()
+                            } else {
+                                Label("共有", systemImage: "square.and.arrow.up")
+                            }
                         }
+                        .disabled(collectedStamps.isEmpty || isPreparingShare)
                     }
-                    .disabled(collectedStamps.isEmpty || isPreparingShare)
                 }
             }
             .navigationDestination(for: SavedPlace.self) { place in
