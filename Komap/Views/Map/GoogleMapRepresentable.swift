@@ -202,6 +202,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 未満の間は合成をスキップする（`lastRevealedPointCount`はそのままにしておき、
         /// 次に間引きが解除された時にまとめて増えた区間を1回で描き足す）。
         private var lastRevealedCoordinate: CLLocationCoordinate2D?
+        /// 最後にリビール画像を合成した時刻。GPSの間隔が空いた・座標が想定外の値になった等、
+        /// 距離ベースの間引きだけでは合成が長時間止まってしまう場合への保険として、
+        /// 一定時間（`revealRecomputeMaxIntervalSeconds`）経っていれば距離に関わらず作り直す。
+        private var lastRevealedAt: Date?
         /// リビール画像の合成中に、GPSの更新が続けて何度も来た場合に合成タスクが
         /// 積み重ならないようにするためのフラグ。
         private var isComposingRevealedImage = false
@@ -265,6 +269,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// リビール画像の再合成を間引く最小移動距離（メートル）。コリドー幅より
         /// 十分小さく保ち、見た目の追従が粗くならないようにする。
         private static let revealRecomputeMinDistanceMeters: Double = 20
+        /// 距離ベースの間引きが働いていても、これだけ時間が経っていれば必ず作り直す保険
+        /// （`lastRevealedAt`参照）。
+        private static let revealRecomputeMaxIntervalSeconds: TimeInterval = 5
         /// 記録中、「まだ通っていない場所」の不透明度の下限。スライダーがこれより低くても、
         /// 宝探し演出（通った道だけくっきり）を保ったまま、歩いている間は古地図全体が
         /// はっきり見えるようにする（以前は0.6で、ぼかしと合わさって古地図全体が
@@ -443,6 +450,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if !isNewOverlay && shouldForceReattach, let currentOverlay {
                 currentOverlay.map = nil
                 currentOverlay.map = mapView
+                // リビール演出（宝探し）の間引き状態もリセットし、次のGPS更新・
+                // 次の`updateUIView`で必ず作り直す。歩行中に古地図が見えなくなった時、
+                // 同じ古地図をもう一度選ぶだけで復帰できるようにするため。
+                lastRevealedCoordinate = nil
             }
             if isNewOverlay {
                 // 古いオーバーレイのテクスチャをすぐに手放せるよう、`.map = nil`の前に
@@ -564,6 +575,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 let movedFarEnoughToRecompute: Bool = {
                     guard let last = livePath.last else { return false }
                     guard let lastRevealedCoordinate else { return true }
+                    if let lastRevealedAt, Date().timeIntervalSince(lastRevealedAt) >= Self.revealRecomputeMaxIntervalSeconds {
+                        // 距離が縮まらない（GPSが飛び飛びに届く、ほぼ足踏み状態等）まま
+                        // 間引きが効き続けて、古地図の見た目が長時間止まって「消えたまま」に
+                        // 見えることがないよう、一定時間経てば距離に関わらず作り直す。
+                        return true
+                    }
                     let from = CLLocation(latitude: lastRevealedCoordinate.latitude, longitude: lastRevealedCoordinate.longitude)
                     let to = CLLocation(latitude: last.latitude, longitude: last.longitude)
                     return from.distance(from: to) >= Self.revealRecomputeMinDistanceMeters
@@ -572,6 +589,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     let previousPointCount = isNewOverlay ? 0 : lastRevealedPointCount
                     lastRevealedPointCount = livePath.count
                     lastRevealedCoordinate = livePath.last
+                    lastRevealedAt = Date()
                     isComposingRevealedImage = true
                     let southWest = overlayMap.southWest
                     let northEast = overlayMap.northEast
