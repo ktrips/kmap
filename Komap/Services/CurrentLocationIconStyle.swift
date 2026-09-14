@@ -32,11 +32,11 @@ enum CurrentLocationIconStyle: String, CaseIterable, Identifiable, Equatable {
         case .blueDot:
             return Self.blueDotIcon(emphasized: emphasized)
         case .travelerHat:
-            return Self.badgeIcon(emphasized: emphasized, backgroundColor: UIColor(red: 0.93, green: 0.85, blue: 0.68, alpha: 1)) { cg, rect in
+            return Self.badgeIcon(emphasized: emphasized, backgroundColor: UIColor(red: 0.98, green: 0.91, blue: 0.78, alpha: 1)) { cg, rect in
                 Self.drawTravelerGlyph(in: cg, rect: rect)
             }
         case .samurai:
-            return Self.badgeIcon(emphasized: emphasized, backgroundColor: UIColor(red: 0.16, green: 0.18, blue: 0.24, alpha: 1)) { cg, rect in
+            return Self.badgeIcon(emphasized: emphasized, backgroundColor: UIColor(red: 0.90, green: 0.93, blue: 0.98, alpha: 1)) { cg, rect in
                 Self.drawSamuraiGlyph(in: cg, rect: rect)
             }
         case .modernPerson:
@@ -111,61 +111,174 @@ enum CurrentLocationIconStyle: String, CaseIterable, Identifiable, Equatable {
         }
     }
 
-    /// 菅笠（円錐形の笠）をかぶった旅人のシルエット。
-    private static func drawTravelerGlyph(in cg: CGContext, rect: CGRect) {
-        let color = UIColor(red: 0.36, green: 0.24, blue: 0.13, alpha: 1)
-        cg.setFillColor(color.cgColor)
+    /// 頬の赤み・目の、ちびキャラ風の小さな顔パーツを共通で描く
+    /// （`travelerHat`／`samurai`どちらのキャラも、これで「可愛さ」を出す）。
+    private static func drawChibiFace(in cg: CGContext, faceRect: CGRect) {
+        let eyeColor = UIColor(red: 0.22, green: 0.16, blue: 0.14, alpha: 1)
+        let blushColor = UIColor(red: 0.95, green: 0.55, blue: 0.55, alpha: 0.75)
 
-        // 笠（三角形に近い、少し丸みを持たせた円錐）。
-        let hatTop = CGPoint(x: rect.midX, y: rect.minY)
-        let hatLeft = CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.42)
-        let hatRight = CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.42)
-        let hat = CGMutablePath()
-        hat.move(to: hatTop)
-        hat.addQuadCurve(to: hatRight, control: CGPoint(x: rect.maxX * 0.9, y: rect.minY + rect.height * 0.18))
-        hat.addLine(to: hatLeft)
-        hat.addQuadCurve(to: hatTop, control: CGPoint(x: rect.minX + rect.width * 0.1, y: rect.minY + rect.height * 0.18))
-        hat.closeSubpath()
-        cg.addPath(hat)
+        let eyeDiameter = faceRect.width * 0.16
+        let eyeY = faceRect.minY + faceRect.height * 0.5
+        cg.setFillColor(eyeColor.cgColor)
+        for dx: CGFloat in [-0.26, 0.26] {
+            let eyeRect = CGRect(
+                x: faceRect.midX + faceRect.width * dx - eyeDiameter / 2,
+                y: eyeY - eyeDiameter / 2,
+                width: eyeDiameter,
+                height: eyeDiameter
+            )
+            cg.addEllipse(in: eyeRect)
+        }
         cg.fillPath()
 
-        // 体（笠の下の、簡単な人型シルエット）。
-        let bodyTop = rect.minY + rect.height * 0.5
-        let body = CGRect(x: rect.midX - rect.width * 0.16, y: bodyTop, width: rect.width * 0.32, height: rect.height * 0.5)
+        let blushDiameter = faceRect.width * 0.2
+        let blushY = eyeY + faceRect.height * 0.2
+        cg.setFillColor(blushColor.cgColor)
+        for dx: CGFloat in [-0.4, 0.4] {
+            let blushRect = CGRect(
+                x: faceRect.midX + faceRect.width * dx - blushDiameter / 2,
+                y: blushY - blushDiameter / 2,
+                width: blushDiameter,
+                height: blushDiameter
+            )
+            cg.addEllipse(in: blushRect)
+        }
+        cg.fillPath()
+
+        // 小さな笑顔（口）。
+        let mouthWidth = faceRect.width * 0.22
+        let mouthY = blushY + faceRect.height * 0.06
+        cg.setStrokeColor(eyeColor.cgColor)
+        cg.setLineWidth(max(faceRect.width * 0.045, 0.8))
+        cg.setLineCap(.round)
+        cg.move(to: CGPoint(x: faceRect.midX - mouthWidth / 2, y: mouthY))
+        cg.addQuadCurve(
+            to: CGPoint(x: faceRect.midX + mouthWidth / 2, y: mouthY),
+            control: CGPoint(x: faceRect.midX, y: mouthY + faceRect.height * 0.16)
+        )
+        cg.strokePath()
+    }
+
+    /// 菅笠（円錐形の笠）をかぶった、ちびキャラ風の可愛い旅人。
+    private static func drawTravelerGlyph(in cg: CGContext, rect: CGRect) {
+        let hatColor = UIColor(red: 0.86, green: 0.70, blue: 0.42, alpha: 1)
+        let hatRimColor = UIColor(red: 0.68, green: 0.52, blue: 0.28, alpha: 1)
+        let skinColor = UIColor(red: 0.99, green: 0.86, blue: 0.73, alpha: 1)
+        let robeColor = UIColor(red: 0.42, green: 0.66, blue: 0.56, alpha: 1)
+        let sashColor = UIColor(red: 0.98, green: 0.95, blue: 0.88, alpha: 1)
+
+        // 顔（丸くふっくらした頬）。笠の下から覗く。
+        let faceDiameter = rect.width * 0.62
+        let faceRect = CGRect(
+            x: rect.midX - faceDiameter / 2,
+            y: rect.minY + rect.height * 0.22,
+            width: faceDiameter,
+            height: faceDiameter
+        )
+        cg.setFillColor(skinColor.cgColor)
+        cg.addEllipse(in: faceRect)
+        cg.fillPath()
+
+        // 笠（丸みを帯びた、きのこ型に近い可愛らしいシルエット）。
+        let hatTop = CGPoint(x: rect.midX, y: rect.minY)
+        let hatLeft = CGPoint(x: rect.minX - rect.width * 0.04, y: rect.minY + rect.height * 0.38)
+        let hatRight = CGPoint(x: rect.maxX + rect.width * 0.04, y: rect.minY + rect.height * 0.38)
+        let hat = CGMutablePath()
+        hat.move(to: hatTop)
+        hat.addQuadCurve(to: hatRight, control: CGPoint(x: rect.maxX * 0.92, y: rect.minY - rect.height * 0.02))
+        hat.addQuadCurve(
+            to: hatLeft,
+            control: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.5)
+        )
+        hat.addQuadCurve(to: hatTop, control: CGPoint(x: rect.minX * 1.08, y: rect.minY - rect.height * 0.02))
+        hat.closeSubpath()
+        cg.setFillColor(hatColor.cgColor)
+        cg.addPath(hat)
+        cg.fillPath()
+        cg.setStrokeColor(hatRimColor.cgColor)
+        cg.setLineWidth(max(rect.width * 0.035, 0.8))
+        cg.addPath(hat)
+        cg.strokePath()
+
+        drawChibiFace(in: cg, faceRect: faceRect)
+
+        // 体（丸みのある、かわいい色の着物）。
+        let bodyTop = faceRect.maxY - rect.height * 0.04
+        let body = CGRect(x: rect.midX - rect.width * 0.34, y: bodyTop, width: rect.width * 0.68, height: rect.maxY - bodyTop)
+        cg.setFillColor(robeColor.cgColor)
         cg.addPath(CGPath(roundedRect: body, cornerWidth: body.width * 0.4, cornerHeight: body.width * 0.4, transform: nil))
+        cg.fillPath()
+
+        // 帯（体の中央を横切る、明るい一本線）。
+        let sashHeight = body.height * 0.22
+        let sashRect = CGRect(x: body.minX, y: body.midY - sashHeight / 2, width: body.width, height: sashHeight)
+        cg.setFillColor(sashColor.cgColor)
+        cg.addRect(sashRect)
         cg.fillPath()
     }
 
-    /// 髷（まげ）を結った頭と、肩の張った着物のシルエット。
+    /// 髷（まげ）を結った、ちびキャラ風の可愛い侍。
     private static func drawSamuraiGlyph(in cg: CGContext, rect: CGRect) {
-        let color = UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1)
-        cg.setFillColor(color.cgColor)
+        let skinColor = UIColor(red: 0.99, green: 0.86, blue: 0.73, alpha: 1)
+        let hairColor = UIColor(red: 0.24, green: 0.19, blue: 0.16, alpha: 1)
+        let kimonoColor = UIColor(red: 0.70, green: 0.24, blue: 0.24, alpha: 1)
+        let sashColor = UIColor(red: 0.96, green: 0.80, blue: 0.42, alpha: 1)
 
-        // 頭。
-        let headDiameter = rect.width * 0.42
-        let headRect = CGRect(x: rect.midX - headDiameter / 2, y: rect.minY, width: headDiameter, height: headDiameter)
+        // 頭（顔色にして、可愛い表情を乗せられるようにする）。
+        let headDiameter = rect.width * 0.56
+        let headRect = CGRect(x: rect.midX - headDiameter / 2, y: rect.minY + rect.height * 0.04, width: headDiameter, height: headDiameter)
+        cg.setFillColor(skinColor.cgColor)
         cg.addEllipse(in: headRect)
         cg.fillPath()
 
         // 髷（頭の上に小さな突起）。
         let bun = CGRect(
             x: rect.midX - headDiameter * 0.16,
-            y: headRect.minY - headDiameter * 0.28,
+            y: headRect.minY - headDiameter * 0.26,
             width: headDiameter * 0.32,
-            height: headDiameter * 0.28
+            height: headDiameter * 0.26
         )
+        cg.setFillColor(hairColor.cgColor)
         cg.addEllipse(in: bun)
         cg.fillPath()
 
-        // 肩の張った着物（台形）。
-        let shoulderY = headRect.maxY + rect.height * 0.04
+        // 前髪（頭の上部を軽く覆う弧）。
+        let bangs = CGRect(
+            x: headRect.minX,
+            y: headRect.minY - headDiameter * 0.02,
+            width: headRect.width,
+            height: headDiameter * 0.36
+        )
+        cg.addEllipse(in: bangs)
+        cg.fillPath()
+
+        drawChibiFace(in: cg, faceRect: headRect)
+
+        // 肩の張った着物（丸みを持たせた台形）。
+        let shoulderY = headRect.maxY - rect.height * 0.02
         let kimono = CGMutablePath()
-        kimono.move(to: CGPoint(x: rect.midX - rect.width * 0.1, y: shoulderY))
-        kimono.addLine(to: CGPoint(x: rect.midX + rect.width * 0.1, y: shoulderY))
-        kimono.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        kimono.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        kimono.move(to: CGPoint(x: rect.midX - rect.width * 0.12, y: shoulderY))
+        kimono.addQuadCurve(
+            to: CGPoint(x: rect.maxX * 0.96, y: rect.maxY),
+            control: CGPoint(x: rect.maxX * 0.98, y: shoulderY + rect.height * 0.1)
+        )
+        kimono.addLine(to: CGPoint(x: rect.minX * 0.96, y: rect.maxY))
+        kimono.addQuadCurve(
+            to: CGPoint(x: rect.midX + rect.width * 0.12, y: shoulderY),
+            control: CGPoint(x: rect.minX * 0.9, y: shoulderY + rect.height * 0.1)
+        )
         kimono.closeSubpath()
+        cg.setFillColor(kimonoColor.cgColor)
         cg.addPath(kimono)
+        cg.fillPath()
+
+        // 帯（着物の中央を横切る、明るい一本線）。着物の実際の幅に合わせる。
+        let kimonoBounds = kimono.boundingBoxOfPath
+        let sashY = shoulderY + (rect.maxY - shoulderY) * 0.4
+        let sashHeight = (rect.maxY - shoulderY) * 0.2
+        let sashRect = CGRect(x: kimonoBounds.minX, y: sashY, width: kimonoBounds.width, height: sashHeight)
+        cg.setFillColor(sashColor.cgColor)
+        cg.addRect(sashRect)
         cg.fillPath()
     }
 
