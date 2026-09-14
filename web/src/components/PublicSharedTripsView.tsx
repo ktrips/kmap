@@ -6,6 +6,7 @@ import { KindleBookModal } from "./KindleBookModal";
 import { useIsMobile } from "../lib/useIsMobile";
 import { usePresence } from "../lib/usePresence";
 import { useSelectedTripId } from "../lib/useSelectedTripId";
+import { useSharedTripById } from "../lib/useSharedTripById";
 import { fromSharedTrip, type UnifiedTrip } from "../types/unifiedTrip";
 import type { SharedTrip } from "../types/sharedTrip";
 
@@ -51,7 +52,12 @@ export function PublicSharedTripsView({
     () => sharedTrips.map(fromSharedTrip).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime()),
     [sharedTrips],
   );
-  const selectedTrip = trips.find((trip) => trip.id === selectedTripId) ?? null;
+  const isSelectedTripInList = selectedTripId !== null && trips.some((trip) => trip.id === selectedTripId);
+  // 一覧（直近50件）に無い旅を共有リンクで直接開いた時のための、個別取得フォールバック。
+  const fallbackSharedTrip = useSharedTripById(selectedTripId, isSelectedTripInList);
+  const selectedTrip =
+    trips.find((trip) => trip.id === selectedTripId) ??
+    (fallbackSharedTrip ? fromSharedTrip(fallbackSharedTrip) : null);
   const activeVisitorCount = usePresence();
   // ヘッダーの「ログイン」ボタンを出す条件。モバイルでは従来通り一覧を閉じている時
   // （＝詳細を全画面表示している時）。モバイルでない時は一覧を閉じることが無くなった

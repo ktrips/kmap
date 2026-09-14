@@ -1,7 +1,31 @@
-import { collection, limit, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
+import { collection, limit, onSnapshot, orderBy, query, Timestamp, type DocumentData } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import type { SharedPhoto, SharedTrip } from "../types/sharedTrip";
+
+/** `sharedTrips/{id}`の1ドキュメントを`SharedTrip`に変換する。単発取得（`useSharedTripById`）とも共有する。 */
+export function parseSharedTripDocument(id: string, data: DocumentData): SharedTrip {
+  const startedAt = data.startedAt instanceof Timestamp ? data.startedAt.toDate() : new Date();
+  const endedAt = data.endedAt instanceof Timestamp ? data.endedAt.toDate() : null;
+  return {
+    id,
+    ownerUserID: data.ownerUserID ?? "",
+    ownerDisplayName: data.ownerDisplayName ?? null,
+    title: data.title ?? null,
+    description: data.notes ?? null,
+    latitudes: Array.isArray(data.latitudes) ? data.latitudes : [],
+    longitudes: Array.isArray(data.longitudes) ? data.longitudes : [],
+    startedAt,
+    endedAt,
+    stepCount: typeof data.stepCount === "number" ? data.stepCount : null,
+    overlayMapID: data.overlayMapID ?? null,
+    totalDistanceMeters: typeof data.totalDistanceMeters === "number" ? data.totalDistanceMeters : 0,
+    stampPhotos: parsePhotos(data.stampPhotos),
+    postPhotos: parsePhotos(data.postPhotos),
+    journalTitle: data.travelJournalTitle ?? null,
+    journalMarkdown: data.travelJournalMarkdown ?? null,
+  };
+}
 
 function parsePhotos(value: unknown): SharedPhoto[] {
   if (!Array.isArray(value)) return [];
@@ -47,29 +71,7 @@ export function useSharedTrips() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const next: SharedTrip[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          const startedAt = data.startedAt instanceof Timestamp ? data.startedAt.toDate() : new Date();
-          const endedAt = data.endedAt instanceof Timestamp ? data.endedAt.toDate() : null;
-          return {
-            id: doc.id,
-            ownerUserID: data.ownerUserID ?? "",
-            ownerDisplayName: data.ownerDisplayName ?? null,
-            title: data.title ?? null,
-            description: data.notes ?? null,
-            latitudes: Array.isArray(data.latitudes) ? data.latitudes : [],
-            longitudes: Array.isArray(data.longitudes) ? data.longitudes : [],
-            startedAt,
-            endedAt,
-            stepCount: typeof data.stepCount === "number" ? data.stepCount : null,
-            overlayMapID: data.overlayMapID ?? null,
-            totalDistanceMeters: typeof data.totalDistanceMeters === "number" ? data.totalDistanceMeters : 0,
-            stampPhotos: parsePhotos(data.stampPhotos),
-            postPhotos: parsePhotos(data.postPhotos),
-            journalTitle: data.travelJournalTitle ?? null,
-            journalMarkdown: data.travelJournalMarkdown ?? null,
-          };
-        });
+        const next: SharedTrip[] = snapshot.docs.map((doc) => parseSharedTripDocument(doc.id, doc.data()));
         setTrips(next);
         setIsLoading(false);
       },

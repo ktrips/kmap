@@ -11,6 +11,7 @@ import { useIsMobile } from "./lib/useIsMobile";
 import { usePhotoPosts } from "./lib/usePhotoPosts";
 import { usePlaces } from "./lib/usePlaces";
 import { useSelectedTripId } from "./lib/useSelectedTripId";
+import { useSharedTripById } from "./lib/useSharedTripById";
 import { useStamps } from "./lib/useStamps";
 import { useWalkRoutes } from "./lib/useWalkRoutes";
 import type { SharedTrip } from "./types/sharedTrip";
@@ -67,7 +68,13 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   }, [ownTrips, sharedTrips, sharedTripIDs, stamps, photoPosts]);
 
   const selectedPlace = places.find((place) => place.id === selectedId) ?? null;
-  const selectedTrip = unifiedTrips.find((trip) => trip.id === selectedTripId) ?? null;
+  const isSelectedTripInList = selectedTripId !== null && unifiedTrips.some((trip) => trip.id === selectedTripId);
+  // 「みんなの時空旅」一覧（直近50件）に無い、他ユーザーの旅を共有リンクで直接開いた
+  // 時のための、個別取得フォールバック（自分の旅は`ownTrips`側で全件取得済みのため無関係）。
+  const fallbackSharedTrip = useSharedTripById(selectedTripId, isSelectedTripInList);
+  const selectedTrip =
+    unifiedTrips.find((trip) => trip.id === selectedTripId) ??
+    (fallbackSharedTrip ? fromSharedTrip(fallbackSharedTrip) : null);
 
   const handleSelect = (place: SavedPlace) => {
     setSelectedId(place.id);
