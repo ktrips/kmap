@@ -41,7 +41,7 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSLocationWhenInUseUsageDescription: "現在地を地図に表示し、あなたが今いる場所の昔の姿をAIが解説するために位置情報を使用します。"
-        NSLocationAlwaysAndWhenInUseUsageDescription: "散策中に現在地を地図に表示し、その場所の昔の姿をAIが解説するために位置情報を使用します。"
+        NSLocationAlwaysAndWhenInUseUsageDescription: "画面をロックしていてもウォーキングの記録（徒歩ルートの記録）を続けられるように、位置情報を使用します。"
         NSMotionUsageDescription: "ウォーキング記録中に歩数を計測するために、モーションデータを使用します。"
         NSHealthShareUsageDescription: "Apple Watchと連携して記録した際、より正確な歩数を表示するためにヘルスケアの歩数データを使用します。"
         NSHealthUpdateUsageDescription: "ウォーキング記録を「屋外ウォーキング」としてヘルスケア（Fitness）アプリにも記録するために使用します。"
@@ -51,6 +51,8 @@ targets:
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         ITSAppUsesNonExemptEncryption: false
+        UIBackgroundModes:
+          - location
         LSApplicationQueriesSchemes:
           - comgooglemaps
           - googlechromes

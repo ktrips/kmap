@@ -62,6 +62,7 @@ final class LocationManager: NSObject, ObservableObject {
         // 徒歩の軌跡描画には`kCLLocationAccuracyBest`ほどの精度は不要なため、
         // 一段階落とした`kCLLocationAccuracyNearestTenMeters`でバッテリー消費を抑える。
         manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        enableBackgroundUpdates()
         manager.startUpdatingLocation()
     }
 
@@ -72,7 +73,28 @@ final class LocationManager: NSObject, ObservableObject {
         isRecordingWalk = true
         isWalkPaused = false
         manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        enableBackgroundUpdates()
         manager.startUpdatingLocation()
+    }
+
+    /// 記録中は、画面をロックしたりアプリがバックグラウンドに回っても位置情報の
+    /// 取得を続けられるようにする。「常に許可」でなければ実際には継続しないため、
+    /// まだ「使用中のみ許可」の場合はここでアップグレードを促す
+    /// （Appleのガイドラインに沿い、必要になった瞬間だけ聞く）。
+    private func enableBackgroundUpdates() {
+        if manager.authorizationStatus == .authorizedWhenInUse {
+            manager.requestAlwaysAuthorization()
+        }
+        manager.allowsBackgroundLocationUpdates = true
+        // 徒歩の記録中に立ち止まっても（写真撮影・信号待ち等）iOSが自動で
+        // 位置情報取得を止めてしまわないよう、記録中はオフにする。
+        manager.pausesLocationUpdatesAutomatically = false
+    }
+
+    /// 記録していない間はバックグラウンド更新を止め、余計なバッテリー消費を防ぐ。
+    private func disableBackgroundUpdates() {
+        manager.allowsBackgroundLocationUpdates = false
+        manager.pausesLocationUpdatesAutomatically = true
     }
 
     /// 記録を一時停止する。位置情報の取得自体は続けるが、軌跡への追記を止める。
@@ -93,6 +115,7 @@ final class LocationManager: NSObject, ObservableObject {
         isRecordingWalk = false
         isWalkPaused = false
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        disableBackgroundUpdates()
         let path = walkPath
         walkPath = []
         return path
