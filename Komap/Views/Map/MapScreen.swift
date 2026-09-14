@@ -306,7 +306,15 @@ struct MapScreen: View {
         .sheet(item: $tappedCheckpoint) { site in
             CheckpointInfoSheet(
                 site: site,
-                overlayMap: OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
+                overlayMap: OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID },
+                isAlreadyCollected: cachedCollectedSiteIDs.contains(site.id),
+                nearbyPastRouteID: nearbyPastRouteID(for: site),
+                isCurrentlyNearby: isCurrentlyNearby(site),
+                currentSessionID: currentSessionID,
+                onManualCheckIn: { walkRouteID in
+                    manuallyCheckIn(site, walkRouteID: walkRouteID)
+                    tappedCheckpoint = nil
+                }
             )
         }
         .sheet(item: $tappedPhotoPost) { post in
@@ -918,6 +926,46 @@ struct MapScreen: View {
 
         if let userID = authService.userID {
             Task { try? await syncService.upload(route, userID: userID) }
+        }
+    }
+
+    /// 過去に保存した旅の軌跡のいずれかが、このチェックポイントの近くを通っていれば、
+    /// その`WalkRoute`のIDを返す（チェックイン忘れの手動救済用）。複数該当する場合は
+    /// 開始日時が新しい方を優先する（`savedRoutes`は降順ソート済みのため先頭を採用）。
+    private func nearbyPastRouteID(for site: HistoricSite) -> UUID? {
+        let siteLocation = CLLocation(latitude: site.coordinate.latitude, longitude: site.coordinate.longitude)
+        return savedRoutes.first { route in
+            route.coordinates.contains { coordinate in
+                CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                    .distance(from: siteLocation) <= stampCollectionRadiusMeters
+            }
+        }?.id
+    }
+
+    /// 現在地が、このチェックポイントから徒歩チェックイン圏内にあるかどうか。
+    private func isCurrentlyNearby(_ site: HistoricSite) -> Bool {
+        guard let coordinate = locationManager.currentLocation else { return false }
+        let current = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let siteLocation = CLLocation(latitude: site.coordinate.latitude, longitude: site.coordinate.longitude)
+        return current.distance(from: siteLocation) <= stampCollectionRadiusMeters
+    }
+
+    /// チェックポイント情報シートの「チェックインする」から呼ばれる、手動での御朱印獲得。
+    /// 過去の旅の軌跡や、今の現在地が近くを通っていたのにチェックインし忘れていた場合の
+    /// 救済用。ロジックは`checkForNewStamps`の自動チェックインとほぼ同じだが、
+    /// `walkRouteID`は呼び出し元（過去の旅／今の記録セッション）から明示的に受け取る。
+    private func manuallyCheckIn(_ site: HistoricSite, walkRouteID: UUID?) {
+        guard !cachedCollectedSiteIDs.contains(site.id) else { return }
+
+        let stamp = CollectedStamp(siteID: site.id, walkRouteID: walkRouteID)
+        modelContext.insert(stamp)
+        cachedCollectedSiteIDs.insert(site.id)
+        newlyCollectedSite = site
+        newlyCollectedStamp = stamp
+        watchConnectivity.notifyStampCollected(siteName: site.name, siteSummary: site.summary)
+
+        if let userID = authService.userID {
+            Task { try? await syncService.upload(stamp, userID: userID) }
         }
     }
 

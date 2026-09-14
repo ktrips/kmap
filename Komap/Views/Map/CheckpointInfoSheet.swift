@@ -15,6 +15,21 @@ import SwiftUI
 struct CheckpointInfoSheet: View {
     let site: HistoricSite
     let overlayMap: HistoricalOverlayMap?
+    /// 既にこのチェックポイントの御朱印を獲得済みかどうか。獲得済みなら
+    /// 手動チェックインの項目は出さない。
+    var isAlreadyCollected: Bool = false
+    /// 過去に保存した旅の軌跡のいずれかがこのチェックポイントの近くを通っていた場合、
+    /// その`WalkRoute`のID（手動チェックイン時に紐付ける先）。
+    var nearbyPastRouteID: UUID? = nil
+    /// 今の現在地が、このチェックポイントのチェックイン圏内にあるかどうか。
+    var isCurrentlyNearby: Bool = false
+    /// 今記録中の旅のセッションID（`isCurrentlyNearby`が`true`の時、手動チェックインを
+    /// その旅に紐付けるために使う）。
+    var currentSessionID: UUID? = nil
+    /// 「チェックインする」が選ばれた時に呼ばれる。引数は紐付け先の`WalkRoute`のID
+    /// （現在地チェックインなら`currentSessionID`、過去の旅からのチェックインなら
+    /// `nearbyPastRouteID`）。
+    var onManualCheckIn: (UUID?) -> Void = { _ in }
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -27,6 +42,21 @@ struct CheckpointInfoSheet: View {
     @State private var isEditing = false
 
     private let service = AIHistoryService()
+
+    /// 手動チェックインを出せるかどうか。未獲得で、かつ「今近くにいる」か
+    /// 「過去の旅がここを通っていた」のどちらかを満たす時だけ。
+    private var canManuallyCheckIn: Bool {
+        !isAlreadyCollected && (isCurrentlyNearby || nearbyPastRouteID != nil)
+    }
+
+    /// 手動チェックインを押した時に紐付ける旅のID。今近くにいればそれを優先する。
+    private var manualCheckInRouteID: UUID? {
+        isCurrentlyNearby ? currentSessionID : nearbyPastRouteID
+    }
+
+    private var manualCheckInLabel: String {
+        isCurrentlyNearby ? "現在地でチェックインする" : "過去の旅からチェックインする"
+    }
 
     var body: some View {
         NavigationStack {
@@ -50,18 +80,27 @@ struct CheckpointInfoSheet: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("閉じる") { dismiss() }
                 }
-                if !isLoading && errorMessage == nil {
+                if canManuallyCheckIn || (!isLoading && errorMessage == nil) {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
-                            Button {
-                                isEditing = true
-                            } label: {
-                                Label("編集する", systemImage: "pencil")
+                            if canManuallyCheckIn {
+                                Button {
+                                    onManualCheckIn(manualCheckInRouteID)
+                                } label: {
+                                    Label(manualCheckInLabel, systemImage: "checkmark.seal")
+                                }
                             }
-                            Button {
-                                Task { await regenerate() }
-                            } label: {
-                                Label("AIで更新する", systemImage: "arrow.clockwise")
+                            if !isLoading && errorMessage == nil {
+                                Button {
+                                    isEditing = true
+                                } label: {
+                                    Label("編集する", systemImage: "pencil")
+                                }
+                                Button {
+                                    Task { await regenerate() }
+                                } label: {
+                                    Label("AIで更新する", systemImage: "arrow.clockwise")
+                                }
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
