@@ -34,6 +34,9 @@ final class LocationManager: NSObject, ObservableObject {
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         // 徒歩ルート記録で細かすぎる点を拾いすぎないよう、5m未満の移動は無視する。
         manager.distanceFilter = 5
+        // 「徒歩で移動中」であることをiOSに伝え、静止時のGPS測位を自動で間引く等、
+        // バッテリー消費を抑える制御を任せる。
+        manager.activityType = .fitness
     }
 
     func requestPermissionIfNeeded() {
@@ -56,7 +59,9 @@ final class LocationManager: NSObject, ObservableObject {
         walkPath = currentLocation.map { [$0] } ?? []
         isRecordingWalk = true
         isWalkPaused = false
-        manager.desiredAccuracy = kCLLocationAccuracyBest
+        // 徒歩の軌跡描画には`kCLLocationAccuracyBest`ほどの精度は不要なため、
+        // 一段階落とした`kCLLocationAccuracyNearestTenMeters`でバッテリー消費を抑える。
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
         manager.startUpdatingLocation()
     }
 
@@ -66,7 +71,7 @@ final class LocationManager: NSObject, ObservableObject {
         walkPath = coordinates
         isRecordingWalk = true
         isWalkPaused = false
-        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
         manager.startUpdatingLocation()
     }
 
