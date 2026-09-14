@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TripDetail } from "./TripDetail";
 import { TripList } from "./TripList";
 import { HowToUseModal } from "./HowToUseModal";
 import { KindleBookModal } from "./KindleBookModal";
+import { useIsMobile } from "../lib/useIsMobile";
 import { usePresence } from "../lib/usePresence";
 import { useSelectedTripId } from "../lib/useSelectedTripId";
 import { fromSharedTrip, type UnifiedTrip } from "../types/unifiedTrip";
@@ -29,10 +30,20 @@ export function PublicSharedTripsView({
   onSignInWithGoogle,
 }: Props) {
   const [selectedTripId, setSelectedTripId] = useSelectedTripId();
-  // 時空旅を選ぶと、一覧と案内文（サインインの案内など）を収納して
-  // 地図・写真の表示スペースを広げる。「一覧」ボタンで再び開く。
-  // URL（`?trip=`）付きで開いた場合は、最初から詳細を表示した状態にする。
-  const [isSidebarOpen, setIsSidebarOpen] = useState(selectedTripId === null);
+  const isMobile = useIsMobile();
+  // スマホ幅では、時空旅を選ぶと一覧と案内文（サインインの案内など）を収納して
+  // 地図・写真の表示スペースを広げる（「一覧」ボタンで再び開く。URL（`?t=`）付きで
+  // 開いた場合は、最初から詳細を表示した状態にする）。モバイルでない
+  // （PC・タブレット幅の）場合は、旅を選んでも左の一覧はそのまま表示したままにする。
+  const [isSidebarOpen, setIsSidebarOpen] = useState(isMobile ? selectedTripId === null : true);
+
+  // モバイル幅からPC・タブレット幅へリサイズ（画面回転含む）された時も、
+  // 一覧が収納されたままにならないよう、常に表示された状態に戻す。
+  useEffect(() => {
+    if (!isMobile) {
+      setIsSidebarOpen(true);
+    }
+  }, [isMobile]);
   const [isHowToOpen, setIsHowToOpen] = useState(false);
   const [isKindleOpen, setIsKindleOpen] = useState(false);
 
@@ -45,7 +56,11 @@ export function PublicSharedTripsView({
 
   const handleSelectTrip = (trip: UnifiedTrip) => {
     setSelectedTripId(trip.id);
-    setIsSidebarOpen(false);
+    // モバイル幅の時だけ、詳細を広く見せるために一覧を収納する。
+    // それ以外（PC・タブレット幅）では一覧を表示したままにする。
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
   };
 
   return (

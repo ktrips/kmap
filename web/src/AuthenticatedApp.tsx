@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { AdminFunnelReport } from "./components/AdminFunnelReport";
 import { Header } from "./components/Header";
@@ -7,6 +7,7 @@ import { PlaceDetail } from "./components/PlaceDetail";
 import { PlaceList } from "./components/PlaceList";
 import { TripDetail } from "./components/TripDetail";
 import { TripList } from "./components/TripList";
+import { useIsMobile } from "./lib/useIsMobile";
 import { usePhotoPosts } from "./lib/usePhotoPosts";
 import { usePlaces } from "./lib/usePlaces";
 import { useSelectedTripId } from "./lib/useSelectedTripId";
@@ -42,10 +43,13 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const [selectedTripId, setSelectedTripId] = useSelectedTripId();
   const [tab, setTab] = useState<SidebarTab>("trips");
   const isAdmin = user.email === ADMIN_EMAIL;
-  // 旅の詳細を表示すると左のメニュー（一覧）は収納し、画面を広く使えるようにする。
-  // メニューボタンを押すか、タブを切り替えると再び開く。
-  // URL（`?trip=`）付きで開いた場合は、最初から詳細を表示した状態にする。
-  const [isSidebarOpen, setIsSidebarOpen] = useState(selectedTripId === null);
+  const isMobile = useIsMobile();
+  // スマホ幅では、旅の詳細を表示すると左のメニュー（一覧）は収納し、画面を
+  // 広く使えるようにする（メニューボタンを押すか、タブを切り替えると再び開く。
+  // URL（`?t=`）付きで開いた場合は、最初から詳細を表示した状態にする）。
+  // モバイルでない（PC・タブレット幅の）場合は、右側に旅の詳細を開いても
+  // 左のメニューはそのまま常に表示したままにする。
+  const [isSidebarOpen, setIsSidebarOpen] = useState(isMobile ? selectedTripId === null : true);
 
   // 「時空旅」タブは、自分の記録と他ユーザーが公開した時空旅（sharedTrips）の
   // 両方を並べる。自分の記録のうち公開中のものは、同じidが`sharedTrips`にも
@@ -71,8 +75,20 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
 
   const handleSelectTrip = (trip: UnifiedTrip) => {
     setSelectedTripId(trip.id);
-    setIsSidebarOpen(false);
+    // モバイル幅の時だけ、詳細を広く見せるために左メニューを収納する。
+    // それ以外（PC・タブレット幅）では左メニューを表示したままにする。
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
   };
+
+  // モバイル幅からPC・タブレット幅へリサイズ（画面回転含む）された時も、
+  // 左メニューが収納されたままにならないよう、常に表示された状態に戻す。
+  useEffect(() => {
+    if (!isMobile) {
+      setIsSidebarOpen(true);
+    }
+  }, [isMobile]);
 
   const handleTabChange = (nextTab: SidebarTab) => {
     setTab(nextTab);
