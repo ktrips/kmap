@@ -55,20 +55,28 @@ struct MyTimeTripView: View {
     }
 
     private var totalPoints: Int {
-        photoPosts.reduce(0) { $0 + $1.points }
+        photoPosts.reduce(0) { $0 + $1.points } + walkRoutes.reduce(0) { $0 + $1.distancePoints }
     }
 
     private var todayPoints: Int {
-        photoPosts
+        let photoPoints = photoPosts
             .filter { Calendar.current.isDateInToday($0.postedAt) }
             .reduce(0) { $0 + $1.points }
+        let walkPoints = walkRoutes
+            .filter { Calendar.current.isDateInToday($0.startedAt) }
+            .reduce(0) { $0 + $1.distancePoints }
+        return photoPoints + walkPoints
     }
 
     private var thisWeekPoints: Int {
         let calendar = Calendar.current
-        return photoPosts
+        let photoPoints = photoPosts
             .filter { calendar.isDate($0.postedAt, equalTo: Date(), toGranularity: .weekOfYear) }
             .reduce(0) { $0 + $1.points }
+        let walkPoints = walkRoutes
+            .filter { calendar.isDate($0.startedAt, equalTo: Date(), toGranularity: .weekOfYear) }
+            .reduce(0) { $0 + $1.distancePoints }
+        return photoPoints + walkPoints
     }
 
     /// 4枚横並びのグリッド（アップした写真セクション用）。

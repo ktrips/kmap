@@ -99,4 +99,13 @@ final class WalkRoute {
         }
         return total
     }
+
+    /// 1kmあたりに加算するポイント。
+    static let pointsPerKilometer: Double = 10
+
+    /// 歩いた距離に応じたポイント（1kmあたり`pointsPerKilometer`）。
+    /// 端数の距離分も比例して加算し、四捨五入する。
+    var distancePoints: Int {
+        Int((totalDistanceMeters / 1000 * WalkRoute.pointsPerKilometer).rounded())
+    }
 }
