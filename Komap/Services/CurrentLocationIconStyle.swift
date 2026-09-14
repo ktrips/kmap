@@ -32,16 +32,12 @@ enum CurrentLocationIconStyle: String, CaseIterable, Identifiable, Equatable {
         case .blueDot:
             return Self.blueDotIcon(emphasized: emphasized)
         case .travelerHat:
-            let background = UIColor(red: 0.98, green: 0.93, blue: 0.84, alpha: 1)
-            let foreground = UIColor(red: 0.77, green: 0.35, blue: 0.29, alpha: 1)
-            return Self.badgeIcon(emphasized: emphasized, backgroundColor: background) { cg, rect in
-                Self.drawTravelerGlyph(in: cg, rect: rect, backgroundColor: background, foregroundColor: foreground)
+            return Self.badgeIcon(emphasized: emphasized, backgroundColor: UIColor(red: 0.93, green: 0.85, blue: 0.68, alpha: 1)) { cg, rect in
+                Self.drawTravelerGlyph(in: cg, rect: rect)
             }
         case .samurai:
-            let background = UIColor(red: 0.87, green: 0.91, blue: 0.97, alpha: 1)
-            let foreground = UIColor(red: 0.16, green: 0.20, blue: 0.29, alpha: 1)
-            return Self.badgeIcon(emphasized: emphasized, backgroundColor: background) { cg, rect in
-                Self.drawSamuraiGlyph(in: cg, rect: rect, backgroundColor: background, foregroundColor: foreground)
+            return Self.badgeIcon(emphasized: emphasized, backgroundColor: UIColor(red: 0.16, green: 0.18, blue: 0.24, alpha: 1)) { cg, rect in
+                Self.drawSamuraiGlyph(in: cg, rect: rect)
             }
         case .modernPerson:
             return Self.badgeIcon(emphasized: emphasized, backgroundColor: UIColor.systemTeal) { cg, rect in
@@ -115,101 +111,61 @@ enum CurrentLocationIconStyle: String, CaseIterable, Identifiable, Equatable {
         }
     }
 
-    /// 菅笠（円錐形の笠）をかぶった旅人を、背景・本体の2色だけで表す、
-    /// きのこのようなシルエット。飾りは一切足さず、丸みのある形そのもので
-    /// 可愛さを出す（コケシのような、シンプルだけどセンスのある佇まい）。
-    private static func drawTravelerGlyph(in cg: CGContext, rect: CGRect, backgroundColor: UIColor, foregroundColor: UIColor) {
-        // 笠：横に大きく張り出した、丸みのあるドーム型。
-        let hatTop = CGPoint(x: rect.midX, y: rect.minY)
-        let hatLeft = CGPoint(x: rect.minX - rect.width * 0.10, y: rect.minY + rect.height * 0.30)
-        let hatRight = CGPoint(x: rect.maxX + rect.width * 0.10, y: rect.minY + rect.height * 0.30)
-        let hatBottomLeft = CGPoint(x: rect.midX - rect.width * 0.30, y: rect.minY + rect.height * 0.34)
-        let hatBottomRight = CGPoint(x: rect.midX + rect.width * 0.30, y: rect.minY + rect.height * 0.34)
+    /// 菅笠（円錐形の笠）をかぶった旅人のシルエット。
+    private static func drawTravelerGlyph(in cg: CGContext, rect: CGRect) {
+        let color = UIColor(red: 0.36, green: 0.24, blue: 0.13, alpha: 1)
+        cg.setFillColor(color.cgColor)
 
+        // 笠（三角形に近い、少し丸みを持たせた円錐）。
+        let hatTop = CGPoint(x: rect.midX, y: rect.minY)
+        let hatLeft = CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.42)
+        let hatRight = CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.42)
         let hat = CGMutablePath()
         hat.move(to: hatTop)
-        hat.addQuadCurve(to: hatRight, control: CGPoint(x: rect.maxX * 1.02, y: rect.minY - rect.height * 0.02))
-        hat.addQuadCurve(to: hatBottomRight, control: CGPoint(x: rect.midX + rect.width * 0.30, y: rect.minY + rect.height * 0.30))
-        hat.addLine(to: hatBottomLeft)
-        hat.addQuadCurve(to: hatLeft, control: CGPoint(x: rect.midX - rect.width * 0.30, y: rect.minY + rect.height * 0.30))
-        hat.addQuadCurve(to: hatTop, control: CGPoint(x: rect.minX * 0.98, y: rect.minY - rect.height * 0.02))
+        hat.addQuadCurve(to: hatRight, control: CGPoint(x: rect.maxX * 0.9, y: rect.minY + rect.height * 0.18))
+        hat.addLine(to: hatLeft)
+        hat.addQuadCurve(to: hatTop, control: CGPoint(x: rect.minX + rect.width * 0.1, y: rect.minY + rect.height * 0.18))
         hat.closeSubpath()
-        cg.setFillColor(foregroundColor.cgColor)
         cg.addPath(hat)
         cg.fillPath()
 
-        // 体：笠より一回り細い、丸いカプセル形（笠の下からちょこんと覗く）。
-        let bodyWidth = rect.width * 0.40
-        let bodyTop = rect.minY + rect.height * 0.40
-        let body = CGRect(x: rect.midX - bodyWidth / 2, y: bodyTop, width: bodyWidth, height: rect.maxY - bodyTop)
-        cg.addPath(CGPath(roundedRect: body, cornerWidth: bodyWidth / 2, cornerHeight: bodyWidth / 2, transform: nil))
+        // 体（笠の下の、簡単な人型シルエット）。
+        let bodyTop = rect.minY + rect.height * 0.5
+        let body = CGRect(x: rect.midX - rect.width * 0.16, y: bodyTop, width: rect.width * 0.32, height: rect.height * 0.5)
+        cg.addPath(CGPath(roundedRect: body, cornerWidth: body.width * 0.4, cornerHeight: body.width * 0.4, transform: nil))
         cg.fillPath()
-
-        // 目：背景色でくり抜いた2つの小さな点だけで表情を出す（色数は増やさない）。
-        Self.drawDotEyes(in: cg, centerX: rect.midX, y: bodyTop + rect.height * 0.10, spread: rect.width * 0.11, diameter: rect.width * 0.065, color: backgroundColor)
     }
 
-    /// 髷（まげ）を結った侍を、背景・本体の2色だけで表す、丸いシルエット。
-    private static func drawSamuraiGlyph(in cg: CGContext, rect: CGRect, backgroundColor: UIColor, foregroundColor: UIColor) {
-        cg.setFillColor(foregroundColor.cgColor)
+    /// 髷（まげ）を結った頭と、肩の張った着物のシルエット。
+    private static func drawSamuraiGlyph(in cg: CGContext, rect: CGRect) {
+        let color = UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1)
+        cg.setFillColor(color.cgColor)
 
         // 頭。
-        let headRadius = rect.width * 0.30
-        let headCenter = CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.24)
-        cg.addEllipse(in: CGRect(
-            x: headCenter.x - headRadius, y: headCenter.y - headRadius,
-            width: headRadius * 2, height: headRadius * 2
-        ))
+        let headDiameter = rect.width * 0.42
+        let headRect = CGRect(x: rect.midX - headDiameter / 2, y: rect.minY, width: headDiameter, height: headDiameter)
+        cg.addEllipse(in: headRect)
         cg.fillPath()
 
-        // 髷（頭の上の小さな突起）。
-        let bunWidth = rect.width * 0.14
-        let bunHeight = rect.height * 0.12
-        cg.addEllipse(in: CGRect(x: rect.midX - bunWidth / 2, y: rect.minY - bunHeight / 2, width: bunWidth, height: bunHeight))
-        cg.fillPath()
-
-        // 体（着物）：肩から丸みを帯びて広がる、角の丸いシルエット。
-        let bodyTopY = headCenter.y + headRadius * 0.55
-        let bodyTopLeft = CGPoint(x: rect.midX - rect.width * 0.16, y: bodyTopY)
-        let bodyTopRight = CGPoint(x: rect.midX + rect.width * 0.16, y: bodyTopY)
-        let shoulderY = rect.maxY - rect.height * 0.25
-        let shoulderLeft = CGPoint(x: rect.midX - rect.width * 0.40, y: shoulderY)
-        let shoulderRight = CGPoint(x: rect.midX + rect.width * 0.40, y: shoulderY)
-        let cornerRadius = rect.width * 0.08
-        let bottomLeft = CGPoint(x: rect.midX - rect.width * 0.34, y: rect.maxY)
-        let bottomRight = CGPoint(x: rect.midX + rect.width * 0.34, y: rect.maxY)
-
-        let body = CGMutablePath()
-        body.move(to: bodyTopLeft)
-        body.addQuadCurve(to: shoulderLeft, control: CGPoint(x: rect.midX - rect.width * 0.44, y: rect.maxY - rect.height * 0.55))
-        body.addLine(to: CGPoint(x: bottomLeft.x, y: bottomLeft.y - cornerRadius))
-        body.addQuadCurve(to: CGPoint(x: bottomLeft.x + cornerRadius, y: bottomLeft.y), control: bottomLeft)
-        body.addLine(to: CGPoint(x: bottomRight.x - cornerRadius, y: bottomRight.y))
-        body.addQuadCurve(to: CGPoint(x: bottomRight.x, y: bottomRight.y - cornerRadius), control: bottomRight)
-        body.addLine(to: shoulderRight)
-        body.addQuadCurve(to: bodyTopRight, control: CGPoint(x: rect.midX + rect.width * 0.44, y: rect.maxY - rect.height * 0.55))
-        body.closeSubpath()
-        cg.addPath(body)
-        cg.fillPath()
-
-        // 目：背景色でくり抜いた2つの小さな点だけで表情を出す（色数は増やさない）。
-        Self.drawDotEyes(
-            in: cg,
-            centerX: rect.midX,
-            y: headCenter.y + headRadius * 0.05,
-            spread: rect.width * 0.13,
-            diameter: rect.width * 0.065,
-            color: backgroundColor
+        // 髷（頭の上に小さな突起）。
+        let bun = CGRect(
+            x: rect.midX - headDiameter * 0.16,
+            y: headRect.minY - headDiameter * 0.28,
+            width: headDiameter * 0.32,
+            height: headDiameter * 0.28
         )
-    }
+        cg.addEllipse(in: bun)
+        cg.fillPath()
 
-    /// キャラの表情を2つの小さな点だけで表す共通処理（`travelerHat`／`samurai`共通）。
-    private static func drawDotEyes(in cg: CGContext, centerX: CGFloat, y: CGFloat, spread: CGFloat, diameter: CGFloat, color: UIColor) {
-        cg.setFillColor(color.cgColor)
-        for dx in [-spread, spread] {
-            let cx = centerX + dx
-            cg.addEllipse(in: CGRect(x: cx - diameter / 2, y: y - diameter / 2, width: diameter, height: diameter))
-        }
+        // 肩の張った着物（台形）。
+        let shoulderY = headRect.maxY + rect.height * 0.04
+        let kimono = CGMutablePath()
+        kimono.move(to: CGPoint(x: rect.midX - rect.width * 0.1, y: shoulderY))
+        kimono.addLine(to: CGPoint(x: rect.midX + rect.width * 0.1, y: shoulderY))
+        kimono.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        kimono.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        kimono.closeSubpath()
+        cg.addPath(kimono)
         cg.fillPath()
     }
 
