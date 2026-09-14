@@ -18,6 +18,9 @@ final class CollectedStamp {
     /// Firebase Storageへアップロード済みの画像URL。未アップロードなら`nil`。
     var cloudPhotoURL: String?
 
+    /// 御朱印1件を獲得した時に得られるポイント。
+    static let pointsPerStamp = 50
+
     init(
         id: UUID = UUID(),
         siteID: String,

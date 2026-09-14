@@ -56,7 +56,9 @@ struct MyTimeTripView: View {
     }
 
     private var totalPoints: Int {
-        photoPosts.reduce(0) { $0 + $1.points } + walkRoutes.reduce(0) { $0 + $1.distancePoints }
+        photoPosts.reduce(0) { $0 + $1.points }
+            + walkRoutes.reduce(0) { $0 + $1.distancePoints }
+            + collectedStamps.count * CollectedStamp.pointsPerStamp
     }
 
     private var todayPoints: Int {
@@ -66,7 +68,10 @@ struct MyTimeTripView: View {
         let walkPoints = walkRoutes
             .filter { Calendar.current.isDateInToday($0.startedAt) }
             .reduce(0) { $0 + $1.distancePoints }
-        return photoPoints + walkPoints
+        let stampPoints = collectedStamps
+            .filter { Calendar.current.isDateInToday($0.collectedAt) }
+            .count * CollectedStamp.pointsPerStamp
+        return photoPoints + walkPoints + stampPoints
     }
 
     private var thisWeekPoints: Int {
@@ -77,7 +82,10 @@ struct MyTimeTripView: View {
         let walkPoints = walkRoutes
             .filter { calendar.isDate($0.startedAt, equalTo: Date(), toGranularity: .weekOfYear) }
             .reduce(0) { $0 + $1.distancePoints }
-        return photoPoints + walkPoints
+        let stampPoints = collectedStamps
+            .filter { calendar.isDate($0.collectedAt, equalTo: Date(), toGranularity: .weekOfYear) }
+            .count * CollectedStamp.pointsPerStamp
+        return photoPoints + walkPoints + stampPoints
     }
 
     /// 4枚横並びのグリッド（アップした写真セクション用）。
