@@ -42,6 +42,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published private(set) var newlyCollectedStamp: WatchCollectedStampInfo?
     /// iPhoneから届いた、写真投稿で獲得したポイント。表示したら`acknowledgePhotoPosted()`で消す。
     @Published private(set) var newlyPostedPhotoPoints: Int?
+    /// 動きがない時間が続き、自動的に記録を一時停止した時に`true`になる
+    /// （Watch画面で確認を出す合図。`acknowledgeAutoPause()`で戻す）。
+    @Published private(set) var didAutoPauseForInactivity = false
+    /// iPhone側の「設定」→「動きがない時に自動で一時停止」を反映する。
+    /// `applyContext`で同期され、これから作るトラッカーにも渡す。
+    private var isAutoPauseForInactivityEnabled = true
 
     private let session: WCSession?
     /// 「スタート」を押すまでHealthKit・位置情報まわりの初期化を行わないよう、
@@ -83,8 +89,18 @@ final class WatchSessionManager: NSObject, ObservableObject {
         lastSnapshotSentAt = nil
         let tracker = tracker ?? WatchWorkoutLocationTracker()
         self.tracker = tracker
+        tracker.isAutoPauseForInactivityEnabled = isAutoPauseForInactivityEnabled
         tracker.onLocationUpdate = { [weak self] coordinate in
             self?.sendLocationUpdate(coordinate)
+        }
+        tracker.onAutoPausedForInactivity = { [weak self] in
+            guard let self, self.isSelfTracking else { return }
+            self.state = .paused
+            self.didAutoPauseForInactivity = true
+            self.send(["command": "watchTrackingPaused"])
+        }
+        tracker.onMaxDurationExceeded = { [weak self] in
+            self?.stop(shouldSave: true)
         }
         tracker.start()
         send(["command": "watchTrackingStarted", "sessionID": sessionID.uuidString])
@@ -93,6 +109,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// 新しく獲得した御朱印の通知を確認したら呼ぶ。
     func acknowledgeStampCollected() {
         newlyCollectedStamp = nil
+    }
+
+    /// 動きがない自動一時停止の確認を見せ終えたら呼ぶ。
+    func acknowledgeAutoPause() {
+        didAutoPauseForInactivity = false
     }
 
     /// 写真投稿のポイント通知を確認したら呼ぶ。
@@ -271,6 +292,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
         let mapTitles = context["mapTitles"] as? [String] ?? []
         availableMaps = zip(mapIDs, mapTitles).map { WatchMapOption(id: $0, title: $1) }
         selectedMapID = context["selectedMapID"] as? String
+
+        isAutoPauseForInactivityEnabled = context["autoPauseWhenStationary"] as? Bool ?? true
+        tracker?.isAutoPauseForInactivityEnabled = isAutoPauseForInactivityEnabled
+        companionTracker?.isAutoPauseForInactivityEnabled = isAutoPauseForInactivityEnabled
     }
 
     /// iPhoneでの記録に、Watch自身のGPSを「伴走」させて開始する。Watch単体モード
@@ -281,8 +306,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
         lastCompanionSnapshotSentAt = nil
         let tracker = WatchWorkoutLocationTracker()
         companionTracker = tracker
+        tracker.isAutoPauseForInactivityEnabled = isAutoPauseForInactivityEnabled
         tracker.onLocationUpdate = { [weak self] coordinate in
             self?.sendCompanionLocationUpdate(coordinate)
+        }
+        // 伴走中の最長時間超過は、iPhone側にも独立した保険があるため、ここではWatch側の
+        // GPSアシストだけ静かに止める（iPhoneには特に伝えない）。
+        tracker.onMaxDurationExceeded = { [weak self] in
+            self?.stopCompanionTracking()
         }
         tracker.start()
     }

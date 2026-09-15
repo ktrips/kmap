@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
     @State private var photoFilterStyle: PhotoFilterStyle = AppSettings.photoFilterStyle
     @State private var currentLocationIconStyle: CurrentLocationIconStyle = AppSettings.currentLocationIconStyle
+    @State private var autoPauseWhenStationary: Bool = AppSettings.autoPauseWhenStationary
 
     @State private var isShowingAdvancedSettings = false
     @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
@@ -37,6 +38,7 @@ struct SettingsView: View {
             Form {
                 accountSection
                 overlayOpacitySection
+                recordingSafetySection
                 currentLocationIconSection
                 photoFilterSection
 
@@ -172,6 +174,19 @@ struct SettingsView: View {
             Text("古地図のデフォルト濃度")
         } footer: {
             Text("マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
+        }
+    }
+
+    private var recordingSafetySection: some View {
+        Section {
+            Toggle("動きがない時に自動で一時停止", isOn: $autoPauseWhenStationary)
+                .onChange(of: autoPauseWhenStationary) { _, newValue in
+                    AppSettings.autoPauseWhenStationary = newValue
+                }
+        } header: {
+            Text("記録の自動制御")
+        } footer: {
+            Text("20分以上動きがない状態が続くと、記録を自動的に一時停止します（動き出すと自動で再開します）。iPhone・Apple Watchのどちらで記録していても、気づかず長時間GPSが回りっぱなしになるのを防ぎます。動いているかどうかによらず、8時間を超えたら自動的に保存して記録を終了します。")
         }
     }
 

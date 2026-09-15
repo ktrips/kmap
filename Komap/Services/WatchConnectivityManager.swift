@@ -106,6 +106,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "mapTitles": availableMaps.map(\.title),
             "selectedMapID": selectedMapID as Any,
             "activeSessionID": activeSessionID?.uuidString as Any,
+            "autoPauseWhenStationary": AppSettings.autoPauseWhenStationary,
         ])
     }
 

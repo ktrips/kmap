@@ -14,6 +14,14 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
     @Published private(set) var isTracking = false
     /// 現在地が更新される度に呼ばれる。iPhoneへ転送し、御朱印チェックポイントの判定に使う。
     var onLocationUpdate: ((CLLocationCoordinate2D) -> Void)?
+    /// 動きがない時間が続き、自動的に記録を一時停止した時に呼ばれる。
+    var onAutoPausedForInactivity: (() -> Void)?
+    /// 記録開始からの最長時間を超え、自動的に記録を終了すべき時に呼ばれる
+    /// （iPhoneを開いていないまま気づかずGPSが回りっぱなしになる不具合への保険）。
+    var onMaxDurationExceeded: (() -> Void)?
+    /// 動きがない時に自動で一時停止する機能を使うかどうか。iPhone側の「設定」を
+    /// `WatchSessionManager`経由で反映する。
+    var isAutoPauseForInactivityEnabled = true
 
     private let locationManager = CLLocationManager()
     private let healthStore = HKHealthStore()
@@ -21,6 +29,22 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
     private var workoutBuilder: HKLiveWorkoutBuilder?
     private var startDate: Date?
     private var pedometer: CMPedometerBridge?
+    /// iPhoneなどで気づかず記録が回りっぱなしになる不具合への保険として、動いているか
+    /// どうかによらずこの時間を超えたら自動的に記録を終了する。
+    private static let maximumRecordingDuration: TimeInterval = 8 * 3600
+    /// この時間、`movementResetThresholdMeters`以上の移動が無ければ自動的に一時停止する。
+    private static let stationaryAutoPauseInterval: TimeInterval = 20 * 60
+    /// GPSのわずかなブレを「移動した」と誤検知しないための最小移動距離（メートル）。
+    private static let movementResetThresholdMeters: CLLocationDistance = 15
+    private var lastMovementAt: Date?
+    private var lastMovementCoordinate: CLLocationCoordinate2D?
+    /// 自動一時停止中は`true`。動きが戻れば自動的に`false`へ戻して記録を再開する。
+    private var isAutoPaused = false
+    /// ユーザーが手動で一時停止した間は`true`。この間は動きがない時間の判定自体を
+    /// 止め、手動の一時停止を自動一時停止と誤認して上書きしないようにする。
+    private var isManuallyPaused = false
+    /// 最長時間超過は1回だけ通知する。
+    private var hasNotifiedMaxDuration = false
 
     override init() {
         super.init()
@@ -39,6 +63,11 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
         path = []
         startDate = Date()
         isTracking = true
+        lastMovementAt = Date()
+        lastMovementCoordinate = nil
+        isAutoPaused = false
+        isManuallyPaused = false
+        hasNotifiedMaxDuration = false
         pedometer = CMPedometerBridge()
         pedometer?.start()
 
@@ -48,10 +77,14 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
     }
 
     func pause() {
+        isManuallyPaused = true
         workoutSession?.pause()
     }
 
     func resume() {
+        isManuallyPaused = false
+        isAutoPaused = false
+        lastMovementAt = Date()
         workoutSession?.resume()
     }
 
@@ -116,9 +149,58 @@ extension WatchWorkoutLocationTracker: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let coordinate = locations.last?.coordinate else { return }
         Task { @MainActor in
-            guard self.isTracking else { return }
-            self.path.append(coordinate)
-            self.onLocationUpdate?(coordinate)
+            self.handleLocationUpdate(coordinate)
+        }
+    }
+
+    /// GPS更新1回分を、最長記録時間・動きがない時の自動一時停止／自動再開に反映する。
+    private func handleLocationUpdate(_ coordinate: CLLocationCoordinate2D) {
+        guard isTracking else { return }
+
+        if !hasNotifiedMaxDuration, let startDate,
+           Date().timeIntervalSince(startDate) >= Self.maximumRecordingDuration {
+            hasNotifiedMaxDuration = true
+            onMaxDurationExceeded?()
+            return
+        }
+
+        // 手動で一時停止中は、動きがない時間の判定自体を止め、手動の一時停止を
+        // 自動一時停止と誤認して上書きしないようにする（記録の扱いはこれまで通り）。
+        guard !isManuallyPaused else {
+            path.append(coordinate)
+            onLocationUpdate?(coordinate)
+            return
+        }
+
+        let hasMovedSignificantly: Bool = {
+            guard let lastMovementCoordinate else { return true }
+            let from = CLLocation(latitude: lastMovementCoordinate.latitude, longitude: lastMovementCoordinate.longitude)
+            let to = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            return from.distance(from: to) >= Self.movementResetThresholdMeters
+        }()
+
+        if isAutoPaused {
+            guard isAutoPauseForInactivityEnabled, hasMovedSignificantly else { return }
+            isAutoPaused = false
+            lastMovementAt = Date()
+            lastMovementCoordinate = coordinate
+            path.append(coordinate)
+            onLocationUpdate?(coordinate)
+            return
+        }
+
+        path.append(coordinate)
+        onLocationUpdate?(coordinate)
+
+        if hasMovedSignificantly {
+            lastMovementAt = Date()
+            lastMovementCoordinate = coordinate
+        } else if isAutoPauseForInactivityEnabled,
+                  let lastMovementAt,
+                  Date().timeIntervalSince(lastMovementAt) >= Self.stationaryAutoPauseInterval {
+            isAutoPaused = true
+            workoutSession?.pause()
+            onAutoPausedForInactivity?()
         }
     }
 }

@@ -63,6 +63,10 @@ struct MapScreen: View {
     /// 前回の記録中にアプリが落ちる等して正常に終われず、一時保存だけ残っていた場合の
     /// 復元候補。`nil`でない間、復元方法を選ぶダイアログを出す。
     @State private var recoveredWalkDraft: InProgressWalkDraftStore.Draft?
+    /// 動きがない時間が続き、自動的に一時停止した時に見せる確認ダイアログ。
+    @State private var isShowingAutoPauseAlert = false
+    /// 最長記録時間を超えて自動的に保存・終了した時に見せる通知ダイアログ。
+    @State private var isShowingMaxDurationAlert = false
     /// 記録中に自由なタイミングで写真を投稿するためのピッカー選択値。
     @State private var photoPostPickerItem: PhotosPickerItem?
     /// 「写真投稿」メニューの「iPhoneで撮る」で開いたカメラ画面の左下ボタンから
@@ -313,6 +317,27 @@ struct MapScreen: View {
         } message: { _ in
             Text("この場所の昔の物語をAIが生成します。")
         }
+        // 「動きがない時の自動一時停止」「最長記録時間の超過」の通知を、独立したViewの
+        // `.alert`に切り出す。`CacheSyncObserver`と同じ理由（巨大な修飾子チェーンに
+        // 直接`.alert`を足すと型検査がタイムアウトすることを確認したため）。
+        .background(
+            RecordingSafetyAlertsObserver(
+                locationManager: locationManager,
+                isShowingAutoPauseAlert: $isShowingAutoPauseAlert,
+                isShowingMaxDurationAlert: $isShowingMaxDurationAlert,
+                onResumeRecording: {
+                    locationManager.resumeRecordingWalk()
+                    locationManager.acknowledgeAutoPauseNotice()
+                },
+                onSaveAndStop: {
+                    locationManager.acknowledgeAutoPauseNotice()
+                    stopWalkRecording(autoSave: false)
+                },
+                onMaxDurationExceeded: {
+                    stopWalkRecording(autoSave: true)
+                }
+            )
+        )
         .sheet(item: $tappedPoint) { point in
             StorySheetView(point: point, overlayMap: mapSession.selectedOverlay)
         }
@@ -341,6 +366,7 @@ struct MapScreen: View {
         }
         .onAppear {
             locationManager.requestPermissionIfNeeded()
+            locationManager.isAutoPauseForInactivityEnabled = AppSettings.autoPauseWhenStationary
             syncWatchState()
             recomputeActiveCheckpoints()
             recomputeSavedWalkPaths()
@@ -658,6 +684,7 @@ struct MapScreen: View {
         stepCounter.start()
         Task { await healthKitStepReader.requestAuthorizationIfNeeded() }
         Task { await healthKitWorkoutSaver.requestAuthorizationIfNeeded() }
+        locationManager.isAutoPauseForInactivityEnabled = AppSettings.autoPauseWhenStationary
         locationManager.startRecordingWalk()
         isFollowingCurrentLocation = true
         if let coordinate = locationManager.currentLocation {
@@ -745,7 +772,8 @@ struct MapScreen: View {
             mapSession.selectedOverlay = overlay
         }
         mapSession.overlayOpacity = draft.overlayOpacity
-        locationManager.resumeRecordingWalk(from: draft.coordinates)
+        locationManager.isAutoPauseForInactivityEnabled = AppSettings.autoPauseWhenStationary
+        locationManager.resumeRecordingWalk(from: draft.coordinates, startedAt: draft.startedAt)
         isFollowingCurrentLocation = true
         showOldMapForWalkingIfNeeded()
         recoveredWalkDraft = nil
@@ -1146,6 +1174,42 @@ private struct CacheSyncObserver: View {
             .onChange(of: savedRouteIDs) { _, _ in onSavedRoutesChanged() }
             .onChange(of: savedRouteHiddenFlags) { _, _ in onSavedRoutesChanged() }
             .onChange(of: collectedStampIDs) { _, _ in onCollectedStampsChanged() }
+    }
+}
+
+/// 「動きがない時の自動一時停止」「最長記録時間の超過」の通知用アラートを、
+/// `CacheSyncObserver`と同じ理由で独立したViewに切り出したもの。
+private struct RecordingSafetyAlertsObserver: View {
+    @ObservedObject var locationManager: LocationManager
+    @Binding var isShowingAutoPauseAlert: Bool
+    @Binding var isShowingMaxDurationAlert: Bool
+    let onResumeRecording: () -> Void
+    let onSaveAndStop: () -> Void
+    let onMaxDurationExceeded: () -> Void
+
+    var body: some View {
+        Color.clear
+            .allowsHitTesting(false)
+            .onChange(of: locationManager.didAutoPauseForInactivity) { _, didAutoPause in
+                if didAutoPause { isShowingAutoPauseAlert = true }
+            }
+            .onChange(of: locationManager.didExceedMaximumDuration) { _, didExceed in
+                if didExceed {
+                    onMaxDurationExceeded()
+                    isShowingMaxDurationAlert = true
+                }
+            }
+            .alert("しばらく動きがありません", isPresented: $isShowingAutoPauseAlert) {
+                Button("記録を続ける", action: onResumeRecording)
+                Button("ここまでを保存して終了する", action: onSaveAndStop)
+            } message: {
+                Text("20分以上動きがなかったため、記録を自動的に一時停止しました。まだ歩いていれば、動き出すと自動で再開します。")
+            }
+            .alert("記録を自動的に終了しました", isPresented: $isShowingMaxDurationAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("8時間以上記録が続いていたため、自動的に保存して終了しました。")
+            }
     }
 }
 

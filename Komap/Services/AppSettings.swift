@@ -5,6 +5,7 @@ import Foundation
 enum AppSettings {
     private static let photoFilterStyleKey = "photoFilterStyle"
     private static let currentLocationIconStyleKey = "currentLocationIconStyle"
+    private static let autoPauseWhenStationaryKey = "autoPauseWhenStationary"
     private static let cameraLinkHostKey = "cameraLinkHost"
     private static let printerLinkHostKey = "printerLinkHost"
     private static let printerSyncStampsKey = "printerSyncStamps"
@@ -31,6 +32,16 @@ enum AppSettings {
             return CurrentLocationIconStyle(rawValue: raw) ?? .blueDot
         }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: currentLocationIconStyleKey) }
+    }
+
+    /// 記録中、動きがない状態がしばらく続いたら自動で一時停止するか。Apple Watchなどで
+    /// 気づかず記録が回りっぱなしになるのを防ぐための機能。未設定時は`true`（有効）。
+    static var autoPauseWhenStationary: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: autoPauseWhenStationaryKey) == nil { return true }
+            return UserDefaults.standard.bool(forKey: autoPauseWhenStationaryKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: autoPauseWhenStationaryKey) }
     }
 
     /// 連携カメラのホスト名／IP、または完全なURL（例: "m5cam.local"）。未設定なら`nil`。

@@ -19,6 +19,34 @@ final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var isWalkPaused = false
     /// 記録中に蓄積されている歩行ルート（表示・保存用）。
     @Published private(set) var walkPath: [CLLocationCoordinate2D] = []
+    /// 動きがない時間が`stationaryAutoPauseInterval`を超え、自動的に一時停止した瞬間だけ
+    /// `true`になる（UIで確認を出す合図）。`acknowledgeAutoPauseNotice()`で戻す。
+    @Published private(set) var didAutoPauseForInactivity = false
+    /// 記録開始から`maximumRecordingDuration`を超え、自動的に終了すべきタイミングで
+    /// `true`になる（実際の保存・終了はMapScreen側が`stopWalkRecording`で行う）。
+    @Published private(set) var didExceedMaximumDuration = false
+
+    /// Apple Watchなどで気づかず記録が回りっぱなしになる不具合への保険として、
+    /// 動いているかどうかによらずこの時間を超えたら自動的に記録を終了する。
+    static let maximumRecordingDuration: TimeInterval = 8 * 3600
+    /// この時間、`movementResetThresholdMeters`以上の移動が無ければ自動的に一時停止する
+    /// （信号待ち・カフェで一休み等ではなく、その場に留まったまま気づかず記録し続ける
+    /// ことを防ぐため）。「設定」の「動きがない時に自動で一時停止」がオフの間は働かない。
+    private static let stationaryAutoPauseInterval: TimeInterval = 20 * 60
+    /// GPSのわずかなブレを「移動した」と誤検知しないための最小移動距離（メートル）。
+    private static let movementResetThresholdMeters: CLLocationDistance = 15
+
+    /// 動きがない時に自動で一時停止する機能を使うかどうか。「設定」から切り替える
+    /// （`MapScreen`が`AppSettings.autoPauseWhenStationary`を反映する）。
+    var isAutoPauseForInactivityEnabled = true
+
+    private var recordingStartedAt: Date?
+    /// 最後に大きく（`movementResetThresholdMeters`以上）移動した時刻・座標。
+    private var lastMovementAt: Date?
+    private var lastMovementCoordinate: CLLocationCoordinate2D?
+    /// 今の一時停止が、動きがないことによる自動一時停止かどうか。手動の一時停止では
+    /// `false`のままにし、動きが戻っても自動再開の対象にしない。
+    private var isPausedAutomatically = false
 
     private let manager: CLLocationManager
 
@@ -61,6 +89,7 @@ final class LocationManager: NSObject, ObservableObject {
         walkPath = currentLocation.map { [$0] } ?? []
         isRecordingWalk = true
         isWalkPaused = false
+        resetInactivityAndDurationTracking(startedAt: Date())
         // 徒歩の軌跡描画には`kCLLocationAccuracyBest`ほどの精度は不要なため、
         // 一段階落とした`kCLLocationAccuracyNearestTenMeters`でバッテリー消費を抑える。
         manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
@@ -70,13 +99,30 @@ final class LocationManager: NSObject, ObservableObject {
 
     /// クラッシュ・強制終了から復帰した際、一時保存しておいた軌跡（`coordinates`）に
     /// 続けて記録を再開する。`startRecordingWalk`と違い、軌跡を空にせず引き継ぐ。
-    func resumeRecordingWalk(from coordinates: [CLLocationCoordinate2D]) {
+    /// `startedAt`（元の記録開始日時）を引き継ぐことで、最長記録時間の判定も
+    /// 再開前からの経過時間で正しく行われるようにする。
+    func resumeRecordingWalk(from coordinates: [CLLocationCoordinate2D], startedAt: Date = Date()) {
         walkPath = coordinates
         isRecordingWalk = true
         isWalkPaused = false
+        resetInactivityAndDurationTracking(startedAt: startedAt)
         manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
         enableBackgroundUpdates()
         manager.startUpdatingLocation()
+    }
+
+    private func resetInactivityAndDurationTracking(startedAt: Date) {
+        recordingStartedAt = startedAt
+        lastMovementAt = Date()
+        lastMovementCoordinate = currentLocation
+        isPausedAutomatically = false
+        didAutoPauseForInactivity = false
+        didExceedMaximumDuration = false
+    }
+
+    /// 自動一時停止の確認を見せ終えたら呼ぶ（次の自動一時停止でまた合図できるようにする）。
+    func acknowledgeAutoPauseNotice() {
+        didAutoPauseForInactivity = false
     }
 
     /// 記録中は、画面をロックしたりアプリがバックグラウンドに回っても位置情報の
@@ -103,12 +149,16 @@ final class LocationManager: NSObject, ObservableObject {
     func pauseRecordingWalk() {
         guard isRecordingWalk else { return }
         isWalkPaused = true
+        isPausedAutomatically = false
     }
 
     /// 一時停止していた記録を再開する。
     func resumeRecordingWalk() {
         guard isRecordingWalk else { return }
         isWalkPaused = false
+        isPausedAutomatically = false
+        lastMovementAt = Date()
+        lastMovementCoordinate = currentLocation
     }
 
     /// 記録を終了し、それまでに蓄積した軌跡を返す。
@@ -116,6 +166,8 @@ final class LocationManager: NSObject, ObservableObject {
     func stopRecordingWalk() -> [CLLocationCoordinate2D] {
         isRecordingWalk = false
         isWalkPaused = false
+        isPausedAutomatically = false
+        recordingStartedAt = nil
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         disableBackgroundUpdates()
         let path = walkPath
@@ -140,9 +192,51 @@ extension LocationManager: CLLocationManagerDelegate {
         Task { @MainActor in
             self.currentLocation = coordinate
             self.locationUpdateTick += 1
-            if self.isRecordingWalk && !self.isWalkPaused {
-                self.walkPath.append(coordinate)
-            }
+            self.handleRecordingUpdate(at: coordinate)
+        }
+    }
+
+    /// 記録中のGPS更新1回分を、最長記録時間・動きがない時の自動一時停止／自動再開に
+    /// 反映する。Apple Watchなどでバックグラウンドのまま気づかず記録し続ける不具合への
+    /// 保険（`maximumRecordingDuration`）と、その場に留まったまま無駄に記録し続けるのを
+    /// 防ぐ仕組み（`stationaryAutoPauseInterval`）を両方ここでチェックする。
+    private func handleRecordingUpdate(at coordinate: CLLocationCoordinate2D) {
+        guard isRecordingWalk else { return }
+
+        if let recordingStartedAt, Date().timeIntervalSince(recordingStartedAt) >= Self.maximumRecordingDuration {
+            didExceedMaximumDuration = true
+            return
+        }
+
+        let hasMovedSignificantly: Bool = {
+            guard let lastMovementCoordinate else { return true }
+            let from = CLLocation(latitude: lastMovementCoordinate.latitude, longitude: lastMovementCoordinate.longitude)
+            let to = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            return from.distance(from: to) >= Self.movementResetThresholdMeters
+        }()
+
+        if isWalkPaused {
+            // 自動一時停止中だけ、動きが戻れば自動的に記録を再開する（手動の一時停止はそのまま）。
+            guard isPausedAutomatically, isAutoPauseForInactivityEnabled, hasMovedSignificantly else { return }
+            isWalkPaused = false
+            isPausedAutomatically = false
+            lastMovementAt = Date()
+            lastMovementCoordinate = coordinate
+            walkPath.append(coordinate)
+            return
+        }
+
+        walkPath.append(coordinate)
+
+        if hasMovedSignificantly {
+            lastMovementAt = Date()
+            lastMovementCoordinate = coordinate
+        } else if isAutoPauseForInactivityEnabled,
+                  let lastMovementAt,
+                  Date().timeIntervalSince(lastMovementAt) >= Self.stationaryAutoPauseInterval {
+            isWalkPaused = true
+            isPausedAutomatically = true
+            didAutoPauseForInactivity = true
         }
     }
 

@@ -32,6 +32,13 @@ struct ContentView: View {
                             .foregroundStyle(.secondary)
                     }
 
+                    if sessionManager.didAutoPauseForInactivity {
+                        Text("動きがないため自動的に一時停止しました")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .multilineTextAlignment(.center)
+                    }
+
                     if !sessionManager.isReachable {
                         Label("iPhoneと未接続", systemImage: "iphone.slash")
                             .font(.caption2)
@@ -63,6 +70,7 @@ struct ContentView: View {
 
                     case .paused:
                         Button {
+                            sessionManager.acknowledgeAutoPause()
                             sessionManager.resume()
                         } label: {
                             Label("再開", systemImage: "play.circle.fill")
