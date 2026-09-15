@@ -131,6 +131,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         context.coordinator.onCheckpointTap = onCheckpointTap
         context.coordinator.onPhotoPostTap = onPhotoPostTap
         context.coordinator.onUserPanned = onUserPanned
+        context.coordinator.mapView = mapView
+        // 歩行記録中（iPhone本体・Apple Watch伴走どちらでも）は、GPSの更新が来ない
+        // （信号待ち・写真撮影などで静止している）間もGPU側のテクスチャ喪失バグから
+        // 定期的に回復できるよう、カメラ操作にもGPS更新にも頼らない貼り直しタイマーを動かす。
+        context.coordinator.setWalkingHealingTimerActive(isRecordingWalk)
         if showAllOverlays {
             context.coordinator.applyAllOverlays(OldMapCatalog.allIncludingCustom, checkpoints: checkpoints, to: mapView)
         } else {
@@ -179,6 +184,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         var onUserPanned: () -> Void = {}
         var lastHandledMoveRequestID: UUID?
         var lastHandledReattachRequestID: UUID?
+        /// 貼り直しタイマー（`setWalkingHealingTimerActive`）が使う、最新の`mapView`への弱参照。
+        weak var mapView: GMSMapView?
+        /// 歩行記録中、GPSの更新にもカメラ操作にも頼らずオーバーレイを定期的に貼り直すタイマー。
+        private var walkingHealingTimer: Timer?
+        private static let walkingHealingInterval: TimeInterval = 4
 
         private var currentOverlay: GMSGroundOverlay?
         private var currentOverlayID: String?
@@ -898,7 +908,13 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 return
             }
             lastOverlayRefreshZoom = position.zoom
+            reattachOverlaysAndMarkers(to: mapView)
+        }
 
+        /// 古地図オーバーレイ・チェックポイントのマーカー・現在地マークを、画像の再デコードなど
+        /// 重い処理をせずに一旦外して貼り直す（GPU側のテクスチャ喪失バグからの回復策）。
+        /// `idleAt`（カメラのズーム変化時）と、歩行記録中の貼り直しタイマーの両方から呼ぶ。
+        private func reattachOverlaysAndMarkers(to mapView: GMSMapView) {
             if let currentOverlay {
                 currentOverlay.map = nil
                 currentOverlay.map = mapView
@@ -914,6 +930,27 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentLocationMarker.map = nil
                 currentLocationMarker.map = mapView
             }
+        }
+
+        /// 歩行記録中かどうかに応じて、定期貼り直しタイマーを開始・停止する。
+        /// GPSの更新が来ない（信号待ち・写真撮影などで静止している）間や、カメラを
+        /// 操作していない間も、一定間隔でオーバーレイを貼り直し続けることで、
+        /// 古地図が消えたまま長時間戻らない状態を防ぐ。
+        func setWalkingHealingTimerActive(_ isActive: Bool) {
+            guard isActive else {
+                walkingHealingTimer?.invalidate()
+                walkingHealingTimer = nil
+                return
+            }
+            guard walkingHealingTimer == nil else { return }
+            walkingHealingTimer = Timer.scheduledTimer(withTimeInterval: Self.walkingHealingInterval, repeats: true) { [weak self] _ in
+                guard let self, let mapView = self.mapView else { return }
+                self.reattachOverlaysAndMarkers(to: mapView)
+            }
+        }
+
+        deinit {
+            walkingHealingTimer?.invalidate()
         }
 
         /// チェックポイントのマーカーをタップした時に出す情報ウィンドウを、
