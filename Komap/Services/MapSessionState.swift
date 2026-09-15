@@ -28,7 +28,7 @@ struct CameraMoveRequest: Equatable {
 /// その時に使っていた古地図・不透明度を復元してマップタブへ切り替えるために使う。
 @MainActor
 final class MapSessionState: ObservableObject {
-    @Published var selectedOverlay: HistoricalOverlayMap? = OldMapCatalog.edoCastle
+    @Published var selectedOverlay: HistoricalOverlayMap? = OldMapCatalog.defaultOverlay
     @Published var overlayOpacity: Double = MapSessionState.defaultOverlayOpacity
     @Published var cameraMoveRequest: CameraMoveRequest?
     /// 古地図オーバーレイを貼り直したい（作り直しではなく、一旦マップから外して
@@ -61,7 +61,7 @@ final class MapSessionState: ObservableObject {
     /// 左上・下部の古地図コントロールをもう一度押すだけで復帰できるようにするために使う。
     func restoreOldMapForWalking() {
         if selectedOverlay == nil && !isShowingAllOverlays {
-            selectedOverlay = OldMapCatalog.edoCastle
+            selectedOverlay = OldMapCatalog.defaultOverlay
         }
         if overlayOpacity < Self.walkingOverlayOpacity {
             overlayOpacity = Self.walkingOverlayOpacity

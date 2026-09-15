@@ -6,6 +6,7 @@ enum AppSettings {
     private static let photoFilterStyleKey = "photoFilterStyle"
     private static let currentLocationIconStyleKey = "currentLocationIconStyle"
     private static let autoPauseWhenStationaryKey = "autoPauseWhenStationary"
+    private static let defaultOverlayMapIDKey = "defaultOverlayMapID"
     private static let cameraLinkHostKey = "cameraLinkHost"
     private static let printerLinkHostKey = "printerLinkHost"
     private static let printerSyncStampsKey = "printerSyncStamps"
@@ -42,6 +43,13 @@ enum AppSettings {
             return UserDefaults.standard.bool(forKey: autoPauseWhenStationaryKey)
         }
         set { UserDefaults.standard.set(newValue, forKey: autoPauseWhenStationaryKey) }
+    }
+
+    /// アプリ起動時・記録開始時などにデフォルトで選ばれる古地図のID。未設定なら`nil`
+    /// （その場合`OldMapCatalog.defaultOverlay`は同梱の「江戸城周辺」にフォールバックする）。
+    static var defaultOverlayMapID: String? {
+        get { nonEmpty(UserDefaults.standard.string(forKey: defaultOverlayMapIDKey)) }
+        set { UserDefaults.standard.set(newValue, forKey: defaultOverlayMapIDKey) }
     }
 
     /// 連携カメラのホスト名／IP、または完全なURL（例: "m5cam.local"）。未設定なら`nil`。

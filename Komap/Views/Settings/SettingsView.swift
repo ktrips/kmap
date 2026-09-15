@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var isSyncing = false
     @State private var syncMessage: String?
     @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
+    @State private var defaultOverlayMapID: String? = OldMapCatalog.defaultOverlay.id
     @State private var photoFilterStyle: PhotoFilterStyle = AppSettings.photoFilterStyle
     @State private var currentLocationIconStyle: CurrentLocationIconStyle = AppSettings.currentLocationIconStyle
     @State private var autoPauseWhenStationary: Bool = AppSettings.autoPauseWhenStationary
@@ -91,12 +92,16 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else if authService.isSignedIn {
-                LabeledContent("サインイン中") {
-                    Text(authService.displayName ?? "アカウント")
-                }
-
-                Button("サインアウト", role: .destructive) {
-                    authService.signOut()
+                HStack {
+                    Text("サインイン中：\(authService.displayName ?? "アカウント")")
+                        .font(.subheadline)
+                    Spacer()
+                    Button("サインアウト", role: .destructive) {
+                        authService.signOut()
+                    }
+                    .font(.caption)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
             } else {
                 Button {
@@ -150,10 +155,16 @@ struct SettingsView: View {
 
     private var overlayOpacitySection: some View {
         Section {
+            Picker("最初に表示する古地図", selection: $defaultOverlayMapID) {
+                ForEach(OldMapCatalog.all) { overlay in
+                    Text(overlay.title).tag(overlay.id as String?)
+                }
+            }
+            .onChange(of: defaultOverlayMapID) { _, newValue in
+                AppSettings.defaultOverlayMapID = newValue
+            }
+
             HStack(spacing: 10) {
-                Text("現在")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
                 Slider(
                     value: $defaultOverlayOpacity,
                     in: 0...1,
@@ -163,15 +174,13 @@ struct SettingsView: View {
                         }
                     }
                 )
-                Text("古地図")
+                Text("\(Int(defaultOverlayOpacity * 100))%")
                     .font(.caption.bold())
                     .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .trailing)
             }
-            Text("\(Int(defaultOverlayOpacity * 100))%")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         } header: {
-            Text("古地図のデフォルト濃度")
+            Text("古地図のデフォルト")
         } footer: {
             Text("マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
         }

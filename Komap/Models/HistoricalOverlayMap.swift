@@ -319,6 +319,13 @@ enum OldMapCatalog {
         kiminonaSeichi, ghibliSeichi, tokyoToilet,
     ]
 
+    /// アプリ起動時・記録開始時などにデフォルトで選ぶ古地図。「設定」の
+    /// 「古地図のデフォルト」で選んだものを`AppSettings.defaultOverlayMapID`から読み、
+    /// 未設定・削除済みなら同梱の「江戸城周辺」にフォールバックする。
+    static var defaultOverlay: HistoricalOverlayMap {
+        resolve(id: AppSettings.defaultOverlayMapID) ?? edoCastle
+    }
+
     /// 古地図選択シートでの分類（`OldMapPickerSheet`のセクション分けに使う）。
     enum Category: String, CaseIterable {
         case historicSites = "旧跡・名所巡り"
