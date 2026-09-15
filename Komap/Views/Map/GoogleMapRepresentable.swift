@@ -1,5 +1,3 @@
-import CoreImage
-import CoreImage.CIFilterBuiltins
 import CoreLocation
 import GoogleMaps
 import SwiftUI
@@ -143,7 +141,6 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             context.coordinator.applyOverlay(
                 overlayMap,
                 opacity: overlayOpacity,
-                livePath: liveWalkPath,
                 checkpoints: checkpoints,
                 reattachRequestID: reattachOverlayRequest,
                 to: mapView
@@ -203,28 +200,6 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 表示が切り替わった場合、古い世代の結果を`allOverlays`へ書き込まないようにする。
         private var allOverlaysGeneration = 0
         private var currentBaseImage: UIImage?
-        /// まだ通っていない場所用に、あらかじめぼかしておいた画像（古地図が変わる度に作り直す）。
-        private var currentBlurredImage: UIImage?
-        private var lastRevealedPointCount = 0
-        /// 最後にリビール画像を合成した時点の座標。GPSは5m移動するたびに更新されるが、
-        /// コリドー幅（`revealCorridorMeters`）は70mあるため、5m単位で毎回1600px四方の
-        /// 画像を全体再合成してGPUテクスチャへ再アップロードするのは無駄が大きく、
-        /// 歩行中の古地図表示のもたつきの主因になっていた。実際の見た目への影響なしに
-        /// 間引けるよう、前回合成時からの移動距離が`revealRecomputeMinDistanceMeters`
-        /// 未満の間は合成をスキップする（`lastRevealedPointCount`はそのままにしておき、
-        /// 次に間引きが解除された時にまとめて増えた区間を1回で描き足す）。
-        private var lastRevealedCoordinate: CLLocationCoordinate2D?
-        /// 最後にリビール画像を合成した時刻。GPSの間隔が空いた・座標が想定外の値になった等、
-        /// 距離ベースの間引きだけでは合成が長時間止まってしまう場合への保険として、
-        /// 一定時間（`revealRecomputeMaxIntervalSeconds`）経っていれば距離に関わらず作り直す。
-        private var lastRevealedAt: Date?
-        /// リビール画像の合成中に、GPSの更新が続けて何度も来た場合に合成タスクが
-        /// 積み重ならないようにするためのフラグ。
-        private var isComposingRevealedImage = false
-        /// 直近に合成し終えたリビール画像。次の合成では、この画像を土台にして
-        /// 新しく増えた区間だけ追加で「くっきり」描き足す（歩行が長くなるほど
-        /// 軌跡全体を毎回描き直すコストが増え続けるのを防ぐため）。
-        private var lastRevealedComposedImage: UIImage?
         /// `idleAt`でのオーバーレイ・マーカー貼り直しワークアラウンドを、最後に
         /// 実行した時のズーム値。通常のパン・小さなズーム操作のたびに毎回貼り直すと、
         /// 古地図のテクスチャ再アップロードとチェックポイントの前面出し直しが
@@ -278,19 +253,6 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 直近に投稿写真ピンへ適用した「記録中で薄く表示」状態。
         private var arePhotoPostsDimmed = false
 
-        /// 歩いた場所を中心に、この幅（メートル）だけ古地図を宝探しのようにはっきり見せる。
-        private let revealCorridorMeters: Double = 70
-        /// リビール画像の再合成を間引く最小移動距離（メートル）。コリドー幅より
-        /// 十分小さく保ち、見た目の追従が粗くならないようにする。
-        private static let revealRecomputeMinDistanceMeters: Double = 20
-        /// 距離ベースの間引きが働いていても、これだけ時間が経っていれば必ず作り直す保険
-        /// （`lastRevealedAt`参照）。
-        private static let revealRecomputeMaxIntervalSeconds: TimeInterval = 5
-        /// 記録中、「まだ通っていない場所」の不透明度の下限。スライダーがこれより低くても、
-        /// 宝探し演出（通った道だけくっきり）を保ったまま、歩いている間は古地図全体が
-        /// はっきり見えるようにする（以前は0.6で、ぼかしと合わさって古地図全体が
-        /// 薄く霞んで見えづらいという声があったため引き上げた）。
-        private static let minimumUnrevealedAlpha: CGFloat = 0.88
         /// 歩いた道の縁取りの太さ（画面上のポイント数）。中の透かし塗りよりわずかに太いだけの、
         /// 細く濃い縁として見せる。
         private let walkedTrailBorderWidth: CGFloat = 14.4 // 18の20%減
@@ -430,13 +392,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             allOverlaysGeneration += 1
         }
 
-        /// 古地図を貼り替える。記録中の軌跡（`livePath`）が2点以上あれば、
-        /// 通った場所だけくっきり見えるよう画像を合成し直す。それ以外は
-        /// スライダーの不透明度をそのまま全体にかける、これまで通りの表示。
+        /// 古地図を貼り替える。歩行記録中かどうかによらず、常にスライダーの不透明度を
+        /// 画像全体にかけて表示する（以前あった、通った場所だけくっきり見せる
+        /// 「宝探し」演出は廃止。歩行中も古地図がずっとちゃんと見えるようにするため）。
         func applyOverlay(
             _ overlayMap: HistoricalOverlayMap?,
             opacity: Float,
-            livePath: [CLLocationCoordinate2D],
             checkpoints: [HistoricSite] = [],
             reattachRequestID: UUID? = nil,
             to mapView: GMSMapView
@@ -446,8 +407,6 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentOverlay = nil
                 currentOverlayID = nil
                 currentBaseImage = nil
-                lastRevealedPointCount = 0
-                lastRevealedCoordinate = nil
                 return
             }
 
@@ -464,10 +423,6 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if !isNewOverlay && shouldForceReattach, let currentOverlay {
                 currentOverlay.map = nil
                 currentOverlay.map = mapView
-                // リビール演出（宝探し）の間引き状態もリセットし、次のGPS更新・
-                // 次の`updateUIView`で必ず作り直す。歩行中に古地図が見えなくなった時、
-                // 同じ古地図をもう一度選ぶだけで復帰できるようにするため。
-                lastRevealedCoordinate = nil
             }
             if isNewOverlay {
                 // 古いオーバーレイのテクスチャをすぐに手放せるよう、`.map = nil`の前に
@@ -475,9 +430,6 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 // テクスチャアトラスがすぐには解放されないことがある）。
                 currentOverlay?.icon = nil
                 currentOverlay?.map = nil
-                currentBlurredImage = nil
-                lastRevealedPointCount = 0
-                lastRevealedCoordinate = nil
 
                 let bounds = GMSCoordinateBounds(
                     coordinate: overlayMap.southWest,
@@ -519,15 +471,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                             guard let self, self.currentOverlayID == overlayID else { return }
                             self.currentBaseImage = downsampled
                             self.currentOverlay?.icon = downsampled
-                            // 記録中（宝探し演出）でなければ、この時点でスライダーの
-                            // 不透明度を反映しておく（次の`updateUIView`を待たず、
-                            // 画像が現れた瞬間から正しい濃さで見えるようにする）。
-                            if livePath.count < 2 {
-                                self.currentOverlay?.opacity = opacity
-                            }
-                            if let downsampled {
-                                self.startBlurGeneration(for: downsampled, overlayID: overlayID)
-                            }
+                            // この時点でスライダーの不透明度を反映しておく（次の`updateUIView`を
+                            // 待たず、画像が現れた瞬間から正しい濃さで見えるようにする）。
+                            self.currentOverlay?.opacity = opacity
                         }
                     }
                 }
@@ -563,248 +509,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                         )
                     )
                 }
-
-                // ぼかし画像の生成は重いので、メインスレッドをブロックしないよう
-                // バックグラウンドで計算してから後で使う（先に元画像で表示しておく）。
-                // 縮小画像がまだキャッシュされていない場合はここではまだ`currentBaseImage`が
-                // `nil`のため、縮小完了時のコールバック側（上）で改めて呼び出す。
-                if let baseImage = currentBaseImage {
-                    startBlurGeneration(for: baseImage, overlayID: overlayID)
-                }
             }
 
             guard let currentOverlay, let baseImage = currentBaseImage else { return }
 
-            if livePath.count >= 2 {
-                // 記録中はスライダーの不透明度を「まだ通っていない場所」の薄さとして使い、
-                // 通った場所だけくっきり見えるように画像を合成し直す。この不透明度は
-                // 合成画像のピクセルに直接焼き込むため、オーバーレイ自体の`opacity`は
-                // 常に1にしておく（記録開始前にスライダーで下げていた値が残っていると、
-                // 二重に暗くなり古地図がほとんど見えなくなってしまうため）。
-                currentOverlay.opacity = 1
-                // 合成処理は重いのでメインスレッドをブロックしないようバックグラウンドで行う。
-                // さらに、GPSの5m更新のたびに合成するとコリドー幅（70m）に対して過剰な
-                // 頻度でテクスチャ再アップロードが走り歩行中の表示がもたつくため、
-                // 一定距離動くまでは間引く（`lastRevealedCoordinate`参照）。
-                let movedFarEnoughToRecompute: Bool = {
-                    guard let last = livePath.last else { return false }
-                    guard let lastRevealedCoordinate else { return true }
-                    if let lastRevealedAt, Date().timeIntervalSince(lastRevealedAt) >= Self.revealRecomputeMaxIntervalSeconds {
-                        // 距離が縮まらない（GPSが飛び飛びに届く、ほぼ足踏み状態等）まま
-                        // 間引きが効き続けて、古地図の見た目が長時間止まって「消えたまま」に
-                        // 見えることがないよう、一定時間経てば距離に関わらず作り直す。
-                        return true
-                    }
-                    let from = CLLocation(latitude: lastRevealedCoordinate.latitude, longitude: lastRevealedCoordinate.longitude)
-                    let to = CLLocation(latitude: last.latitude, longitude: last.longitude)
-                    return from.distance(from: to) >= Self.revealRecomputeMinDistanceMeters
-                }()
-                if !isComposingRevealedImage && (isNewOverlay || (livePath.count != lastRevealedPointCount && movedFarEnoughToRecompute)) {
-                    let previousPointCount = isNewOverlay ? 0 : lastRevealedPointCount
-                    lastRevealedPointCount = livePath.count
-                    lastRevealedCoordinate = livePath.last
-                    lastRevealedAt = Date()
-                    isComposingRevealedImage = true
-                    let southWest = overlayMap.southWest
-                    let northEast = overlayMap.northEast
-                    let corridorMeters = revealCorridorMeters
-                    // スライダーの不透明度が低いままだと「まだ通っていない場所」がほぼ見えなくなり、
-                    // 歩いている間ずっと古地図が表示されていないように感じてしまうため、
-                    // 宝探し演出（通った道だけくっきり）は保ちつつ、下限の見えやすさを確保する。
-                    let faintAlpha = max(CGFloat(opacity), Self.minimumUnrevealedAlpha)
-                    let blurredBase = currentBlurredImage ?? baseImage
-                    let overlayRef = currentOverlay
-                    // 前回合成済みの画像があり、かつ新しく増えた区間だけなら、そこを土台にして
-                    // 増えた末尾区間だけ追加でくっきり描き足す（軌跡全体を毎回描き直すコストが
-                    // 歩行時間に比例して増え続けるのを防ぐ）。古地図を切り替えた直後や、
-                    // まだ土台が無い時は、これまで通り軌跡全体から作り直す。
-                    let previousComposed = (previousPointCount > 0 && previousPointCount <= livePath.count)
-                        ? lastRevealedComposedImage
-                        : nil
-                    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                        let image: UIImage?
-                        if let previousComposed, previousPointCount >= 1 {
-                            let newSegment = Array(livePath[(previousPointCount - 1)...])
-                            image = Self.incrementalRevealedImage(
-                                previousComposed: previousComposed,
-                                base: baseImage,
-                                southWest: southWest,
-                                northEast: northEast,
-                                newSegment: newSegment,
-                                corridorMeters: corridorMeters
-                            )
-                        } else {
-                            image = Self.revealedImage(
-                                base: baseImage,
-                                blurredBase: blurredBase,
-                                southWest: southWest,
-                                northEast: northEast,
-                                path: livePath,
-                                corridorMeters: corridorMeters,
-                                faintAlpha: faintAlpha
-                            )
-                        }
-                        DispatchQueue.main.async {
-                            overlayRef.icon = image
-                            self?.lastRevealedComposedImage = image
-                            self?.isComposingRevealedImage = false
-                        }
-                    }
-                }
-            } else {
-                // 記録していない時は、これまで通りスライダーの不透明度を全体にかける。
-                if lastRevealedPointCount != 0 {
-                    currentOverlay.icon = baseImage
-                    lastRevealedPointCount = 0
-                    lastRevealedCoordinate = nil
-                    lastRevealedComposedImage = nil
-                }
-                currentOverlay.opacity = opacity
+            // 歩行記録中かどうかによらず、ベース画像をそのままスライダーの不透明度で見せる。
+            if currentOverlay.icon !== baseImage {
+                currentOverlay.icon = baseImage
             }
-        }
-
-        /// 古地図の画像に、`path`に沿った太い帯（`corridorMeters`幅）だけくっきり見せ、
-        /// それ以外はぼかした上で`faintAlpha`で薄く見せた画像を合成する（宝探しのような演出）。
-        private static func revealedImage(
-            base: UIImage,
-            blurredBase: UIImage,
-            southWest: CLLocationCoordinate2D,
-            northEast: CLLocationCoordinate2D,
-            path: [CLLocationCoordinate2D],
-            corridorMeters: Double,
-            faintAlpha: CGFloat
-        ) -> UIImage? {
-            guard let cgImage = base.cgImage else { return base }
-            let pixelSize = CGSize(width: cgImage.width, height: cgImage.height)
-            guard pixelSize.width > 0, pixelSize.height > 0 else { return base }
-
-            let latSpan = northEast.latitude - southWest.latitude
-            let lngSpan = northEast.longitude - southWest.longitude
-            guard latSpan > 0, lngSpan > 0 else { return base }
-
-            // 緯度1度あたりの実距離はほぼ一定だが、経度1度あたりの実距離は緯度に応じて縮む。
-            let centerLatRadians = (southWest.latitude + northEast.latitude) / 2 * .pi / 180
-            let metersPerDegreeLat = 111_320.0
-            let metersPerDegreeLng = 111_320.0 * cos(centerLatRadians)
-            let pixelsPerMeterX = pixelSize.width / (lngSpan * metersPerDegreeLng)
-            let pixelsPerMeterY = pixelSize.height / (latSpan * metersPerDegreeLat)
-            let corridorWidthPixels = max(CGFloat(corridorMeters) * CGFloat((pixelsPerMeterX + pixelsPerMeterY) / 2), 6)
-
-            func point(for coordinate: CLLocationCoordinate2D) -> CGPoint {
-                let x = (coordinate.longitude - southWest.longitude) / lngSpan * pixelSize.width
-                let y = (northEast.latitude - coordinate.latitude) / latSpan * pixelSize.height
-                return CGPoint(x: x, y: y)
-            }
-
-            let renderer = UIGraphicsImageRenderer(size: pixelSize)
-            let composited = renderer.image { context in
-                let cg = context.cgContext
-                let fullRect = CGRect(origin: .zero, size: pixelSize)
-
-                // まず全体を、ぼかした上で薄く描く（まだ通っていない場所の見え方）。
-                blurredBase.draw(in: fullRect, blendMode: .normal, alpha: faintAlpha)
-
-                // 通った場所だけ、太い帯でくっきり鮮明に見せる。
-                cg.saveGState()
-                cg.setLineWidth(corridorWidthPixels)
-                cg.setLineCap(.round)
-                cg.setLineJoin(.round)
-                let corridorPath = CGMutablePath()
-                let points = path.map(point(for:))
-                if let first = points.first {
-                    corridorPath.move(to: first)
-                    for p in points.dropFirst() {
-                        corridorPath.addLine(to: p)
-                    }
-                }
-                cg.addPath(corridorPath)
-                cg.replacePathWithStrokedPath()
-                cg.clip()
-                base.draw(in: fullRect, blendMode: .normal, alpha: 1)
-                cg.restoreGState()
-            }
-            return composited
-        }
-
-        /// `revealedImage`が作った合成済み画像を土台に、新しく増えた軌跡区間
-        /// （`newSegment`。前回の終端点＋新しい点、を含む）だけ追加でくっきり描き足す。
-        /// まだ通っていない場所は`previousComposed`側で既にぼかし済みのため、ここでは
-        /// 新区間のコリドーだけ重ねて描けばよく、軌跡全体を毎回描き直す必要がない
-        /// （歩行が長くなっても1回あたりの合成コストが増えないようにするため）。
-        private static func incrementalRevealedImage(
-            previousComposed: UIImage,
-            base: UIImage,
-            southWest: CLLocationCoordinate2D,
-            northEast: CLLocationCoordinate2D,
-            newSegment: [CLLocationCoordinate2D],
-            corridorMeters: Double
-        ) -> UIImage? {
-            guard let cgImage = base.cgImage else { return previousComposed }
-            let pixelSize = CGSize(width: cgImage.width, height: cgImage.height)
-            guard pixelSize.width > 0, pixelSize.height > 0, newSegment.count >= 2 else { return previousComposed }
-
-            let latSpan = northEast.latitude - southWest.latitude
-            let lngSpan = northEast.longitude - southWest.longitude
-            guard latSpan > 0, lngSpan > 0 else { return previousComposed }
-
-            let centerLatRadians = (southWest.latitude + northEast.latitude) / 2 * .pi / 180
-            let metersPerDegreeLat = 111_320.0
-            let metersPerDegreeLng = 111_320.0 * cos(centerLatRadians)
-            let pixelsPerMeterX = pixelSize.width / (lngSpan * metersPerDegreeLng)
-            let pixelsPerMeterY = pixelSize.height / (latSpan * metersPerDegreeLat)
-            let corridorWidthPixels = max(CGFloat(corridorMeters) * CGFloat((pixelsPerMeterX + pixelsPerMeterY) / 2), 6)
-
-            func point(for coordinate: CLLocationCoordinate2D) -> CGPoint {
-                let x = (coordinate.longitude - southWest.longitude) / lngSpan * pixelSize.width
-                let y = (northEast.latitude - coordinate.latitude) / latSpan * pixelSize.height
-                return CGPoint(x: x, y: y)
-            }
-
-            let renderer = UIGraphicsImageRenderer(size: pixelSize)
-            return renderer.image { context in
-                let cg = context.cgContext
-                let fullRect = CGRect(origin: .zero, size: pixelSize)
-
-                // 土台はすでに合成済みの画像をそのまま描くだけ（ここが全体再合成を避ける肝）。
-                previousComposed.draw(in: fullRect, blendMode: .normal, alpha: 1)
-
-                // 新しく増えた区間だけ、太い帯でくっきり鮮明に上書きする。
-                cg.saveGState()
-                cg.setLineWidth(corridorWidthPixels)
-                cg.setLineCap(.round)
-                cg.setLineJoin(.round)
-                let corridorPath = CGMutablePath()
-                let points = newSegment.map(point(for:))
-                if let first = points.first {
-                    corridorPath.move(to: first)
-                    for p in points.dropFirst() {
-                        corridorPath.addLine(to: p)
-                    }
-                }
-                cg.addPath(corridorPath)
-                cg.replacePathWithStrokedPath()
-                cg.clip()
-                base.draw(in: fullRect, blendMode: .normal, alpha: 1)
-                cg.restoreGState()
-            }
-        }
-
-        /// `CIContext`はGPUコンテキストの初期化コストが大きいため、呼び出しのたびに
-        /// 作り直さず使い回す。
-        private static let sharedCIContext = CIContext()
-
-        /// 「まだ通っていない場所」を宝探しの霧のようにぼんやりさせるための、
-        /// ガウスぼかしをかけた画像を作る。古地図が変わる度に一度だけ計算してキャッシュする。
-        private static func blurredImage(_ image: UIImage) -> UIImage? {
-            guard let ciImage = CIImage(image: image) else { return nil }
-            let filter = CIFilter.gaussianBlur()
-            filter.inputImage = ciImage
-            // 以前は14で、まだ通っていない場所の古地図がぼやけすぎて何の絵か
-            // 分かりにくいという声があったため、輪郭が判別できる程度まで弱めた。
-            filter.radius = 5
-            guard let output = filter.outputImage?.cropped(to: ciImage.extent) else { return nil }
-            guard let cgImage = sharedCIContext.createCGImage(output, from: output.extent) else { return nil }
-            return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+            currentOverlay.opacity = opacity
         }
 
         /// 単体表示（`applyOverlay`）でダウンサンプルした結果を、古地図IDごとに使い回す
@@ -813,18 +526,6 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 件数に上限を持たせ、古地図を何枚も切り替えるセッションで（1枚あたり1600px四方
         /// までのデコード済み画像が）メモリに溜まり続けないようにする。
         private static var singleOverlayImageCache = BoundedImageCache(capacity: 6)
-
-        /// ぼかし画像の生成をバックグラウンドで行い、完了時に（今も同じ古地図を
-        /// 選択中であれば）`currentBlurredImage`へ反映する。
-        private func startBlurGeneration(for baseImage: UIImage, overlayID: String) {
-            DispatchQueue.global(qos: .utility).async { [weak self] in
-                let blurred = Self.blurredImage(baseImage)
-                DispatchQueue.main.async {
-                    guard self?.currentOverlayID == overlayID else { return }
-                    self?.currentBlurredImage = blurred
-                }
-            }
-        }
 
         /// 同梱の古地図画像は、この環境のGoogle Maps SDKが確実に描画できることを
         /// 確認済みの1024×1024で統一している（`HistoricalOverlayMap.imageAssetName`の
