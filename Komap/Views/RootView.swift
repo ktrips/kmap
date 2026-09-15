@@ -96,7 +96,6 @@ private struct MainTabView: View {
 private struct MapTopLeftControls: View {
     @EnvironmentObject private var mapSession: MapSessionState
     @State private var isPresentingOldMapPicker = false
-    @State private var isPresentingStampBook = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -107,14 +106,6 @@ private struct MapTopLeftControls: View {
                     .roundControlButtonStyle()
             }
             .accessibilityLabel("マイ時空旅")
-
-            Button {
-                isPresentingStampBook = true
-            } label: {
-                Image(systemName: "seal.fill")
-                    .roundControlButtonStyle()
-            }
-            .accessibilityLabel("御朱印")
 
             Button {
                 // 歩行記録中は選択シートを開かず、その場ですぐ古地図を復活・貼り直す
@@ -143,23 +134,6 @@ private struct MapTopLeftControls: View {
                     mapSession.isShowingOldMapSearch = true
                 }
             )
-        }
-        .sheet(isPresented: $isPresentingStampBook) {
-            NavigationStack {
-                StampListView(title: "マイ御朱印")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button {
-                                isPresentingStampBook = false
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "map")
-                                    Text("マップに戻る")
-                                }
-                            }
-                        }
-                    }
-            }
         }
     }
 }

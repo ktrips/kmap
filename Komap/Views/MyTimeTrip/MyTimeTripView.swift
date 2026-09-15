@@ -14,7 +14,8 @@ struct MyTimeTripView: View {
 
     private enum ContentTab: String, CaseIterable, Identifiable {
         case mine = "マイ時空旅"
-        case everyone = "みんなの時空旅"
+        case stamps = "マイ御朱印"
+        case everyone = "みんなの旅"
         var id: String { rawValue }
     }
     @State private var contentTab: ContentTab = .mine
@@ -117,9 +118,12 @@ struct MyTimeTripView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
 
-                if contentTab == .everyone {
+                switch contentTab {
+                case .everyone:
                     EveryoneTimeTripView()
-                } else {
+                case .stamps:
+                    StampListView()
+                case .mine:
                     Group {
                         if places.isEmpty && walkRoutes.isEmpty && collectedStamps.isEmpty && photoPosts.isEmpty {
                             emptyState
