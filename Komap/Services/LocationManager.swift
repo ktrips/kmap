@@ -9,6 +9,10 @@ import Foundation
 @MainActor
 final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var currentLocation: CLLocationCoordinate2D?
+    /// 進行方向（true northから時計回りの度数、0..<360）。GPSが有効な進行方向を
+    /// 算出できていない間（静止中・信号が弱い時など）は`nil`。地図上の現在地マークに
+    /// 添える小さな矢印（進んでいる方向）の表示に使う。
+    @Published private(set) var currentCourse: CLLocationDirection?
     /// 現在地が更新されるたびに増える値。`CLLocationCoordinate2D`は`Equatable`ではないため、
     /// `.onChange`で現在地の更新（＝カメラ追従のタイミング）を検知するためのカウンタとして使う。
     @Published private(set) var locationUpdateTick = 0
@@ -188,9 +192,14 @@ extension LocationManager: CLLocationManagerDelegate {
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let coordinate = locations.last?.coordinate else { return }
+        guard let location = locations.last else { return }
+        let coordinate = location.coordinate
+        // `course`は進行方向を算出できていない時（静止中・GPS信号が弱い時など）は
+        // 負の値になるため、その間は矢印を出さないよう`nil`にしておく。
+        let course = location.course >= 0 ? location.course : nil
         Task { @MainActor in
             self.currentLocation = coordinate
+            self.currentCourse = course
             self.locationUpdateTick += 1
             self.handleRecordingUpdate(at: coordinate)
         }

@@ -56,6 +56,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     var overlayOpacity: Float
     /// 現在地。自前で描く現在地マーク（`applyCurrentLocationMarker`）の位置に使う。
     var currentLocation: CLLocationCoordinate2D?
+    /// 進行方向（true northから時計回りの度数）。歩行記録中、現在地マークに
+    /// 添える小さな矢印の向きに使う。算出できていない間は`nil`（矢印を出さない）。
+    var currentHeading: CLLocationDirection?
     /// 現在地マークの見た目。「設定」画面で選べる。
     var currentLocationIconStyle: CurrentLocationIconStyle = .blueDot
     /// `true`の間は`overlayMap`単体ではなく、同梱・登録済みの古地図すべてを
@@ -156,7 +159,13 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             mapView.animate(to: GMSCameraPosition.camera(withTarget: request.coordinate, zoom: request.zoom ?? mapView.camera.zoom))
         }
 
-        context.coordinator.applyCurrentLocationMarker(currentLocation, emphasized: isRecordingWalk, style: currentLocationIconStyle, to: mapView)
+        context.coordinator.applyCurrentLocationMarker(
+            currentLocation,
+            heading: currentHeading,
+            emphasized: isRecordingWalk,
+            style: currentLocationIconStyle,
+            to: mapView
+        )
     }
 
     func makeCoordinator() -> Coordinator {
@@ -250,6 +259,11 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var isCurrentLocationMarkerEmphasized = false
         /// 直近に描いた現在地マークの見た目スタイル。「設定」で変えた時だけアイコンを作り直す。
         private var currentLocationIconStyleUsed: CurrentLocationIconStyle?
+        /// 歩行記録中、進行方向を示す小さな三角を現在地マークのすぐ外側に表示するための
+        /// 専用マーカー（本体のマーカーは回転させず、この三角だけ`rotation`で向きを変える）。
+        private var headingMarker: GMSMarker?
+        /// 進行方向の三角アイコン。向きが変わっても作り直さず`rotation`だけ変えるため、使い回す。
+        private static let headingIcon: UIImage = makeHeadingIcon()
         /// 直近に投稿写真ピンへ適用した「記録中で薄く表示」状態。
         private var arePhotoPostsDimmed = false
 
@@ -631,6 +645,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentLocationMarker.map = nil
                 currentLocationMarker.map = mapView
             }
+            if let headingMarker {
+                headingMarker.map = nil
+                headingMarker.map = mapView
+            }
         }
 
         /// 歩行記録中かどうかに応じて、定期貼り直しタイマーを開始・停止する。
@@ -983,6 +1001,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 見た目（`style`）は「設定」画面で選べる（`CurrentLocationIconStyle`）。
         func applyCurrentLocationMarker(
             _ coordinate: CLLocationCoordinate2D?,
+            heading: CLLocationDirection?,
             emphasized: Bool,
             style: CurrentLocationIconStyle,
             to mapView: GMSMapView
@@ -990,6 +1009,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             guard let coordinate else {
                 currentLocationMarker?.map = nil
                 currentLocationMarker = nil
+                headingMarker?.map = nil
+                headingMarker = nil
                 return
             }
 
@@ -1010,6 +1031,52 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 marker.isTappable = false
                 marker.map = mapView
                 currentLocationMarker = marker
+            }
+
+            // 歩行記録中、進行方向が分かっている間だけ、現在地マークから外向きに
+            // 突き出す小さな三角で進んでいる方向を示す。静止中・記録していない時は隠す。
+            guard emphasized, let heading else {
+                headingMarker?.map = nil
+                return
+            }
+            if let headingMarker {
+                headingMarker.position = coordinate
+                headingMarker.rotation = heading
+                headingMarker.map = mapView
+            } else {
+                let marker = GMSMarker(position: coordinate)
+                marker.icon = Self.headingIcon
+                marker.groundAnchor = CGPoint(x: 0.5, y: 1.0)
+                marker.rotation = heading
+                marker.zIndex = Self.currentLocationMarkerZIndex + 1
+                marker.isTappable = false
+                marker.map = mapView
+                headingMarker = marker
+            }
+        }
+
+        /// 進行方向を示す小さな三角アイコン。土台（下辺）を現在地マークの中心に
+        /// 合わせて描くため、`groundAnchor`は下辺中央（(0.5, 1.0)）にする
+        /// （`applyCurrentLocationMarker`参照）。
+        private static func makeHeadingIcon() -> UIImage {
+            let size = CGSize(width: 16, height: 20)
+            let renderer = UIGraphicsImageRenderer(size: size)
+            return renderer.image { context in
+                let cg = context.cgContext
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: size.width / 2, y: 0))
+                path.addLine(to: CGPoint(x: size.width, y: size.height))
+                path.addLine(to: CGPoint(x: 0, y: size.height))
+                path.closeSubpath()
+
+                cg.addPath(path)
+                cg.setFillColor(UIColor.systemBlue.cgColor)
+                cg.fillPath()
+
+                cg.addPath(path)
+                cg.setStrokeColor(UIColor.white.cgColor)
+                cg.setLineWidth(1.5)
+                cg.strokePath()
             }
         }
 

@@ -215,6 +215,7 @@ struct MapScreen: View {
                 overlayMap: mapSession.selectedOverlay,
                 overlayOpacity: Float(mapSession.overlayOpacity),
                 currentLocation: locationManager.currentLocation,
+                currentHeading: locationManager.currentCourse,
                 currentLocationIconStyle: currentLocationIconStyle,
                 showAllOverlays: mapSession.isShowingAllOverlays,
                 moveCameraRequest: mapSession.cameraMoveRequest,
