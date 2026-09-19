@@ -48,6 +48,14 @@ service cloud.firestore {
       }
     }
 
+    // 「みんなの古地図」: 追加した古地図の公開データ。読み取りは誰でも可。
+    // 作成・更新・削除は、ownerUserIDが自分のuidの文書だけ。
+    match /sharedOverlayMaps/{mapId} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.resource.data.ownerUserID == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.ownerUserID == request.auth.uid;
+    }
+
     // 「みんなの時空旅」ランキング用の公開統計。表示名・今週/通算ポイントのみを持ち、
     // 本人だけが自分のドキュメントを書ける。全員のランキングを見せるため読み取りは誰でも可。
     match /userPublicStats/{userId} {

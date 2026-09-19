@@ -11,6 +11,7 @@ struct CustomOverlayEditorView: View {
     var onDeleted: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authService: AuthService
     @State private var checkpoints: [HistoricSite]
     @State private var pendingCoordinate: CLLocationCoordinate2D?
     @State private var newPointName = ""
@@ -21,6 +22,10 @@ struct CustomOverlayEditorView: View {
     @State private var editedTitle = ""
     @State private var isPublic: Bool
     @State private var isShowingUpdateSheet = false
+    @State private var isSyncingCloud = false
+    @State private var cloudErrorMessage: String?
+
+    private let shareService = OverlayMapShareService()
 
     init(overlay: HistoricalOverlayMap, onDeleted: @escaping () -> Void = {}) {
         _overlay = State(initialValue: overlay)
@@ -67,7 +72,7 @@ struct CustomOverlayEditorView: View {
                             Label("地図名を変更", systemImage: "pencil")
                         }
 
-                        Picker(selection: $isPublic) {
+                        Picker(selection: publicBinding) {
                             Label("自分だけ", systemImage: "lock.fill").tag(false)
                             Label("公開", systemImage: "person.2.fill").tag(true)
                         } label: {
@@ -94,8 +99,20 @@ struct CustomOverlayEditorView: View {
                     .accessibilityLabel("メニュー")
                 }
             }
-            .onChange(of: isPublic) { _, newValue in
-                CustomOverlayMapStore.setPublic(id: overlay.id, newValue)
+            .overlay(alignment: .bottom) {
+                if isSyncingCloud || cloudErrorMessage != nil {
+                    Text(cloudErrorMessage ?? "クラウドと同期中…")
+                        .font(.caption.bold())
+                        .foregroundStyle(cloudErrorMessage == nil ? Color.primary : Color.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            cloudErrorMessage == nil ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color.red),
+                            in: Capsule()
+                        )
+                        .padding(.bottom, 24)
+                        .onTapGesture { cloudErrorMessage = nil }
+                }
             }
             .alert("地図名を変更", isPresented: $isRenaming) {
                 TextField("地図名", text: $editedTitle)
@@ -105,6 +122,7 @@ struct CustomOverlayEditorView: View {
             .sheet(isPresented: $isShowingUpdateSheet) {
                 UpdateOverlayMapSheet(overlay: overlay) {
                     reloadOverlay()
+                    resyncIfPublic()
                 }
             }
             .alert("新しいポイントを追加", isPresented: Binding(
@@ -130,6 +148,7 @@ struct CustomOverlayEditorView: View {
                 Button("「\(site.name)」を削除", role: .destructive) {
                     CustomOverlayMapStore.deleteCheckpoint(siteID: site.id)
                     checkpoints = HistoricSiteCatalog.sites(forOverlayID: overlay.id)
+                    resyncIfPublic()
                 }
                 Button("キャンセル", role: .cancel) {}
             }
@@ -139,7 +158,13 @@ struct CustomOverlayEditorView: View {
                 titleVisibility: .visible
             ) {
                 Button("古地図とポイントをすべて削除", role: .destructive) {
-                    CustomOverlayMapStore.deleteOverlay(id: overlay.id)
+                    let deletedID = overlay.id
+                    let wasPublic = isPublic
+                    let userID = authService.userID
+                    CustomOverlayMapStore.deleteOverlay(id: deletedID)
+                    if wasPublic {
+                        Task { await OverlayMapShareService().unpublish(mapID: deletedID, userID: userID) }
+                    }
                     onDeleted()
                     dismiss()
                 }
@@ -150,11 +175,59 @@ struct CustomOverlayEditorView: View {
         }
     }
 
+    /// 公開範囲の切り替え。公開にする時はクラウドへ上げ、失敗したら元に戻す。
+    private var publicBinding: Binding<Bool> {
+        Binding(
+            get: { isPublic },
+            set: { newValue in
+                guard newValue != isPublic else { return }
+                Task { await setPublic(newValue) }
+            }
+        )
+    }
+
+    private func setPublic(_ newValue: Bool) async {
+        isSyncingCloud = true
+        cloudErrorMessage = nil
+        defer { isSyncingCloud = false }
+        if newValue {
+            do {
+                try await shareService.publish(
+                    mapID: overlay.id, userID: authService.userID, ownerDisplayName: authService.displayName
+                )
+            } catch {
+                cloudErrorMessage = error.localizedDescription
+                return
+            }
+        } else {
+            await shareService.unpublish(mapID: overlay.id, userID: authService.userID)
+        }
+        isPublic = newValue
+        CustomOverlayMapStore.setPublic(id: overlay.id, newValue)
+    }
+
+    /// 公開中の古地図を編集した時に、クラウド側の公開データも作り直す。
+    private func resyncIfPublic() {
+        guard isPublic else { return }
+        Task {
+            isSyncingCloud = true
+            defer { isSyncingCloud = false }
+            do {
+                try await shareService.publish(
+                    mapID: overlay.id, userID: authService.userID, ownerDisplayName: authService.displayName
+                )
+            } catch {
+                cloudErrorMessage = "公開中の地図の更新に失敗しました: \(error.localizedDescription)"
+            }
+        }
+    }
+
     private func renameOverlay() {
         let title = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         CustomOverlayMapStore.rename(id: overlay.id, to: title)
         reloadOverlay()
+        resyncIfPublic()
     }
 
     /// 保存済みの最新の内容（名前・画像）を読み直す。
@@ -176,6 +249,7 @@ struct CustomOverlayEditorView: View {
         )
         pendingCoordinate = nil
         checkpoints = HistoricSiteCatalog.sites(forOverlayID: overlay.id)
+        resyncIfPublic()
     }
 }
 

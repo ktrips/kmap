@@ -19,6 +19,12 @@ service firebase.storage {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // 「みんなの古地図」の画像。読み取りは誰でも可、書き込みはパスのuidが自分の時だけ。
+    match /sharedOverlayMaps/{ownerId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == ownerId;
+    }
+
     match /sharedPhotos/{tripId}/{allPaths=**} {
       // 「みんなの時空旅」は未サインインの訪問者にもWeb公開ページ（komap.ktrips.net）で
       // 見せる前提の機能のため、対応するFirestoreの sharedTrips/{tripId} と同じく、

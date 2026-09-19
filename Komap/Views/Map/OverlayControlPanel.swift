@@ -126,6 +126,19 @@ struct OldMapPickerSheet: View {
                     }
                     .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
                     .listRowBackground(Color.clear)
+
+                    NavigationLink {
+                        SharedOverlayMapsView { overlay in
+                            // 取り込んだ古地図をそのまま表示して閉じる。
+                            mapSession.isCurrentLocationMode = false
+                            isShowingAllOverlays = false
+                            selectedOverlay = overlay
+                            onSelect(overlay)
+                            dismiss()
+                        }
+                    } label: {
+                        Label("みんなの古地図を見る", systemImage: "person.2")
+                    }
                 }
 
                 ForEach(OldMapCatalog.Category.allCases, id: \.self) { category in
