@@ -33,23 +33,6 @@ struct MapScreen: View {
     @State private var didAutoSelectCurrentLocationOverlay = false
     /// 「現在地から古地図を探す」で見つからなかった時などに見せる案内。
     @State private var currentLocationSearchMessage: String?
-    @State private var tappedPoint: TappedPoint?
-    /// マップをタップした直後、「新しいポイントを追加しますか？」の確認待ちの座標。
-    /// ここで確認してからAIへ問い合わせることで、探索中の何気ないタップで
-    /// AI（課金対象）を無駄に呼び出さないようにする。
-    @State private var pendingTapPoint: TappedPoint?
-    /// `pendingTapPoint`の有無をそのまま`.alert(isPresented:)`用の`Bool`として使うための
-    /// バインディング。この式をbody内の巨大な修飾子チェーンに直接書くと、型検査が
-    /// 「The compiler is unable to type-check this expression in reasonable time」で
-    /// タイムアウトすることを確認したため、独立した計算プロパティに切り出している。
-    private var isPendingTapPointAlertPresented: Binding<Bool> {
-        Binding(
-            get: { pendingTapPoint != nil },
-            set: { isPresented in
-                if !isPresented { pendingTapPoint = nil }
-            }
-        )
-    }
     /// チェックポイントのマーカー上の小さなアイコンボタンがタップされた時に表示する史跡。
     @State private var tappedCheckpoint: HistoricSite?
     /// 地図上の写真ピンがタップされた時に表示する投稿。
@@ -196,7 +179,7 @@ struct MapScreen: View {
         if selectOverlayContaining(location) { return }
 
         guard AppSettings.allowAddingNewMapContent, SecretsConfig.isOldMapSearchConfigured else {
-            currentLocationSearchMessage = "現在地を含む古地図はありませんでした。現在地から古地図を作るには、「設定」→「アドバンス設定」→「AI設定」でOpenAI APIキーを設定し、「新しい地図を追加」をオンにしてください。"
+            currentLocationSearchMessage = "現在地を含む古地図はありませんでした。現在地から古地図を作るには、「設定」→「アドバンス設定」→「AI設定」で\(AppSettings.aiProvider.apiKeyLabel)を設定し、「新しい地図を追加」をオンにしてください。"
             return
         }
 
@@ -379,21 +362,6 @@ struct MapScreen: View {
                 mapSession.requestOverlayReattach()
             })
         }
-        .alert(
-            "新しいポイントを追加しますか？",
-            isPresented: isPendingTapPointAlertPresented,
-            presenting: pendingTapPoint
-        ) { point in
-            Button("追加する") {
-                tappedPoint = point
-                pendingTapPoint = nil
-            }
-            Button("キャンセル", role: .cancel) {
-                pendingTapPoint = nil
-            }
-        } message: { _ in
-            Text("この場所の昔の物語をAIが生成します。")
-        }
         // 「動きがない時の自動一時停止」「最長記録時間の超過」の通知を、独立したViewの
         // `.alert`に切り出す。`CacheSyncObserver`と同じ理由（巨大な修飾子チェーンに
         // 直接`.alert`を足すと型検査がタイムアウトすることを確認したため）。
@@ -415,9 +383,6 @@ struct MapScreen: View {
                 }
             )
         )
-        .sheet(item: $tappedPoint) { point in
-            StorySheetView(point: point, overlayMap: mapSession.selectedOverlay)
-        }
         .sheet(item: $tappedCheckpoint) { site in
             CheckpointInfoSheet(
                 site: site,
@@ -782,9 +747,7 @@ struct MapScreen: View {
     /// 地図がタップされた時の処理。「全ての古地図を表示」中は、タップした場所を含む
     /// 古地図があれば、その古地図単体の表示に切り替える（複数の古地図が重なって
     /// 見にくい状態から、見たいものをすぐ選び直せるようにするため）。該当する古地図が
-    /// 無ければ、これまで通り「新しいポイントを追加しますか？」の確認に進む
-    /// （「管理者設定」の「新しい地図を追加」がオフの間は、意図しないAI呼び出しを
-    /// 防ぐためこの確認自体を出さない）。
+    /// 無ければ何もしない（ポイントの追加は、追加した古地図の編集画面でだけ行う）。
     private func handleMapTap(at coordinate: CLLocationCoordinate2D) {
         if mapSession.isShowingAllOverlays,
            let overlay = OldMapCatalog.allIncludingCustom.first(where: { $0.contains(coordinate) }) {
@@ -793,8 +756,6 @@ struct MapScreen: View {
             mapSession.moveCamera(to: overlay.center)
             return
         }
-        guard AppSettings.allowAddingNewMapContent else { return }
-        pendingTapPoint = TappedPoint(coordinate: coordinate)
     }
 
     /// 歩いて記録中（iPhone本体・Apple Watchどちらでも）は、古地図の上を

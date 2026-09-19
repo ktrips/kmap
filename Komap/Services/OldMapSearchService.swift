@@ -11,7 +11,7 @@ enum OldMapSearchError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "OpenAIのAPIキーが必要です。「設定」タブから入力してください。"
+            return "\(AppSettings.aiProvider.apiKeyLabel)が必要です。「設定」→「アドバンス設定」→「AI設定」から入力してください。"
         case .invalidResponse:
             return "検索結果を読み取れませんでした。しばらくしてから再度お試しください。"
         case .noImageFound:
@@ -19,7 +19,7 @@ enum OldMapSearchError: LocalizedError {
         case .server(let message):
             if message.localizedCaseInsensitiveContains("api key") {
                 return "APIキーが正しくないため検索できませんでした（\(message)）。"
-                    + "「設定」→「アドバンス設定」→「AI設定」のOpenAI APIキーを確認してください。"
+                    + "「設定」→「アドバンス設定」→「AI設定」の\(AppSettings.aiProvider.apiKeyLabel)を確認してください。"
             }
             return "検索でエラーが発生しました: \(message)"
         }

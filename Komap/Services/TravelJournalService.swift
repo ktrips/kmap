@@ -9,7 +9,7 @@ enum TravelJournalError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "OpenAIのAPIキーが設定されていません。「設定」タブから入力してください。"
+            return "\(AppSettings.aiProvider.apiKeyLabel)が設定されていません。「設定」→「アドバンス設定」→「AI設定」から入力してください。"
         case .invalidResponse:
             return "AIからの応答を読み取れませんでした。しばらくしてから再度お試しください。"
         case .server(let message):

@@ -22,6 +22,9 @@ enum CustomOverlayMapStore {
     }
 
     fileprivate struct CheckpointRecord: Codable {
+        /// チェックポイントのID。削除しても他のIDがずれないよう固定で持つ。
+        /// 古い保存データには無いため省略可（その場合は`legacyID`で並び順から決まる）。
+        var id: String?
         let name: String
         let summary: String
         let latitude: Double
@@ -84,12 +87,7 @@ enum CustomOverlayMapStore {
 
         var current = records()
         current.append(record)
-        guard let data = try? JSONEncoder().encode(current) else { return nil }
-        try? data.write(to: fileURL)
-        cachedRecords = current
-        cachedMaps = nil
-        cachedSites = nil
-        OldMapCatalog.invalidateAllIncludingCustomCache()
+        guard save(current) else { return nil }
 
         return record.overlayMap
     }
@@ -106,7 +104,7 @@ enum CustomOverlayMapStore {
         records().flatMap { record in
             (record.checkpoints ?? []).enumerated().map { index, checkpoint in
                 HistoricSite(
-                    id: "\(record.id)-cp\(index + 1)",
+                    id: checkpoint.id ?? legacySiteID(overlayID: record.id, index: index),
                     overlayMapID: record.id,
                     name: checkpoint.name,
                     summary: checkpoint.summary,
@@ -114,6 +112,77 @@ enum CustomOverlayMapStore {
                 )
             }
         }
+    }
+
+    private static func legacySiteID(overlayID: String, index: Int) -> String {
+        "\(overlayID)-cp\(index + 1)"
+    }
+
+    // MARK: - 編集（ポイントの追加・削除、古地図の削除）
+
+    /// 追加した古地図にポイントを1つ加え、その`HistoricSite`を返す。
+    @discardableResult
+    static func addCheckpoint(
+        toOverlayID overlayID: String,
+        name: String,
+        summary: String,
+        coordinate: CLLocationCoordinate2D
+    ) -> HistoricSite? {
+        var current = migratedRecords()
+        guard let index = current.firstIndex(where: { $0.id == overlayID }) else { return nil }
+        let checkpoint = CheckpointRecord(
+            id: "\(overlayID)-cp-\(UUID().uuidString)",
+            name: name, summary: summary,
+            latitude: coordinate.latitude, longitude: coordinate.longitude
+        )
+        current[index].checkpoints = (current[index].checkpoints ?? []) + [checkpoint]
+        guard save(current) else { return nil }
+        return HistoricSite(
+            id: checkpoint.id!, overlayMapID: overlayID, name: name, summary: summary, coordinate: coordinate
+        )
+    }
+
+    /// 追加した古地図のポイントを1つ削除する。
+    static func deleteCheckpoint(siteID: String) {
+        var current = migratedRecords()
+        for index in current.indices {
+            current[index].checkpoints?.removeAll { $0.id == siteID }
+        }
+        save(current)
+    }
+
+    /// 追加した古地図を、ポイントと画像ファイルごと削除する。
+    static func deleteOverlay(id: String) {
+        var current = records()
+        guard let removed = current.first(where: { $0.id == id }) else { return }
+        current.removeAll { $0.id == id }
+        StampPhotoStore.delete(removed.imageFileName)
+        save(current)
+    }
+
+    /// ID未設定の古いポイントに、現在の並び順から決まるIDを固定で付けた一覧。
+    /// 削除で並びが変わってもIDがずれないよう、変更を加える前に必ず通す。
+    private static func migratedRecords() -> [Record] {
+        var current = records()
+        for recordIndex in current.indices {
+            guard var checkpoints = current[recordIndex].checkpoints else { continue }
+            for index in checkpoints.indices where checkpoints[index].id == nil {
+                checkpoints[index].id = legacySiteID(overlayID: current[recordIndex].id, index: index)
+            }
+            current[recordIndex].checkpoints = checkpoints
+        }
+        return current
+    }
+
+    @discardableResult
+    private static func save(_ current: [Record]) -> Bool {
+        guard let data = try? JSONEncoder().encode(current) else { return false }
+        try? data.write(to: fileURL)
+        cachedRecords = current
+        cachedMaps = nil
+        cachedSites = nil
+        OldMapCatalog.invalidateAllIncludingCustomCache()
+        return true
     }
 
     private static func records() -> [Record] {

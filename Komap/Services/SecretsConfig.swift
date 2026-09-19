@@ -15,6 +15,9 @@ enum AIProvider: String, CaseIterable, Identifiable {
         case .anthropic: return "Anthropic"
         }
     }
+
+    /// 「〇〇のAPIキーを設定してください」のような案内文で使う、APIキーの呼び名。
+    var apiKeyLabel: String { "\(title) APIキー" }
 }
 
 /// アプリ内で使うAPIキーの取得口をまとめたもの。

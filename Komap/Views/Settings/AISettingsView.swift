@@ -61,7 +61,7 @@ struct AISettingsView: View {
                 AppSettings.aiProvider = newValue
             }
         } footer: {
-            Text("物語・旅日記の生成に使うAIプロバイダーです。既定はOpenAIです。")
+            Text("物語・旅日記の生成に使うAIプロバイダーです。既定はOpenAIです。ポイントの説明や旅日記などを作る時、ここで選んだプロバイダーのAPIキーが必要と案内します。")
         }
     }
 
@@ -72,7 +72,7 @@ struct AISettingsView: View {
                     AppSettings.allowAddingNewMapContent = newValue
                 }
         } footer: {
-            Text("オンの間だけ、古地図選択の「新しい地図を追加」と、地図タップでAIが物語を生成して新しいポイントを追加する機能が使えます。古地図の検索には、OpenAI APIキーが必要です（画像は国立国会図書館とWikimedia Commonsから探すため、検索用のキーは不要です）。どちらもAIのAPIを呼び出すため、意図しない利用を防ぐため既定はオフです。")
+            Text("オンの間だけ、古地図選択の「新しい地図を追加」が使えます。古地図の検索・作成には、デフォルトのAIプロバイダー（\(aiProvider.title)）のAPIキーが必要です（画像は国立国会図書館とWikimedia Commonsから探すため、検索用のキーは不要です）。AIのAPIを呼び出すため、意図しない利用を防ぐため既定はオフです。追加した古地図のポイントの追加・削除は、一覧の各古地図の右にある編集ボタンから行えます。")
         }
     }
 

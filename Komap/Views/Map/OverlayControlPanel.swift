@@ -87,6 +87,10 @@ struct OldMapPickerSheet: View {
     var onSelectAll: () -> Void = {}
     var onRequestSearch: () -> Void = {}
 
+    /// 追加した古地図の一覧。編集・削除の後に読み直す。
+    @State private var customOverlays: [HistoricalOverlayMap] = CustomOverlayMapStore.all()
+    @State private var editingOverlay: HistoricalOverlayMap?
+
     var body: some View {
         NavigationStack {
             List {
@@ -135,11 +139,33 @@ struct OldMapPickerSheet: View {
                 if !customOverlays.isEmpty {
                     Section("追加した古地図") {
                         ForEach(customOverlays) { overlay in
-                            overlayButton(for: overlay)
+                            HStack {
+                                overlayButton(for: overlay)
+                                Spacer()
+                                Button {
+                                    editingOverlay = overlay
+                                } label: {
+                                    Image(systemName: "pencil.circle")
+                                        .font(.title3)
+                                }
+                                .accessibilityLabel("編集")
+                            }
+                            .buttonStyle(.borderless)
                         }
                     }
                 }
 
+            }
+            .sheet(item: $editingOverlay, onDismiss: {
+                customOverlays = CustomOverlayMapStore.all()
+            }) { overlay in
+                CustomOverlayEditorView(overlay: overlay, onDeleted: {
+                    // 表示中の古地図を削除した場合は、既定の古地図に戻す。
+                    if selectedOverlay?.id == overlay.id {
+                        selectedOverlay = OldMapCatalog.defaultOverlay
+                        onSelect(selectedOverlay)
+                    }
+                })
             }
             .navigationTitle("古地図を選択")
             .navigationBarTitleDisplayMode(.inline)
@@ -154,11 +180,6 @@ struct OldMapPickerSheet: View {
     /// 同梱の古地図のうち、指定した分類に属するものだけを返す。
     private func overlays(in category: OldMapCatalog.Category) -> [HistoricalOverlayMap] {
         OldMapCatalog.allByCategory[category] ?? []
-    }
-
-    /// ユーザーが検索して追加した古地図（同梱リストの分類には属さない）。
-    private var customOverlays: [HistoricalOverlayMap] {
-        CustomOverlayMapStore.all()
     }
 
     /// 一覧の先頭に横並びで置く、アイコン付きのコンパクトなボタン。
