@@ -65,24 +65,22 @@ struct OldMapSearchBounds {
 
 /// 「古地図を検索」画面の範囲の選択肢。
 enum OldMapSearchArea: String, CaseIterable, Identifiable {
-    case unlimited, currentView, within5km, within10km
+    case currentView, within5km, within10km
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .unlimited: return "限定しない"
         case .currentView: return "現在の範囲"
         case .within5km: return "周囲5km"
         case .within10km: return "周囲10km"
         }
     }
 
-    /// 検索を始めた時の地図の表示範囲`visible`から、限定する範囲を求める。`unlimited`は`nil`。
+    /// 検索を始めた時の地図の表示範囲`visible`から、限定する範囲を求める。表示範囲が分からない時は`nil`（限定しない）。
     func bounds(visible: OldMapSearchBounds?) -> OldMapSearchBounds? {
         guard let visible else { return nil }
         switch self {
-        case .unlimited: return nil
         case .currentView: return visible
         case .within5km: return .around(visible.center, radiusKm: 5)
         case .within10km: return .around(visible.center, radiusKm: 10)

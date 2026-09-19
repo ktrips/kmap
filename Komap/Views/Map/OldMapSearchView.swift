@@ -14,7 +14,7 @@ struct OldMapSearchView: View {
     @EnvironmentObject private var mapSession: MapSessionState
     /// この画面を開いた時の元の地図の表示範囲。範囲の限定の基準にする。
     @State private var originBounds: OldMapSearchBounds?
-    @State private var area: OldMapSearchArea = .unlimited
+    @State private var area: OldMapSearchArea = .currentView
     @State private var isFantasy = false
 
     private let service = OldMapSearchService()

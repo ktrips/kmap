@@ -54,6 +54,19 @@ enum CustomOverlayMapStore {
         return maps
     }
 
+    /// `GMSGroundOverlay`は1024×1024px以外の画像だと描画されないことがある
+    /// （`HistoricalOverlayMap.imageAssetName`の注意書き参照）ため、保存前に1024×1024の
+    /// 正方形へ描き直す。オーバーレイは元々位置合わせの範囲いっぱいに引き伸ばして
+    /// 貼られるので、見た目は変わらない。大きな画像の読み込み・デコードも軽くなる。
+    private static func squareImage(_ image: UIImage) -> UIImage {
+        let size = CGSize(width: 1024, height: 1024)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+
     /// 検索結果を古地図として保存し、追加された`HistoricalOverlayMap`を返す。
     @discardableResult
     static func add(
@@ -65,7 +78,7 @@ enum CustomOverlayMapStore {
         northEast: CLLocationCoordinate2D,
         checkpoints: [GeneratedCheckpoint] = []
     ) -> HistoricalOverlayMap? {
-        guard let imageFileName = StampPhotoStore.save(image) else { return nil }
+        guard let imageFileName = StampPhotoStore.save(squareImage(image)) else { return nil }
 
         let record = Record(
             id: UUID().uuidString,

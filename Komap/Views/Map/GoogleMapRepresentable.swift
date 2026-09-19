@@ -116,6 +116,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         mapView.settings.myLocationButton = false
         mapView.settings.compassButton = true
         mapView.delegate = context.coordinator
+        // 描画の負荷を下げる。既定の`.maximum`は120Hz機で毎秒120回も描き直すため、
+        // 60回で十分な地図の表示・スクロールでは無駄にGPU・CPUを使っていた。
+        // 古地図の上では立体の建物・屋内地図は見えず不要なので、その描画も止める。
+        mapView.preferredFrameRate = .conservative
+        mapView.isBuildingsEnabled = false
+        mapView.isIndoorEnabled = false
         // 歩いた道の朱色をくっきり引き立たせるため、地図自体は少しだけ彩度を落としておく。
         mapView.mapStyle = try? GMSMapStyle(jsonString: Self.mutedMapStyleJSON)
         return mapView
