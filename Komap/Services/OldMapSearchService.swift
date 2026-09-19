@@ -37,8 +37,8 @@ struct OldMapSearchResult {
 }
 
 /// ユーザーが入力した地域の説明から、AI（OpenAI）でおおよその位置範囲・古地図の
-/// タイトルや時代を推定しつつ、Wikimedia Commons（APIキー不要）でそれらしい
-/// 古地図の画像を探して組み合わせ、古地図候補を1件作る。
+/// タイトルや時代を推定しつつ、国立国会図書館デジタルコレクションとWikimedia Commons
+/// （どちらもAPIキー不要）でそれらしい古地図の画像を探して組み合わせ、古地図候補を1件作る。
 struct OldMapSearchService {
     var model: String = "gpt-4o-mini"
 
@@ -119,15 +119,66 @@ struct OldMapSearchService {
         )
     }
 
-    // MARK: - Wikimedia Commonsでの画像検索
+    // MARK: - 画像検索（国立国会図書館 → Wikimedia Commons）
 
-    /// Wikimedia Commons（APIキー不要）から古地図の画像を探す。日本語の検索語だと
-    /// ヒットしにくいため、検索語を変えながら最初に見つかった画像を使う。
+    /// 国立国会図書館デジタルコレクション、次にWikimedia Commons（どちらもAPIキー不要）の
+    /// 順で古地図の画像を探す。日本の古地図は国会図書館の方が見つかりやすい。
     private func searchImageURL(query: String) async throws -> URL {
+        if let url = try? await searchNDL(query: query) { return url }
         for term in ["\(query) 古地図", "\(query) old map", query] {
             if let url = try await searchCommons(term: term) { return url }
         }
         throw OldMapSearchError.noImageFound
+    }
+
+    /// 国立国会図書館サーチ（OpenSearch）でデジタルコレクションの地図・絵図を探し、
+    /// 画像が公開されている最初の1件をIIIF経由の画像URLにして返す。
+    /// 図書館・国内限定などで画像を見られない資料も多いため、IIIFマニフェストが
+    /// 取れるものまで順に確認する。
+    private func searchNDL(query: String) async throws -> URL? {
+        var checked = Set<String>()
+        for suffix in ["古地図", "絵図", "地図"] {
+            var components = URLComponents(string: "https://ndlsearch.ndl.go.jp/api/opensearch")!
+            components.queryItems = [
+                URLQueryItem(name: "any", value: "\(query) \(suffix)"),
+                URLQueryItem(name: "dpid", value: "ndl-dl"),
+                URLQueryItem(name: "cnt", value: "10"),
+            ]
+            guard let url = components.url else { continue }
+            var request = URLRequest(url: url)
+            request.setValue("Komap/1.0 (iOS app)", forHTTPHeaderField: "User-Agent")
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200,
+                  let xml = String(data: data, encoding: .utf8)
+            else { continue }
+
+            // 各<item>内の「dl.ndl.go.jp/pid/数字」がデジタルコレクションの資料ID。
+            let pids = xml.components(separatedBy: "<item>").dropFirst().compactMap { item -> String? in
+                guard let range = item.range(of: #"dl\.ndl\.go\.jp/pid/(\d+)"#, options: .regularExpression)
+                else { return nil }
+                return String(item[range].split(separator: "/").last ?? "")
+            }
+            for pid in pids where checked.insert(pid).inserted {
+                if let imageURL = await ndlImageURL(pid: pid) { return imageURL }
+            }
+        }
+        return nil
+    }
+
+    private func ndlImageURL(pid: String) async -> URL? {
+        guard let manifestURL = URL(string: "https://www.dl.ndl.go.jp/api/iiif/\(pid)/manifest.json") else { return nil }
+        var request = URLRequest(url: manifestURL)
+        request.setValue("Komap/1.0 (iOS app)", forHTTPHeaderField: "User-Agent")
+        guard let (data, _) = try? await URLSession.shared.data(for: request),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let sequences = json["sequences"] as? [[String: Any]],
+              let canvases = sequences.first?["canvases"] as? [[String: Any]],
+              let images = canvases.first?["images"] as? [[String: Any]],
+              let resource = images.first?["resource"] as? [String: Any],
+              let service = resource["service"] as? [String: Any],
+              let serviceID = service["@id"] as? String
+        else { return nil }
+        return URL(string: "\(serviceID)/full/2000,/0/default.jpg")
     }
 
     private func searchCommons(term: String) async throws -> URL? {
