@@ -28,6 +28,7 @@ struct PrinterLinkService {
         case notConfigured
         case encodingFailed
         case uploadFailed
+        case payloadTooLarge
         case requestFailed(String)
 
         var errorDescription: String? {
@@ -35,6 +36,10 @@ struct PrinterLinkService {
             case .notConfigured: return "連携プリンターのURLが設定されていません。"
             case .encodingFailed: return "画像の変換に失敗しました。"
             case .uploadFailed: return "写真のアップロードに失敗しました（サインインが必要な場合があります）。"
+            case .payloadTooLarge:
+                return "画像のデータ量がプリンター側の上限を超えています（HTTPステータス413）。"
+                    + "「連携機能」の「写真の大きさ」を小さく、または「画質」を下げてから、もう一度お試しください。"
+                    + "「転送方式」を「写真のURLを渡す」に切り替えると改善することもあります。"
             case .requestFailed(let reason):
                 return "連携プリンターへの送信に失敗しました（\(reason)）。電源・Wi-Fi接続・設定したURLをご確認ください。"
             }
@@ -158,6 +163,9 @@ struct PrinterLinkService {
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                if http.statusCode == 413 {
+                    throw PrintError.payloadTooLarge
+                }
                 throw PrintError.requestFailed("HTTPステータス \(http.statusCode)")
             }
         } catch let error as PrintError {

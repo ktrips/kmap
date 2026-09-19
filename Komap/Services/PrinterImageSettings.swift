@@ -2,6 +2,7 @@ import Foundation
 
 /// 連携プリンターへ転送する画像の大きさ（＝データ量）のプリセット。
 enum PrinterImageSize: String, CaseIterable, Identifiable {
+    case tiny
     case small
     case medium
     case large
@@ -11,6 +12,7 @@ enum PrinterImageSize: String, CaseIterable, Identifiable {
     /// 長辺をこのピクセル数までに縮小してから転送する。
     var maxDimension: CGFloat {
         switch self {
+        case .tiny: return 320
         case .small: return 640
         case .medium: return 1024
         case .large: return 1600
@@ -19,6 +21,7 @@ enum PrinterImageSize: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .tiny: return "極小（320px・データ量最小）"
         case .small: return "小（640px・データ量小）"
         case .medium: return "中（1024px）"
         case .large: return "大（1600px・高画質）"
