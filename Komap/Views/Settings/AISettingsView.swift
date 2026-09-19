@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 「AI設定」（物語生成に使うAIプロバイダーとAPIキー）をまとめた画面。
+/// 「AI設定」（物語生成に使うAIプロバイダーとAPIキー、新しい地図の追加、Google Mapsの設定状況）をまとめた画面。
 /// 「設定」画面の「アドバンス設定」→「AI設定」から開く。
 ///
 /// - Note: 実際に物語・旅日記を生成する処理（`AIHistoryService`／`TravelJournalService`）は
@@ -14,10 +14,12 @@ struct AISettingsView: View {
     @State private var googleAISavedMessage: String?
     @State private var anthropicKey: String = SecretsConfig.anthropicAPIKey ?? ""
     @State private var anthropicSavedMessage: String?
+    @State private var allowAddingNewMapContent: Bool = AppSettings.allowAddingNewMapContent
 
     var body: some View {
         Form {
             providerSection
+            allowAddingNewMapContentSection
             apiKeySection(
                 title: "OpenAI APIキー",
                 placeholder: "sk-...",
@@ -42,6 +44,7 @@ struct AISettingsView: View {
                 footer: "デフォルトのAIプロバイダーで「Anthropic」を選んだ場合に使用します。",
                 onSave: { SecretsConfig.saveAnthropicAPIKey(anthropicKey) }
             )
+            googleMapsSection
         }
         .navigationTitle("AI設定")
         .navigationBarTitleDisplayMode(.inline)
@@ -59,6 +62,30 @@ struct AISettingsView: View {
             }
         } footer: {
             Text("物語・旅日記の生成に使うAIプロバイダーです。既定はOpenAIです。")
+        }
+    }
+
+    private var allowAddingNewMapContentSection: some View {
+        Section {
+            Toggle("新しい地図を追加", isOn: $allowAddingNewMapContent)
+                .onChange(of: allowAddingNewMapContent) { _, newValue in
+                    AppSettings.allowAddingNewMapContent = newValue
+                }
+        } footer: {
+            Text("オンの間だけ、古地図選択の「新しい地図を追加」と、地図タップでAIが物語を生成して新しいポイントを追加する機能が使えます。古地図の検索には、OpenAI APIキーが必要です（画像は国立国会図書館とWikimedia Commonsから探すため、検索用のキーは不要です）。どちらもAIのAPIを呼び出すため、意図しない利用を防ぐため既定はオフです。")
+        }
+    }
+
+    private var googleMapsSection: some View {
+        Section {
+            LabeledContent("APIキー設定状況") {
+                Text(SecretsConfig.isGoogleMapsAPIKeyConfigured ? "設定済み" : "未設定")
+                    .foregroundStyle(SecretsConfig.isGoogleMapsAPIKeyConfigured ? .green : .red)
+            }
+        } header: {
+            Text("Google Maps")
+        } footer: {
+            Text("Google MapsのAPIキーはビルド時に Config/Secrets.xcconfig から読み込まれます。変更した場合は再ビルドが必要です。")
         }
     }
 

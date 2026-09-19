@@ -270,16 +270,10 @@ struct SettingsView: View {
             } label: {
                 Label("連携機能", systemImage: "network")
             }
-
-            NavigationLink {
-                AdminSettingsView()
-            } label: {
-                Label("管理者設定", systemImage: "gearshape.2")
-            }
         } header: {
             Text("アドバンス設定")
         } footer: {
-            Text("AI設定（OpenAI・Google・Anthropic）、カメラ・プリンター連携、管理者設定（Googleカスタム検索・Google Maps）など。")
+            Text("AI設定（OpenAI・Google・Anthropic、新しい地図の追加、Google Maps）、カメラ・プリンター連携など。")
         }
     }
 
