@@ -17,6 +17,11 @@ enum OldMapSearchError: LocalizedError {
         case .noImageFound:
             return "条件に合う古地図の画像が見つかりませんでした。検索内容を変えて再度お試しください。"
         case .server(let message):
+            if message.localizedCaseInsensitiveContains("api key") {
+                return "APIキーが正しくないため検索できませんでした（\(message)）。"
+                    + "「設定」→「アドバンス設定」→「管理者設定」のGoogleカスタム検索APIキーと、"
+                    + "「AI設定」のOpenAI APIキーを確認してください。"
+            }
             return "検索でエラーが発生しました: \(message)"
         }
     }
@@ -98,7 +103,7 @@ struct OldMapSearchService {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else { throw OldMapSearchError.invalidResponse }
         guard (200..<300).contains(httpResponse.statusCode) else {
-            throw OldMapSearchError.server(String(data: data, encoding: .utf8) ?? "HTTP \(httpResponse.statusCode)")
+            throw OldMapSearchError.server(Self.apiErrorMessage(from: data, statusCode: httpResponse.statusCode))
         }
 
         let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
@@ -141,7 +146,7 @@ struct OldMapSearchService {
         let (data, response) = try await URLSession.shared.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse else { throw OldMapSearchError.invalidResponse }
         guard (200..<300).contains(httpResponse.statusCode) else {
-            throw OldMapSearchError.server(String(data: data, encoding: .utf8) ?? "HTTP \(httpResponse.statusCode)")
+            throw OldMapSearchError.server(Self.apiErrorMessage(from: data, statusCode: httpResponse.statusCode))
         }
 
         let decoded = try JSONDecoder().decode(CustomSearchResponse.self, from: data)
@@ -155,6 +160,27 @@ struct OldMapSearchService {
         let (data, _) = try await URLSession.shared.data(from: url)
         guard let image = UIImage(data: data) else { throw OldMapSearchError.noImageFound }
         return image
+    }
+
+    /// OpenAI・Google Custom Searchはどちらもエラー時に`{"error": {"message": "..."}}`
+    /// 形式のJSONを返す。生のJSON（`google.rpc.LocalizedMessage`等を含む長い構造体）を
+    /// そのままエラーメッセージとして見せると読みにくいため、`message`だけを取り出す。
+    /// 取り出せない場合は、返ってきた本文をそのまま使う（最後の手段としてHTTPステータスのみ）。
+    private static func apiErrorMessage(from data: Data, statusCode: Int) -> String {
+        struct ErrorEnvelope: Decodable {
+            struct ErrorBody: Decodable {
+                let message: String?
+            }
+            let error: ErrorBody?
+        }
+        if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data),
+           let message = envelope.error?.message, !message.isEmpty {
+            return message
+        }
+        if let raw = String(data: data, encoding: .utf8), !raw.isEmpty {
+            return raw
+        }
+        return "HTTP \(statusCode)"
     }
 }
 
