@@ -20,6 +20,7 @@ struct MyTimeTripView: View {
     }
     @State private var contentTab: ContentTab = .mine
     @State private var isPresentingInviteFriend = false
+    @State private var isPresentingGPXImport = false
     @State private var shareImage: UIImage?
     @State private var isPreparingShare = false
     @State private var selectedStamp: StampSelection?
@@ -131,6 +132,7 @@ struct MyTimeTripView: View {
                             ScrollView {
                                 VStack(alignment: .leading, spacing: 28) {
                                     pointsSection
+                                    addPastTripButton
                                     if !walkRoutes.isEmpty {
                                         walkRoutesSection
                                     }
@@ -199,6 +201,9 @@ struct MyTimeTripView: View {
             }
             .sheet(isPresented: $isPresentingInviteFriend) {
                 InviteFriendSheet()
+            }
+            .sheet(isPresented: $isPresentingGPXImport) {
+                GPXImportSheet()
             }
             .task(id: pointsSnapshot) {
                 guard let userID = authService.userID else { return }
@@ -452,9 +457,25 @@ struct MyTimeTripView: View {
                 .multilineTextAlignment(.center)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            addPastTripButton
+                .padding(.top, 8)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// GPXファイルから軌跡を取り込み、選んだ古地図と組み合わせて時空旅として
+    /// 後から追加できるようにするボタン（`GPXImportSheet`を開く）。
+    private var addPastTripButton: some View {
+        Button {
+            isPresentingGPXImport = true
+        } label: {
+            Label("後から旅を追加", systemImage: "square.and.arrow.down.on.square")
+                .font(.subheadline.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+        }
+        .buttonStyle(.bordered)
     }
 
     private func stampCount(for route: WalkRoute) -> Int {
