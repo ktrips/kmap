@@ -821,14 +821,19 @@ enum HistoricSiteCatalog {
         ),
     ]
 
+    /// 同梱のチェックポイント + ユーザーが検索・生成して追加した古地図のチェックポイント。
+    static var allIncludingCustom: [HistoricSite] {
+        all + CustomOverlayMapStore.sites()
+    }
+
     static func site(withID id: String) -> HistoricSite? {
-        all.first { $0.id == id }
+        allIncludingCustom.first { $0.id == id }
     }
 
     /// 指定した古地図に属するチェックポイントだけを返す。
     /// `overlayMapID`が`nil`（古地図を表示していない）場合は空配列を返す。
     static func sites(forOverlayID overlayMapID: String?) -> [HistoricSite] {
         guard let overlayMapID else { return [] }
-        return all.filter { $0.overlayMapID == overlayMapID }
+        return allIncludingCustom.filter { $0.overlayMapID == overlayMapID }
     }
 }

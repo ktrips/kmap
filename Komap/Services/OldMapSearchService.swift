@@ -34,6 +34,17 @@ struct OldMapSearchResult {
     let southWest: CLLocationCoordinate2D
     let northEast: CLLocationCoordinate2D
     let image: UIImage
+    /// 古地図の画像が見つからず、条件に合わせてAIが作った地図レイヤーかどうか。
+    var isGenerated: Bool = false
+    /// 画像が見つからなかった時に、AIが条件に合わせて作ったチェックポイント。
+    var checkpoints: [GeneratedCheckpoint] = []
+}
+
+/// AIが生成したチェックポイント1件分。
+struct GeneratedCheckpoint {
+    let name: String
+    let summary: String
+    let coordinate: CLLocationCoordinate2D
 }
 
 /// ユーザーが入力した地域の説明から、AI（OpenAI）でおおよその位置範囲・古地図の
@@ -49,24 +60,66 @@ struct OldMapSearchService {
         async let imageURLTask = searchImageURL(query: query)
 
         let bounds = try await boundsTask
-        let imageURL = try await imageURLTask
-        let image = try await downloadImage(from: imageURL)
+        do {
+            let imageURL = try await imageURLTask
+            let image = try await downloadImage(from: imageURL)
+            return OldMapSearchResult(
+                title: bounds.title, era: bounds.era, summary: bounds.summary,
+                southWest: bounds.southWest, northEast: bounds.northEast, image: image
+            )
+        } catch {
+            // 古地図の画像が見つからない（または取得できない）場合は、条件に合わせて
+            // AIが推定した範囲と、AIが選んだ5つのチェックポイントで地図情報を作る。
+            return OldMapSearchResult(
+                title: bounds.title, era: bounds.era, summary: bounds.summary,
+                southWest: bounds.southWest, northEast: bounds.northEast,
+                image: Self.makeGeneratedLayerImage(title: bounds.title, era: bounds.era),
+                isGenerated: true,
+                checkpoints: bounds.checkpoints
+            )
+        }
+    }
 
-        return OldMapSearchResult(
-            title: bounds.title,
-            era: bounds.era,
-            summary: bounds.summary,
-            southWest: bounds.southWest,
-            northEast: bounds.northEast,
-            image: image
-        )
+    /// 画像が無い時の地図レイヤー。下の地図が透けて見えるよう半透明にした、
+    /// 古地図風のセピア色の紙に方眼を引いた画像。
+    /// - Important: `HistoricalOverlayMap`の注意書きのとおり、1024×1024pxの正方形にしている。
+    private static func makeGeneratedLayerImage(title: String, era: String) -> UIImage {
+        let size = CGSize(width: 1024, height: 1024)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let cg = context.cgContext
+            UIColor(red: 0.85, green: 0.72, blue: 0.5, alpha: 0.35).setFill()
+            cg.fill(CGRect(origin: .zero, size: size))
+
+            UIColor(red: 0.45, green: 0.3, blue: 0.15, alpha: 0.35).setStroke()
+            cg.setLineWidth(2)
+            for i in stride(from: 0, through: 1024, by: 128) {
+                cg.move(to: CGPoint(x: i, y: 0)); cg.addLine(to: CGPoint(x: i, y: 1024))
+                cg.move(to: CGPoint(x: 0, y: i)); cg.addLine(to: CGPoint(x: 1024, y: i))
+            }
+            cg.strokePath()
+
+            cg.setLineWidth(12)
+            cg.stroke(CGRect(x: 6, y: 6, width: 1012, height: 1012))
+
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .center
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 44, weight: .bold),
+                .foregroundColor: UIColor(red: 0.35, green: 0.22, blue: 0.1, alpha: 0.75),
+                .paragraphStyle: paragraph,
+            ]
+            "\(title)\n\(era)".draw(in: CGRect(x: 40, y: 40, width: 944, height: 120), withAttributes: attributes)
+        }
     }
 
     // MARK: - AIによる位置・タイトルの推定
 
     private func estimateBounds(query: String) async throws -> (
         title: String, era: String, summary: String,
-        southWest: CLLocationCoordinate2D, northEast: CLLocationCoordinate2D
+        southWest: CLLocationCoordinate2D, northEast: CLLocationCoordinate2D,
+        checkpoints: [GeneratedCheckpoint]
     ) {
         guard let apiKey = SecretsConfig.openAIAPIKey else { throw OldMapSearchError.missingAPIKey }
 
@@ -77,7 +130,11 @@ struct OldMapSearchService {
         出力は必ず次の形式のJSONのみとし、それ以外の文字は含めないでください。
         {"title": "古地図のタイトル（20文字程度）", "era": "時代表現（例: 明治時代（1890年代）", \
         "summary": "60文字程度の紹介文", "southWestLat": 数値, "southWestLng": 数値, \
-        "northEastLat": 数値, "northEastLng": 数値}
+        "northEastLat": 数値, "northEastLng": 数値, \
+        "checkpoints": [{"name": "その地域にある史跡・名所の名前", "summary": "40文字程度の説明", \
+        "lat": 数値, "lng": 数値}]}
+        checkpointsには、ユーザーの説明に合った実在の史跡・名所を必ず5件、上の範囲の内側に入る\
+        緯度経度で含めてください。
         """
 
         let requestBody = ChatRequest(
@@ -110,12 +167,26 @@ struct OldMapSearchService {
             throw OldMapSearchError.invalidResponse
         }
 
+        // AIが南北・東西を取り違えても範囲の作成で落ちないよう、min/maxで整える。
+        let latRange = min(payload.southWestLat, payload.northEastLat)...max(payload.southWestLat, payload.northEastLat)
+        let lngRange = min(payload.southWestLng, payload.northEastLng)...max(payload.southWestLng, payload.northEastLng)
+        let checkpoints = (payload.checkpoints ?? [])
+            .filter { latRange.contains($0.lat) && lngRange.contains($0.lng) }
+            .prefix(5)
+            .map {
+                GeneratedCheckpoint(
+                    name: $0.name, summary: $0.summary,
+                    coordinate: CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng)
+                )
+            }
+
         return (
             payload.title,
             payload.era,
             payload.summary,
             CLLocationCoordinate2D(latitude: payload.southWestLat, longitude: payload.southWestLng),
-            CLLocationCoordinate2D(latitude: payload.northEastLat, longitude: payload.northEastLng)
+            CLLocationCoordinate2D(latitude: payload.northEastLat, longitude: payload.northEastLng),
+            Array(checkpoints)
         )
     }
 
@@ -290,6 +361,13 @@ private struct BoundsPayload: Decodable {
     let southWestLng: Double
     let northEastLat: Double
     let northEastLng: Double
+    struct Checkpoint: Decodable {
+        let name: String
+        let summary: String
+        let lat: Double
+        let lng: Double
+    }
+    let checkpoints: [Checkpoint]?
 }
 
 // MARK: - Wikimedia Commons API の出力モデル

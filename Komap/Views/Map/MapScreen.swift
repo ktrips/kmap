@@ -172,7 +172,7 @@ struct MapScreen: View {
     private func recomputeActiveCheckpoints() {
         if mapSession.isShowingAllOverlays {
             var seenCoordinateKeys = Set<String>()
-            cachedActiveCheckpoints = HistoricSiteCatalog.all.filter { site in
+            cachedActiveCheckpoints = HistoricSiteCatalog.allIncludingCustom.filter { site in
                 let key = "\((site.coordinate.latitude * 100_000).rounded()),\((site.coordinate.longitude * 100_000).rounded())"
                 return seenCoordinateKeys.insert(key).inserted
             }

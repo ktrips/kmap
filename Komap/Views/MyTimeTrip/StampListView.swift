@@ -23,7 +23,7 @@ struct StampListView: View {
         if let overlayMapID {
             return HistoricSiteCatalog.sites(forOverlayID: overlayMapID)
         }
-        return HistoricSiteCatalog.all
+        return HistoricSiteCatalog.allIncludingCustom
     }
 
     /// 「すべての御朱印」表示時（`overlayMapID`が`nil`）に、チェックポイントを持つ古地図ごとに

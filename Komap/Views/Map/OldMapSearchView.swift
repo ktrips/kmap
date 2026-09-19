@@ -78,6 +78,21 @@ struct OldMapSearchView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            if result.isGenerated {
+                Text("条件に合う古地図の画像が見つからなかったため、AIが条件に合わせて地図レイヤーとチェックポイントを作りました。範囲や位置は概算です。")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                ForEach(Array(result.checkpoints.enumerated()), id: \.offset) { index, checkpoint in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(index + 1). \(checkpoint.name)")
+                            .font(.subheadline.bold())
+                        Text(checkpoint.summary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             Button("この古地図を追加する") {
                 addResult(result)
             }
@@ -103,7 +118,8 @@ struct OldMapSearchView: View {
             summary: result.summary,
             image: result.image,
             southWest: result.southWest,
-            northEast: result.northEast
+            northEast: result.northEast,
+            checkpoints: result.checkpoints
         ) else { return }
         onAdd(overlay)
         cache.clear()

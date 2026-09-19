@@ -526,8 +526,8 @@ struct MyTimeTripView: View {
         let renderer = ImageRenderer(
             content: StampShareCardView(
                 collectedCount: collectedStamps.count,
-                totalCount: HistoricSiteCatalog.all.count,
-                collectedSiteNames: HistoricSiteCatalog.all
+                totalCount: HistoricSiteCatalog.allIncludingCustom.count,
+                collectedSiteNames: HistoricSiteCatalog.allIncludingCustom
                     .filter { collectedSiteIDs.contains($0.id) }
                     .map(\.name)
             )

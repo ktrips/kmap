@@ -17,6 +17,15 @@ enum CustomOverlayMapStore {
         let southWestLng: Double
         let northEastLat: Double
         let northEastLng: Double
+        /// 画像が見つからずAIが生成したチェックポイント。古い保存データには無いため省略可。
+        var checkpoints: [CheckpointRecord]?
+    }
+
+    fileprivate struct CheckpointRecord: Codable {
+        let name: String
+        let summary: String
+        let latitude: Double
+        let longitude: Double
     }
 
     private static var fileURL: URL {
@@ -42,7 +51,8 @@ enum CustomOverlayMapStore {
         summary: String,
         image: UIImage,
         southWest: CLLocationCoordinate2D,
-        northEast: CLLocationCoordinate2D
+        northEast: CLLocationCoordinate2D,
+        checkpoints: [GeneratedCheckpoint] = []
     ) -> HistoricalOverlayMap? {
         guard let imageFileName = StampPhotoStore.save(image) else { return nil }
 
@@ -55,7 +65,13 @@ enum CustomOverlayMapStore {
             southWestLat: southWest.latitude,
             southWestLng: southWest.longitude,
             northEastLat: northEast.latitude,
-            northEastLng: northEast.longitude
+            northEastLng: northEast.longitude,
+            checkpoints: checkpoints.isEmpty ? nil : checkpoints.map {
+                CheckpointRecord(
+                    name: $0.name, summary: $0.summary,
+                    latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude
+                )
+            }
         )
 
         var current = records()
@@ -66,6 +82,21 @@ enum CustomOverlayMapStore {
         OldMapCatalog.invalidateAllIncludingCustomCache()
 
         return record.overlayMap
+    }
+
+    /// 追加した古地図に属する、生成されたチェックポイントの一覧。
+    static func sites() -> [HistoricSite] {
+        records().flatMap { record in
+            (record.checkpoints ?? []).enumerated().map { index, checkpoint in
+                HistoricSite(
+                    id: "\(record.id)-cp\(index + 1)",
+                    overlayMapID: record.id,
+                    name: checkpoint.name,
+                    summary: checkpoint.summary,
+                    coordinate: CLLocationCoordinate2D(latitude: checkpoint.latitude, longitude: checkpoint.longitude)
+                )
+            }
+        }
     }
 
     private static func records() -> [Record] {
