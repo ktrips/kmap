@@ -14,6 +14,11 @@ struct StampCheckInSheet: View {
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var isLoadingPhoto = false
     @State private var isShowingCamera = false
+    /// カメラ画面の左下ボタンでライブラリに切り替える時に`.photosPicker`を開くためのフラグ。
+    @State private var isShowingPhotoLibrary = false
+    /// `fullScreenCover`の閉じるアニメーションとピッカー表示の競合を避けるため、
+    /// カメラが閉じ終わってからライブラリを開くための一時フラグ。
+    @State private var shouldShowPhotoLibraryAfterCameraDismiss = false
     /// クラウド（Webでも見られるようにするため）へのアップロードに失敗した時のメッセージ。
     /// 失敗しても端末には保存されているが、原因がわかるよう表示しておく。
     @State private var photoSyncErrorMessage: String?
@@ -111,15 +116,36 @@ struct StampCheckInSheet: View {
             .onChange(of: photosPickerItem) { _, newItem in
                 loadPickedPhoto(newItem)
             }
-            .fullScreenCover(isPresented: $isShowingCamera) {
-                CameraCaptureView(
-                    onCapture: { image in
+            .photosPicker(isPresented: $isShowingPhotoLibrary, selection: $photosPickerItem, matching: .images)
+            .fullScreenCover(isPresented: $isShowingCamera, onDismiss: {
+                guard shouldShowPhotoLibraryAfterCameraDismiss else { return }
+                shouldShowPhotoLibraryAfterCameraDismiss = false
+                isShowingPhotoLibrary = true
+            }) {
+                ZStack(alignment: .bottomLeading) {
+                    CameraCaptureView(
+                        onCapture: { image in
+                            isShowingCamera = false
+                            applyPhotoUpdate(image)
+                        },
+                        onCancel: { isShowingCamera = false }
+                    )
+                    .ignoresSafeArea()
+
+                    // 標準カメラアプリのライブラリショートカットと同じ左下の位置。
+                    Button {
+                        shouldShowPhotoLibraryAfterCameraDismiss = true
                         isShowingCamera = false
-                        applyPhotoUpdate(image)
-                    },
-                    onCancel: { isShowingCamera = false }
-                )
-                .ignoresSafeArea()
+                    } label: {
+                        Image(systemName: "photo.on.rectangle")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 48, height: 48)
+                            .background(.black.opacity(0.35), in: Circle())
+                    }
+                    .padding(.leading, 20)
+                    .padding(.bottom, 40)
+                }
             }
         }
         .task {
@@ -129,21 +155,35 @@ struct StampCheckInSheet: View {
 
     private var photoButtons: some View {
         HStack(spacing: 12) {
-            PhotosPicker(selection: $photosPickerItem, matching: .images) {
-                if isLoadingPhoto {
-                    ProgressView()
-                } else {
-                    Label(stamp.photo == nil ? "写真を追加" : "写真を変更", systemImage: "photo.on.rectangle")
+            if stamp.photo == nil {
+                PhotosPicker(selection: $photosPickerItem, matching: .images) {
+                    if isLoadingPhoto {
+                        ProgressView()
+                    } else {
+                        Label("写真を追加", systemImage: "photo.on.rectangle")
+                    }
                 }
-            }
-            .disabled(isLoadingPhoto)
+                .disabled(isLoadingPhoto)
 
-            Button {
-                isShowingCamera = true
-            } label: {
-                Label("カメラで撮る", systemImage: "camera.fill")
+                Button {
+                    isShowingCamera = true
+                } label: {
+                    Label("カメラで撮る", systemImage: "camera.fill")
+                }
+                .disabled(isLoadingPhoto)
+            } else {
+                // 変更はまずカメラを開き、左下のボタンからライブラリの写真にも切り替えられる。
+                Button {
+                    isShowingCamera = true
+                } label: {
+                    if isLoadingPhoto {
+                        ProgressView()
+                    } else {
+                        Label("写真を変更", systemImage: "camera.fill")
+                    }
+                }
+                .disabled(isLoadingPhoto)
             }
-            .disabled(isLoadingPhoto)
 
             if isCameraLinkConfigured {
                 Button {
