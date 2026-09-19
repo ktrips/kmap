@@ -726,21 +726,21 @@ enum HistoricSiteCatalog {
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "タコ公園のイカトイレ（恵比寿東公園）",
             summary: "赤いタコの滑り台で知られる「タコ公園」に立つ、槇文彦デザインの真っ白な「イカ」の形をしたトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6495, longitude: 139.7124)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6481754, longitude: 139.7112021)
         ),
         HistoricSite(
             id: "tokyo-toilet-nabeshima-shoto-park",
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "森のコミチ（鍋島松濤公園）",
             summary: "緑豊かな鍋島松濤公園に溶け込む、隈研吾デザインの木漏れ日のようなトイレ「森のコミチ」。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6614, longitude: 139.6883)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6596047, longitude: 139.6915526)
         ),
         HistoricSite(
             id: "tokyo-toilet-yoyogi-fukamachi-mini-park",
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "ザ・トウメイ・トイレット（代々木深町小公園）",
             summary: "坂茂デザイン。普段は透明なガラスの壁が、鍵をかけると不透明に変わる話題のトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6697, longitude: 139.6825)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6693949, longitude: 139.6906937)
         ),
         HistoricSite(
             id: "tokyo-toilet-yoyogi-hachiman",
@@ -761,14 +761,14 @@ enum HistoricSiteCatalog {
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "あまやどり（神宮通公園）",
             summary: "小林純子デザイン。大きな屋根が特徴的な、雨宿りできる東屋のようなトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6663, longitude: 139.7015)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6641929, longitude: 139.7020557)
         ),
         HistoricSite(
             id: "tokyo-toilet-ebisu-park",
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "恵比寿公園トイレ",
             summary: "片山正通デザイン。通称「ロケット公園」に立つ、ロケットのような塔を持つユニークなトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6478, longitude: 139.7076)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6469527, longitude: 139.7069729)
         ),
         HistoricSite(
             id: "tokyo-toilet-higashi-sanchome",
