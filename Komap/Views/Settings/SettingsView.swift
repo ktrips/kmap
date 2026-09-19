@@ -19,9 +19,6 @@ struct SettingsView: View {
     @State private var isShowingAdvancedSettings = false
     @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
     @State private var savedMessage: String?
-    @State private var customSearchAPIKey: String = SecretsConfig.googleCustomSearchAPIKey ?? ""
-    @State private var customSearchEngineID: String = SecretsConfig.googleCustomSearchEngineID ?? ""
-    @State private var customSearchSavedMessage: String?
 
     private let syncService = SyncService()
 
@@ -274,6 +271,13 @@ struct SettingsView: View {
                 }
                 .padding(.vertical, 6)
 
+                NavigationLink {
+                    AdminSettingsView()
+                } label: {
+                    Label("管理者設定", systemImage: "gearshape.2")
+                }
+                .padding(.vertical, 6)
+
                 VStack(alignment: .leading, spacing: 10) {
                     Text("OpenAI APIキー")
                         .font(.subheadline.bold())
@@ -294,49 +298,11 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 6)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Googleカスタム検索（古地図検索用）")
-                        .font(.subheadline.bold())
-                    SecureField("AIzaSy...", text: $customSearchAPIKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("検索エンジンID（cx）", text: $customSearchEngineID)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("保存する") {
-                        SecretsConfig.saveGoogleCustomSearchAPIKey(customSearchAPIKey)
-                        SecretsConfig.saveGoogleCustomSearchEngineID(customSearchEngineID)
-                        customSearchSavedMessage = "保存しました"
-                    }
-                    if let customSearchSavedMessage {
-                        Text(customSearchSavedMessage)
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-                    Text("マップ画面の「古地図を選択」から新しい古地図をWeb検索して追加する機能で使用します。両方設定するとメニューに追加項目が表示されます。APIキーはCloud Console、検索エンジンIDはProgrammable Search Engineで取得できます。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 6)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Google Maps")
-                        .font(.subheadline.bold())
-                    LabeledContent("APIキー設定状況") {
-                        Text(SecretsConfig.isGoogleMapsAPIKeyConfigured ? "設定済み" : "未設定")
-                            .foregroundStyle(SecretsConfig.isGoogleMapsAPIKeyConfigured ? .green : .red)
-                    }
-                    Text("Google MapsのAPIキーはビルド時に Config/Secrets.xcconfig から読み込まれます。変更した場合は再ビルドが必要です。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 6)
             }
         } header: {
             Text("アドバンス設定")
         } footer: {
-            Text("カメラ・プリンター連携、OpenAI・Googleカスタム検索・Google MapsのAPIキーなど。")
+            Text("カメラ・プリンター連携、管理者設定（Googleカスタム検索・Google Maps）、OpenAI APIキーなど。")
         }
     }
 

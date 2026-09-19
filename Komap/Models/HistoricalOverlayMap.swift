@@ -67,6 +67,31 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
         )
     }
 
+    /// この古地図の表示範囲（`bearing`による画像の回転も考慮）に、指定した座標が
+    /// 含まれるかどうか。「全ての古地図を表示」中に地図をタップして、その古地図単体の
+    /// 表示に切り替える機能で使う。
+    func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        let centerLat = (southWest.latitude + northEast.latitude) / 2
+        let centerLng = (southWest.longitude + northEast.longitude) / 2
+        let metersPerDegreeLat = 111_320.0
+        let metersPerDegreeLng = 111_320.0 * cos(centerLat * .pi / 180)
+
+        let eastMeters = (coordinate.longitude - centerLng) * metersPerDegreeLng
+        let northMeters = (coordinate.latitude - centerLat) * metersPerDegreeLat
+
+        let bearingRad = bearing * .pi / 180
+        let uMeters = eastMeters * cos(bearingRad) - northMeters * sin(bearingRad)
+        let vMeters = -eastMeters * sin(bearingRad) - northMeters * cos(bearingRad)
+
+        let widthMeters = (northEast.longitude - southWest.longitude) * metersPerDegreeLng
+        let heightMeters = (northEast.latitude - southWest.latitude) * metersPerDegreeLat
+        guard widthMeters != 0, heightMeters != 0 else { return false }
+
+        let uFraction = 0.5 + uMeters / widthMeters
+        let vFraction = 0.5 + vMeters / heightMeters
+        return (0...1).contains(uFraction) && (0...1).contains(vFraction)
+    }
+
     /// 地図上部のラベルなど、短い表示が必要な場所で使う名称。
     /// 「東海道（日本橋・芝増上寺・品川）」のような、括弧で補足を添えた`title`から
     /// 括弧部分を取り除いたもの（括弧が無ければ`title`のまま）。

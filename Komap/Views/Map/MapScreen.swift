@@ -228,7 +228,7 @@ struct MapScreen: View {
                 collectedSiteIDs: cachedCollectedSiteIDs,
                 photoPosts: photoPosts,
                 onTap: { coordinate in
-                    pendingTapPoint = TappedPoint(coordinate: coordinate)
+                    handleMapTap(at: coordinate)
                 },
                 onCheckpointTap: { site in
                     // 「全ての古地図を表示」中でも、チェックポイントの名称を押した時は
@@ -694,6 +694,24 @@ struct MapScreen: View {
             mapSession.moveCamera(to: coordinate, zoom: walkStartZoom)
         }
         showOldMapForWalkingIfNeeded()
+    }
+
+    /// 地図がタップされた時の処理。「全ての古地図を表示」中は、タップした場所を含む
+    /// 古地図があれば、その古地図単体の表示に切り替える（複数の古地図が重なって
+    /// 見にくい状態から、見たいものをすぐ選び直せるようにするため）。該当する古地図が
+    /// 無ければ、これまで通り「新しいポイントを追加しますか？」の確認に進む
+    /// （「管理者設定」の「新しい地図を追加」がオフの間は、意図しないAI呼び出しを
+    /// 防ぐためこの確認自体を出さない）。
+    private func handleMapTap(at coordinate: CLLocationCoordinate2D) {
+        if mapSession.isShowingAllOverlays,
+           let overlay = OldMapCatalog.allIncludingCustom.first(where: { $0.contains(coordinate) }) {
+            mapSession.isShowingAllOverlays = false
+            mapSession.selectedOverlay = overlay
+            mapSession.moveCamera(to: overlay.center)
+            return
+        }
+        guard AppSettings.allowAddingNewMapContent else { return }
+        pendingTapPoint = TappedPoint(coordinate: coordinate)
     }
 
     /// 歩いて記録中（iPhone本体・Apple Watchどちらでも）は、古地図の上を

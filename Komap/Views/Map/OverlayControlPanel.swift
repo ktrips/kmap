@@ -107,6 +107,16 @@ struct OldMapPickerSheet: View {
                         onSelect(nil)
                         dismiss()
                     }
+                    // 「管理者設定」の「新しい地図を追加」がオンの間だけ表示する
+                    // （AI・Web検索のAPIを呼び出す機能のため、意図しない利用を防ぐ）。
+                    if AppSettings.allowAddingNewMapContent && SecretsConfig.isOldMapSearchConfigured {
+                        Button {
+                            onRequestSearch()
+                            dismiss()
+                        } label: {
+                            Label("新しい地図を追加", systemImage: "plus.circle")
+                        }
+                    }
                 }
 
                 ForEach(OldMapCatalog.Category.allCases, id: \.self) { category in
@@ -125,16 +135,6 @@ struct OldMapPickerSheet: View {
                     }
                 }
 
-                if SecretsConfig.isOldMapSearchConfigured {
-                    Section {
-                        Button {
-                            onRequestSearch()
-                            dismiss()
-                        } label: {
-                            Label("新しい古地図を登録", systemImage: "plus.circle")
-                        }
-                    }
-                }
             }
             .navigationTitle("古地図を選択")
             .navigationBarTitleDisplayMode(.inline)

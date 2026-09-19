@@ -7,6 +7,7 @@ enum AppSettings {
     private static let currentLocationIconStyleKey = "currentLocationIconStyle"
     private static let autoPauseWhenStationaryKey = "autoPauseWhenStationary"
     private static let stationaryAutoPauseMinutesKey = "stationaryAutoPauseMinutes"
+    private static let allowAddingNewMapContentKey = "allowAddingNewMapContent"
     private static let defaultOverlayMapIDKey = "defaultOverlayMapID"
     private static let cameraLinkHostKey = "cameraLinkHost"
     private static let printerLinkHostKey = "printerLinkHost"
@@ -54,6 +55,15 @@ enum AppSettings {
             return stored == 0 ? 5 : stored
         }
         set { UserDefaults.standard.set(newValue, forKey: stationaryAutoPauseMinutesKey) }
+    }
+
+    /// 「管理者設定」の「新しい地図を追加」。AI・Web検索を使ってコストが発生する
+    /// 「新しい古地図を登録」機能と、地図タップでAIが物語を生成する「新しいポイントを追加」
+    /// 機能の両方を、この設定が`true`の間だけ使えるようにする（意図しないAPI利用を防ぐ
+    /// ため、既定は`false`＝追加不可）。
+    static var allowAddingNewMapContent: Bool {
+        get { UserDefaults.standard.bool(forKey: allowAddingNewMapContentKey) }
+        set { UserDefaults.standard.set(newValue, forKey: allowAddingNewMapContentKey) }
     }
 
     /// アプリ起動時・記録開始時などにデフォルトで選ばれる古地図のID。未設定なら`nil`
