@@ -16,7 +16,6 @@ struct SettingsView: View {
     @State private var autoPauseWhenStationary: Bool = AppSettings.autoPauseWhenStationary
     @State private var stationaryAutoPauseMinutes: Int = AppSettings.stationaryAutoPauseMinutes
 
-    @State private var isShowingAdvancedSettings = false
 
     private let syncService = SyncService()
 
@@ -258,30 +257,24 @@ struct SettingsView: View {
         }
     }
 
-    @ViewBuilder
     private var advancedSettingsSection: some View {
         Section {
-            DisclosureGroup("アドバンス設定を表示", isExpanded: $isShowingAdvancedSettings) {
-                NavigationLink {
-                    AISettingsView()
-                } label: {
-                    Label("AI設定", systemImage: "sparkles")
-                }
-                .padding(.vertical, 6)
+            NavigationLink {
+                AISettingsView()
+            } label: {
+                Label("AI設定", systemImage: "sparkles")
+            }
 
-                NavigationLink {
-                    LinkedDevicesSettingsView()
-                } label: {
-                    Label("連携機能", systemImage: "network")
-                }
-                .padding(.vertical, 6)
+            NavigationLink {
+                LinkedDevicesSettingsView()
+            } label: {
+                Label("連携機能", systemImage: "network")
+            }
 
-                NavigationLink {
-                    AdminSettingsView()
-                } label: {
-                    Label("管理者設定", systemImage: "gearshape.2")
-                }
-                .padding(.vertical, 6)
+            NavigationLink {
+                AdminSettingsView()
+            } label: {
+                Label("管理者設定", systemImage: "gearshape.2")
             }
         } header: {
             Text("アドバンス設定")
