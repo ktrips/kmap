@@ -68,7 +68,7 @@ struct OverlayControlPanel: View {
     }
 }
 
-/// 古地図選択シートの中身（「全ての古地図を表示」「古地図を表示しない」古地図一覧・新規登録）。
+/// 古地図選択シートの中身（「全ての古地図を表示」「古地図なしで歩く」古地図一覧・新規登録）。
 /// 画面下部の`OverlayControlPanel`と、右上のハンバーガーメニュー内の「古地図選択」、
 /// 両方から`.sheet`として表示する。
 ///
@@ -102,17 +102,17 @@ struct OldMapPickerSheet: View {
                             Text("全ての古地図を表示")
                         }
                     }
+                    Button("古地図なしで歩く") {
+                        isShowingAllOverlays = false
+                        selectedOverlay = nil
+                        onSelect(nil)
+                        dismiss()
+                    }
                     Button {
                         mapSession.requestCurrentLocationSearch()
                         dismiss()
                     } label: {
                         Label("現在地から古地図を探す", systemImage: "location.magnifyingglass")
-                    }
-                    Button("古地図を表示しない") {
-                        isShowingAllOverlays = false
-                        selectedOverlay = nil
-                        onSelect(nil)
-                        dismiss()
                     }
                     // 「管理者設定」の「新しい地図を追加」がオンの間だけ表示する
                     // （AI・Web検索のAPIを呼び出す機能のため、意図しない利用を防ぐ）。
