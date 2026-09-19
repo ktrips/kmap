@@ -747,7 +747,7 @@ enum HistoricSiteCatalog {
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "スリーマッシュルーム（代々木八幡）",
             summary: "伊東豊雄デザイン。代々木八幡の森からきのこが3本生えてきたような、可愛らしい3棟のトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6706, longitude: 139.6853)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6714521, longitude: 139.6880150)
         ),
         HistoricSite(
             id: "tokyo-toilet-nishihara-itchome-park",
@@ -775,7 +775,7 @@ enum HistoricSiteCatalog {
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "トライアングル（東三丁目）",
             summary: "田村奈穂デザイン。JR恵比寿駅の線路沿いに立つ、三角形のシルエットが目を引くトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6524, longitude: 139.7089)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6489871, longitude: 139.7091291)
         ),
         HistoricSite(
             id: "tokyo-toilet-jingumae",
@@ -811,13 +811,6 @@ enum HistoricSiteCatalog {
             name: "ウィズ・トイレット（幡ヶ谷）",
             summary: "槇文彦デザイン。京王線幡ヶ谷〜笹塚間に立つ、中央の広場を囲むように個室が並ぶトイレ。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6735, longitude: 139.6749)
-        ),
-        HistoricSite(
-            id: "tokyo-toilet-nishisando",
-            overlayMapID: OldMapCatalog.tokyoToilet.id,
-            name: "器・泉（西参道）",
-            summary: "藤本壮介デザイン。まるで水が湧き出る器のような、白く滑らかな曲面のトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6748, longitude: 139.6978)
         ),
         HistoricSite(
             id: "tokyo-toilet-hiroo-higashi-park",
