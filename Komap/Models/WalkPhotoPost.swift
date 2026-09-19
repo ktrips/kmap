@@ -64,6 +64,15 @@ final class WalkPhotoPost {
         StampPhotoStore.load(photoFileName)
     }
 
+    /// 写真を差し替える。古いファイルは、新しいものの保存に成功してから削除する。
+    /// クラウドへのアップロードは呼び出し側が別途行う。
+    func updatePhoto(_ image: UIImage) {
+        guard let newFileName = StampPhotoStore.save(image) else { return }
+        StampPhotoStore.delete(photoFileName)
+        photoFileName = newFileName
+        cloudPhotoURL = nil
+    }
+
     /// 一覧・旅日記などで見せる、この写真の名前。ユーザーが付けた名前があればそれを、
     /// 無ければ逆ジオコーディングした場所名を使う。
     var displayTitle: String? {

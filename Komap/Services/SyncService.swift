@@ -285,7 +285,7 @@ struct SyncService {
             // 分けて表示できるよう、それぞれ紐づく史跡名・地点名と、あれば説明文
             // （旅日記と同じ内容の`detail`）も添えて公開する。
             var stampPhotos: [[String: Any]] = []
-            for stamp in stamps where stamp.photo != nil {
+            for stamp in stamps where stamp.photo != nil && !stamp.isHiddenFromSharing {
                 let sourcePath = stampPhotoStoragePath(userID: userID, stampID: stamp.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: stamp.id)
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {

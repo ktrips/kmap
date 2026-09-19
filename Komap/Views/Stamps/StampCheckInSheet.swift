@@ -11,14 +11,10 @@ struct StampCheckInSheet: View {
     @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @State private var photosPickerItem: PhotosPickerItem?
     @State private var isLoadingPhoto = false
     @State private var isShowingCamera = false
-    /// カメラ画面の左下ボタンでライブラリに切り替える時に`.photosPicker`を開くためのフラグ。
-    @State private var isShowingPhotoLibrary = false
-    /// `fullScreenCover`の閉じるアニメーションとピッカー表示の競合を避けるため、
-    /// カメラが閉じ終わってからライブラリを開くための一時フラグ。
-    @State private var shouldShowPhotoLibraryAfterCameraDismiss = false
+    @State private var isConfirmingDelete = false
+    @State private var isUpdatingVisibility = false
     /// クラウド（Webでも見られるようにするため）へのアップロードに失敗した時のメッセージ。
     /// 失敗しても端末には保存されているが、原因がわかるよう表示しておく。
     @State private var photoSyncErrorMessage: String?
@@ -67,12 +63,31 @@ struct StampCheckInSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
 
-                    photoButtons
+                    Text(stamp.collectedAt, format: .dateTime.year().month().day().hour().minute())
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-                    if stamp.photo != nil {
-                        Button("写真を削除", role: .destructive) {
-                            applyPhotoUpdate(nil)
+                    PhotoDetailActionRow(
+                        hasPhoto: stamp.photo != nil,
+                        isBusy: isLoadingPhoto,
+                        showsPrint: stamp.photo != nil && AppSettings.printerLinkHost != nil,
+                        isPrinting: isPrintingToLinkedPrinter,
+                        isHidden: stamp.isHiddenFromSharing,
+                        isUpdatingVisibility: isUpdatingVisibility,
+                        showsRemoveActions: stamp.photo != nil,
+                        onChange: { isShowingCamera = true },
+                        onPrint: { Task { await printToLinkedPrinter() } },
+                        onToggleHidden: { Task { await toggleVisibility() } },
+                        onDelete: { isConfirmingDelete = true }
+                    )
+
+                    if isCameraLinkConfigured {
+                        Button {
+                            Task { await captureFromLinkedCamera() }
+                        } label: {
+                            Label("連携カメラで撮る", systemImage: "network")
                         }
+                        .disabled(isLoadingPhoto)
                     }
 
                     if let photoSyncErrorMessage {
@@ -100,103 +115,22 @@ struct StampCheckInSheet: View {
                     Button("閉じる") { dismiss() }
                 }
             }
-            .onChange(of: photosPickerItem) { _, newItem in
-                loadPickedPhoto(newItem)
+            .photoChangePicker(isPresented: $isShowingCamera) { image in
+                isLoadingPhoto = false
+                applyPhotoUpdate(image)
             }
-            .photosPicker(isPresented: $isShowingPhotoLibrary, selection: $photosPickerItem, matching: .images)
-            .fullScreenCover(isPresented: $isShowingCamera, onDismiss: {
-                guard shouldShowPhotoLibraryAfterCameraDismiss else { return }
-                shouldShowPhotoLibraryAfterCameraDismiss = false
-                isShowingPhotoLibrary = true
-            }) {
-                ZStack(alignment: .bottomLeading) {
-                    CameraCaptureView(
-                        onCapture: { image in
-                            isShowingCamera = false
-                            applyPhotoUpdate(image)
-                        },
-                        onCancel: { isShowingCamera = false }
-                    )
-                    .ignoresSafeArea()
-
-                    // 標準カメラアプリのライブラリショートカットと同じ左下の位置。
-                    Button {
-                        shouldShowPhotoLibraryAfterCameraDismiss = true
-                        isShowingCamera = false
-                    } label: {
-                        Image(systemName: "photo.on.rectangle")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 48, height: 48)
-                            .background(.black.opacity(0.35), in: Circle())
-                    }
-                    .padding(.leading, 20)
-                    .padding(.bottom, 40)
-                }
+            .confirmationDialog(
+                "この写真を削除しますか？",
+                isPresented: $isConfirmingDelete,
+                titleVisibility: .visible
+            ) {
+                Button("削除する", role: .destructive) { applyPhotoUpdate(nil) }
+                Button("キャンセル", role: .cancel) {}
             }
         }
         .task {
             await loadStoryIfNeeded()
         }
-    }
-
-    private var photoButtons: some View {
-        HStack(spacing: 12) {
-            if stamp.photo == nil {
-                PhotosPicker(selection: $photosPickerItem, matching: .images) {
-                    if isLoadingPhoto {
-                        ProgressView()
-                    } else {
-                        Label("写真を追加", systemImage: "photo.on.rectangle")
-                    }
-                }
-                .disabled(isLoadingPhoto)
-
-                Button {
-                    isShowingCamera = true
-                } label: {
-                    Label("カメラで撮る", systemImage: "camera.fill")
-                }
-                .disabled(isLoadingPhoto)
-            } else {
-                // 変更はまずカメラを開き、左下のボタンからライブラリの写真にも切り替えられる。
-                Button {
-                    isShowingCamera = true
-                } label: {
-                    if isLoadingPhoto {
-                        ProgressView()
-                    } else {
-                        Label("写真を変更", systemImage: "camera.fill")
-                    }
-                }
-                .disabled(isLoadingPhoto)
-            }
-
-            if isCameraLinkConfigured {
-                Button {
-                    Task { await captureFromLinkedCamera() }
-                } label: {
-                    Label("連携カメラ", systemImage: "network")
-                }
-                .disabled(isLoadingPhoto)
-            }
-
-            if stamp.photo != nil && AppSettings.printerLinkHost != nil {
-                Button {
-                    Task { await printToLinkedPrinter() }
-                } label: {
-                    if isPrintingToLinkedPrinter {
-                        ProgressView()
-                    } else {
-                        Label("連携プリント", systemImage: "printer.fill")
-                    }
-                }
-                .disabled(isPrintingToLinkedPrinter)
-            }
-        }
-        // 3つ並んでも横一線に収まるよう、折り返さず必要なら少し縮める。
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
     }
 
     /// 場所の詳細（由来やエピソード）をAIで補足する。
@@ -237,16 +171,14 @@ struct StampCheckInSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func loadPickedPhoto(_ item: PhotosPickerItem?) {
-        guard let item else { return }
-        isLoadingPhoto = true
-        Task {
-            defer { isLoadingPhoto = false }
-            guard let data = try? await item.loadTransferable(type: Data.self),
-                  let uiImage = UIImage(data: data)
-            else { return }
-            applyPhotoUpdate(uiImage)
-        }
+    /// 「非公開」を切り替える。「みんなの時空旅」に公開中の時空旅であれば、
+    /// この写真だけを公開データから外す／戻すために公開データを作り直す。
+    private func toggleVisibility() async {
+        isUpdatingVisibility = true
+        defer { isUpdatingVisibility = false }
+        stamp.isHiddenFromSharing.toggle()
+        try? modelContext.save()
+        await resyncSharedTripIfNeeded()
     }
 
     /// 「連携プリント」ボタンから、この御朱印の写真をその場で連携プリンターへ転送する。

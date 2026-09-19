@@ -17,6 +17,9 @@ final class CollectedStamp {
     var walkRouteID: UUID?
     /// Firebase Storageへアップロード済みの画像URL。未アップロードなら`nil`。
     var cloudPhotoURL: String?
+    /// `true`の間は、この時空旅が「みんなの時空旅」に公開されていても、
+    /// この御朱印の写真だけは公開データに含めない。
+    var isHiddenFromSharing: Bool = false
 
     /// 御朱印1件を獲得した時に得られるポイント。
     static let pointsPerStamp = 50

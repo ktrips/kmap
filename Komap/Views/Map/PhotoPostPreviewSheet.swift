@@ -80,6 +80,8 @@ struct PhotoPostPageView: View {
     @State private var isUpdatingVisibility = false
     @State private var editableUserTitle: String = ""
     @State private var isRegeneratingStory = false
+    @State private var isShowingPhotoChange = false
+    @State private var isChangingPhoto = false
 
     private let geocoder = CLGeocoder()
     private let historyService = AIHistoryService()
@@ -96,15 +98,23 @@ struct PhotoPostPageView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
-                Label("+\(post.points) pt 獲得", systemImage: "star.fill")
-                    .font(.headline)
-                    .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
-
                 Text(post.postedAt, format: .dateTime.year().month().day().hour().minute())
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                actionButtons
+                PhotoDetailActionRow(
+                    hasPhoto: true,
+                    isBusy: isChangingPhoto,
+                    showsPrint: post.photo != nil && AppSettings.printerLinkHost != nil,
+                    isPrinting: isPrintingToLinkedPrinter,
+                    isHidden: post.isHiddenFromSharing,
+                    isUpdatingVisibility: isUpdatingVisibility,
+                    showsRemoveActions: true,
+                    onChange: { isShowingPhotoChange = true },
+                    onPrint: { Task { await printToLinkedPrinter() } },
+                    onToggleHidden: { Task { await toggleVisibility() } },
+                    onDelete: { isConfirmingDelete = true }
+                )
 
                 if let printMessage {
                     Text(printMessage)
@@ -177,46 +187,30 @@ struct PhotoPostPageView: View {
         } message: {
             Text("獲得したポイントも含めて取り消され、元に戻せません。")
         }
+        .photoChangePicker(isPresented: $isShowingPhotoChange) { image in
+            Task { await changePhoto(to: image) }
+        }
         .task {
             editableUserTitle = post.userTitle ?? ""
             await loadInfoIfNeeded()
         }
     }
 
-    private var actionButtons: some View {
-        HStack(spacing: 12) {
-            if post.photo != nil && AppSettings.printerLinkHost != nil {
-                Button {
-                    Task { await printToLinkedPrinter() }
-                } label: {
-                    if isPrintingToLinkedPrinter {
-                        ProgressView()
-                    } else {
-                        Label("連携プリント", systemImage: "printer.fill")
-                    }
-                }
-                .disabled(isPrintingToLinkedPrinter)
-            }
+    /// 写真を差し替える。「設定」で選んだ加工を適用し、連携プリンターが設定されていれば
+    /// そちらへも転送してから、サインイン中ならクラウドにも上げ直し、公開中の時空旅にも反映する。
+    private func changePhoto(to rawImage: UIImage) async {
+        isChangingPhoto = true
+        defer { isChangingPhoto = false }
+        let image = AppSettings.photoFilterStyle.apply(to: rawImage)
+        post.updatePhoto(image)
+        try? modelContext.save()
+        Task { await PrinterLinkService().printPhotoPostIfEnabled(image) }
 
-            Button {
-                Task { await toggleVisibility() }
-            } label: {
-                if isUpdatingVisibility {
-                    ProgressView()
-                } else {
-                    Label(
-                        post.isHiddenFromSharing ? "非公開中" : "非公開にする",
-                        systemImage: post.isHiddenFromSharing ? "eye.slash.fill" : "eye.slash"
-                    )
-                }
-            }
-            .disabled(isUpdatingVisibility)
-
-            Button(role: .destructive) {
-                isConfirmingDelete = true
-            } label: {
-                Label("削除", systemImage: "trash")
-            }
+        guard let userID = authService.userID else { return }
+        try? await syncService.uploadPhotoPostImage(post, userID: userID)
+        try? modelContext.save()
+        if let walkRouteID = post.walkRouteID {
+            await resyncSharedTripIfNeeded(walkRouteID: walkRouteID)
         }
     }
 
