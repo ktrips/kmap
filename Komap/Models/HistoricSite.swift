@@ -754,7 +754,7 @@ enum HistoricSiteCatalog {
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "アンドン・トイレット（西原一丁目公園）",
             summary: "坂倉竹之助デザイン。夜になると行灯のようにやわらかく光り、公園を優しく照らすトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6725, longitude: 139.6791)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6776468, longitude: 139.6796179)
         ),
         HistoricSite(
             id: "tokyo-toilet-jingu-dori-park",
@@ -803,14 +803,14 @@ enum HistoricSiteCatalog {
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "まちのあかりのトイレ（笹塚緑道）",
             summary: "後藤達也（東京大学DLXデザインラボ）デザイン。夜には温かい灯りが緑道を照らす、街の明かりのようなトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6743, longitude: 139.6676)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6733720, longitude: 139.6667556)
         ),
         HistoricSite(
             id: "tokyo-toilet-hatagaya",
             overlayMapID: OldMapCatalog.tokyoToilet.id,
             name: "ウィズ・トイレット（幡ヶ谷）",
             summary: "槇文彦デザイン。京王線幡ヶ谷〜笹塚間に立つ、中央の広場を囲むように個室が並ぶトイレ。",
-            coordinate: CLLocationCoordinate2D(latitude: 35.6735, longitude: 139.6749)
+            coordinate: CLLocationCoordinate2D(latitude: 35.6798841, longitude: 139.6735301)
         ),
         HistoricSite(
             id: "tokyo-toilet-hiroo-higashi-park",

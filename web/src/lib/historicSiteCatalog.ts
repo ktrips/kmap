@@ -103,15 +103,15 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "tokyo-toilet-nabeshima-shoto-park", name: "森のコミチ（鍋島松濤公園）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6596047, lng: 139.6915526 } },
   { id: "tokyo-toilet-yoyogi-fukamachi-mini-park", name: "ザ・トウメイ・トイレット（代々木深町小公園）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6693949, lng: 139.6906937 } },
   { id: "tokyo-toilet-yoyogi-hachiman", name: "スリーマッシュルーム（代々木八幡）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6714521, lng: 139.6880150 } },
-  { id: "tokyo-toilet-nishihara-itchome-park", name: "アンドン・トイレット（西原一丁目公園）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6725, lng: 139.6791 } },
+  { id: "tokyo-toilet-nishihara-itchome-park", name: "アンドン・トイレット（西原一丁目公園）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6776468, lng: 139.6796179 } },
   { id: "tokyo-toilet-jingu-dori-park", name: "あまやどり（神宮通公園）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6641929, lng: 139.7020557 } },
   { id: "tokyo-toilet-ebisu-park", name: "恵比寿公園トイレ", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6469527, lng: 139.7069729 } },
   { id: "tokyo-toilet-higashi-sanchome", name: "トライアングル（東三丁目）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6489871, lng: 139.7091291 } },
   { id: "tokyo-toilet-jingumae", name: "ザ・ハウス（神宮前）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6708, lng: 139.7069 } },
   { id: "tokyo-toilet-ebisu-station-west-exit", name: "ホワイト（恵比寿駅西口）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6473, lng: 139.7095 } },
   { id: "tokyo-toilet-nanago-dori-park", name: "ハイ・トイレット（七号通り公園）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6752, lng: 139.6866 } },
-  { id: "tokyo-toilet-sasazuka-greenway", name: "まちのあかりのトイレ（笹塚緑道）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6743, lng: 139.6676 } },
-  { id: "tokyo-toilet-hatagaya", name: "ウィズ・トイレット（幡ヶ谷）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6735, lng: 139.6749 } },
+  { id: "tokyo-toilet-sasazuka-greenway", name: "まちのあかりのトイレ（笹塚緑道）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6733720, lng: 139.6667556 } },
+  { id: "tokyo-toilet-hatagaya", name: "ウィズ・トイレット（幡ヶ谷）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6798841, lng: 139.6735301 } },
   { id: "tokyo-toilet-hiroo-higashi-park", name: "モニュメンタム（広尾東公園）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6516, lng: 139.7213 } },
 ];
 
