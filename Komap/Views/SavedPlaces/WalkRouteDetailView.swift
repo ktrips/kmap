@@ -77,6 +77,9 @@ struct WalkRouteDetailView: View {
     /// この画面に表示している地図（`WalkRouteMapView`）の`GMSMapView`インスタンス。
     /// シェア画像を作る時に、既に画面表示されているこの地図をそのままスナップショットする。
     @State private var mapViewForSharing: GMSMapView?
+    @State private var isGeneratingVideo = false
+    @State private var videoErrorMessage: String?
+    @State private var videoItem: TripVideoItem?
 
     private let syncService = SyncService()
     private let journalService = TravelJournalService()
@@ -268,6 +271,9 @@ struct WalkRouteDetailView: View {
         .sheet(isPresented: $isShowingShareSheet) {
             ActivityShareSheet(items: shareItems)
         }
+        .sheet(item: $videoItem) { item in
+            TripVideoPlayerSheet(videoURL: item.url)
+        }
         .sheet(isPresented: $isShowingJournal) {
             TravelJournalView(
                 route: route,
@@ -418,6 +424,83 @@ struct WalkRouteDetailView: View {
             }
 
             travelJournalSection
+            videoSection
+        }
+    }
+
+    /// 旅行記を作成するボタンの下の、旅の動画（軌跡をアイコンが進み、写真の地点で写真を見せる）。
+    @ViewBuilder
+    private var videoSection: some View {
+        if route.coordinates.count >= 2 {
+            VStack(alignment: .leading, spacing: 6) {
+                Button {
+                    Task { await generateAndPlayVideo() }
+                } label: {
+                    if isGeneratingVideo {
+                        HStack {
+                            ProgressView()
+                            Text("動画を作成中…")
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        Label("動画を再生", systemImage: "play.rectangle.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isGeneratingVideo)
+
+                if let videoErrorMessage {
+                    Text(videoErrorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+    }
+
+    /// 歩いた軌跡と写真の地点から動画を書き出し、再生シートを開く。
+    /// 背景には、画面に表示中の地図（古地図・チェックポイント入り）のスナップショットを使う。
+    private func generateAndPlayVideo() async {
+        guard let mapView = mapViewForSharing, let base = captureMapSnapshot() else {
+            videoErrorMessage = "地図の表示を待ってから、もう一度お試しください。"
+            return
+        }
+        isGeneratingVideo = true
+        videoErrorMessage = nil
+        defer { isGeneratingVideo = false }
+
+        let path = route.coordinates
+        let points = path.map { mapView.projection.point(for: $0) }
+
+        // 写真（投稿写真・御朱印の写真）を、それぞれ軌跡上の一番近い点に対応させる。
+        func nearestIndex(to coordinate: CLLocationCoordinate2D) -> Int {
+            let target = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            var best = 0
+            var bestDistance = CLLocationDistance.greatestFiniteMagnitude
+            for (index, point) in path.enumerated() {
+                let distance = CLLocation(latitude: point.latitude, longitude: point.longitude).distance(from: target)
+                if distance < bestDistance {
+                    best = index
+                    bestDistance = distance
+                }
+            }
+            return best
+        }
+        var stops: [TripVideoStop] = []
+        for post in photoPostsForRoute {
+            guard let photo = post.photo else { continue }
+            stops.append(TripVideoStop(pointIndex: nearestIndex(to: post.coordinate), photo: photo, caption: post.displayTitle))
+        }
+        for stamp in stampsForRoute {
+            guard let photo = stamp.photo, let site = stamp.site else { continue }
+            stops.append(TripVideoStop(pointIndex: nearestIndex(to: site.coordinate), photo: photo, caption: site.name))
+        }
+
+        do {
+            videoItem = TripVideoItem(url: try await TripVideoRenderer.render(base: base, points: points, stops: stops))
+        } catch {
+            videoErrorMessage = error.localizedDescription
         }
     }
 
