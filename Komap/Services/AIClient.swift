@@ -13,6 +13,12 @@ enum AIClientError: LocalizedError {
         case .invalidResponse:
             return "AIからの応答を読み取れませんでした。しばらくしてから再度お試しください。"
         case .server(let message):
+            if message.localizedCaseInsensitiveContains("blocked") {
+                return "このAPIキーではGoogleのAI（Generative Language API）が許可されていません（\(message)）。"
+                    + "Google AI Studio（aistudio.google.com）でGemini用のAPIキーを作って「AI設定」のGoogle APIキーに入れるか、"
+                    + "Google Cloud Consoleでこのキーの「APIの制限」に「Generative Language API」を追加し、そのAPIを有効にしてください。"
+                    + "（Google Maps用のキーは流用できないことがあります）"
+            }
             if message.localizedCaseInsensitiveContains("api key") || message.localizedCaseInsensitiveContains("api_key") {
                 return "APIキーが正しくないためAIを呼び出せませんでした（\(message)）。「設定」→「アドバンス設定」→「AI設定」を確認してください。"
             }
@@ -91,6 +97,16 @@ enum AIClient {
         return request
     }
 
+    /// Googleへのリクエストのヘッダー。キーに「iOSアプリ」の制限が付いている場合に必要になる
+    /// バンドルIDも添える（制限が無いキーでは無視される）。
+    private static func googleHeaders(_ key: String) -> [String: String] {
+        var headers = ["x-goog-api-key": key]
+        if let bundleID = Bundle.main.bundleIdentifier {
+            headers["X-Ios-Bundle-Identifier"] = bundleID
+        }
+        return headers
+    }
+
     private static func openAIRequest(_ key: String, _ system: String, _ user: String, _ jpeg: Data?, _ temperature: Double) throws -> URLRequest {
         var userContent: Any = user
         if let jpeg {
@@ -121,7 +137,7 @@ enum AIClient {
         }
         return try makeRequest(
             URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model(for: .google)):generateContent")!,
-            headers: ["x-goog-api-key": key],
+            headers: googleHeaders(key),
             body: [
                 "systemInstruction": ["parts": [["text": system]]],
                 "contents": [["role": "user", "parts": parts]],
@@ -209,7 +225,7 @@ enum AIClient {
         case .google:
             request = try makeRequest(
                 URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent")!,
-                headers: ["x-goog-api-key": apiKey],
+                headers: googleHeaders(apiKey),
                 body: [
                     "contents": [["parts": [["text": prompt]]]],
                     "generationConfig": ["responseModalities": ["IMAGE"]],
