@@ -29,6 +29,8 @@ struct MapScreen: View {
     /// 自体は`@Published`のため、同じ値を代入してもここより先にpublishされてしまい、
     /// 選び直し後の値との比較には使えない）。
     @State private var lastSelectedOverlayID: String?
+    /// 「現在地から古地図を探す」で見つからなかった時などに見せる案内。
+    @State private var currentLocationSearchMessage: String?
     @State private var tappedPoint: TappedPoint?
     /// マップをタップした直後、「新しいポイントを追加しますか？」の確認待ちの座標。
     /// ここで確認してからAIへ問い合わせることで、探索中の何気ないタップで
@@ -181,6 +183,53 @@ struct MapScreen: View {
         }
     }
 
+    /// 現在地を含む古地図（同梱・追加済みの両方）を探して選択する。1枚も無ければ、
+    /// 現在地付近の古地図を新しく作る検索画面へ移る（その場所の名前を検索文に入れておく）。
+    private func searchOldMapAtCurrentLocation() async {
+        guard let location = locationManager.currentLocation else {
+            currentLocationSearchMessage = "現在地を取得できませんでした。位置情報の許可を確認して、もう一度お試しください。"
+            return
+        }
+
+        let matches = OldMapCatalog.allIncludingCustom.filter { $0.contains(location) }
+        if let nearest = matches.min(by: { distanceToCenter($0, from: location) < distanceToCenter($1, from: location) }) {
+            mapSession.isShowingAllOverlays = false
+            if nearest.id == mapSession.selectedOverlay?.id {
+                mapSession.requestOverlayReattach()
+            }
+            mapSession.selectedOverlay = nearest
+            lastSelectedOverlayID = nearest.id
+            return
+        }
+
+        guard AppSettings.allowAddingNewMapContent, SecretsConfig.isOldMapSearchConfigured else {
+            currentLocationSearchMessage = "現在地を含む古地図はありませんでした。現在地から古地図を作るには、「設定」→「アドバンス設定」→「AI設定」でOpenAI APIキーを設定し、「新しい地図を追加」をオンにしてください。"
+            return
+        }
+
+        let placeName = await Self.placeName(for: location)
+        let coordinateText = String(format: "緯度%.4f・経度%.4f", location.latitude, location.longitude)
+        OldMapSearchCache.shared.clear()
+        OldMapSearchCache.shared.query = "\(placeName ?? "現在地")付近（\(coordinateText)）の古地図を見つけて"
+        mapSession.isShowingOldMapSearch = true
+    }
+
+    private func distanceToCenter(_ overlay: HistoricalOverlayMap, from location: CLLocationCoordinate2D) -> CLLocationDistance {
+        CLLocation(latitude: overlay.center.latitude, longitude: overlay.center.longitude)
+            .distance(from: CLLocation(latitude: location.latitude, longitude: location.longitude))
+    }
+
+    /// 現在地の地名（市区町村＋町名など）。取得できなければ`nil`。
+    private static func placeName(for location: CLLocationCoordinate2D) async -> String? {
+        let placemarks = try? await CLGeocoder().reverseGeocodeLocation(
+            CLLocation(latitude: location.latitude, longitude: location.longitude),
+            preferredLocale: Locale(identifier: "ja_JP")
+        )
+        guard let placemark = placemarks?.first else { return nil }
+        let parts = [placemark.administrativeArea, placemark.locality, placemark.subLocality].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined()
+    }
+
     /// 今の記録セッションのID。iPhoneでの記録中は`activeWalkSessionID`、
     /// Apple Watch単体での記録中は`activeWatchSessionID`を使う。
     /// 御朱印獲得・写真投稿を、後で作られる`WalkRoute`と正しく紐付けるために使う。
@@ -270,6 +319,22 @@ struct MapScreen: View {
                 )
             }
             .padding(.bottom, 12)
+            .onChange(of: mapSession.currentLocationSearchRequest) { _, request in
+                guard request != nil else { return }
+                mapSession.currentLocationSearchRequest = nil
+                Task { await searchOldMapAtCurrentLocation() }
+            }
+            .alert(
+                "現在地から古地図を探す",
+                isPresented: Binding(
+                    get: { currentLocationSearchMessage != nil },
+                    set: { if !$0 { currentLocationSearchMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(currentLocationSearchMessage ?? "")
+            }
         }
         .overlay(alignment: .top) {
             if let pointsToastMessage {

@@ -41,6 +41,9 @@ final class MapSessionState: ObservableObject {
     @Published var isShowingAllOverlays: Bool = false
     /// 「新しい古地図を登録」の検索シートを表示するかどうか。
     @Published var isShowingOldMapSearch: Bool = false
+    /// 「現在地から古地図を探す」が選ばれたことを`MapScreen`へ伝えるリクエスト
+    /// （現在地は`MapScreen`の`LocationManager`が持っているため）。
+    @Published var currentLocationSearchRequest: UUID?
     /// 歩行記録中（iPhone本体・Apple Watchどちらでも）かどうか。`MapScreen`が
     /// 実際の記録状態（`LocationManager.isRecordingWalk`等）と同期させる。左上・下部の
     /// 古地図コントロールなど、`MapScreen`の外からも「今歩いているか」を参照したい
@@ -94,6 +97,10 @@ final class MapSessionState: ObservableObject {
     /// 古地図の選択メニューから、今表示中と同じ古地図であっても選び直された時に呼ぶ。
     /// 歩行中にGoogle Maps SDK側のGPU不具合で古地図が見えなくなった時、
     /// もう一度同じ古地図を選ぶだけでオーバーレイを貼り直して復帰できるようにするため。
+    func requestCurrentLocationSearch() {
+        currentLocationSearchRequest = UUID()
+    }
+
     func requestOverlayReattach() {
         overlayReattachRequest = UUID()
     }

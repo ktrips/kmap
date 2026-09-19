@@ -80,6 +80,7 @@ struct OverlayControlPanel: View {
 ///   シートとして全画面表示する形に変更した。
 struct OldMapPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var mapSession: MapSessionState
     @Binding var selectedOverlay: HistoricalOverlayMap?
     @Binding var isShowingAllOverlays: Bool
     var onSelect: (HistoricalOverlayMap?) -> Void = { _ in }
@@ -100,6 +101,12 @@ struct OldMapPickerSheet: View {
                         } else {
                             Text("全ての古地図を表示")
                         }
+                    }
+                    Button {
+                        mapSession.requestCurrentLocationSearch()
+                        dismiss()
+                    } label: {
+                        Label("現在地から古地図を探す", systemImage: "location.magnifyingglass")
                     }
                     Button("古地図を表示しない") {
                         isShowingAllOverlays = false
