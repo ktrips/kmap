@@ -22,6 +22,9 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
     /// 動きがない時に自動で一時停止する機能を使うかどうか。iPhone側の「設定」を
     /// `WatchSessionManager`経由で反映する。
     var isAutoPauseForInactivityEnabled = true
+    /// この時間、`movementResetThresholdMeters`以上の移動が無ければ自動的に一時停止する。
+    /// iPhone側の「設定」で選んだ分数を`WatchSessionManager`経由で反映する。
+    var stationaryAutoPauseInterval: TimeInterval = 5 * 60
 
     private let locationManager = CLLocationManager()
     private let healthStore = HKHealthStore()
@@ -32,8 +35,6 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
     /// iPhoneなどで気づかず記録が回りっぱなしになる不具合への保険として、動いているか
     /// どうかによらずこの時間を超えたら自動的に記録を終了する。
     private static let maximumRecordingDuration: TimeInterval = 8 * 3600
-    /// この時間、`movementResetThresholdMeters`以上の移動が無ければ自動的に一時停止する。
-    private static let stationaryAutoPauseInterval: TimeInterval = 20 * 60
     /// GPSのわずかなブレを「移動した」と誤検知しないための最小移動距離（メートル）。
     private static let movementResetThresholdMeters: CLLocationDistance = 15
     private var lastMovementAt: Date?
@@ -197,7 +198,7 @@ extension WatchWorkoutLocationTracker: CLLocationManagerDelegate {
             lastMovementCoordinate = coordinate
         } else if isAutoPauseForInactivityEnabled,
                   let lastMovementAt,
-                  Date().timeIntervalSince(lastMovementAt) >= Self.stationaryAutoPauseInterval {
+                  Date().timeIntervalSince(lastMovementAt) >= stationaryAutoPauseInterval {
             isAutoPaused = true
             workoutSession?.pause()
             onAutoPausedForInactivity?()

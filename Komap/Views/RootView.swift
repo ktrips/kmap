@@ -108,16 +108,9 @@ private struct MapTopLeftControls: View {
             .accessibilityLabel("マイ時空旅")
 
             Button {
-                // 歩行記録中は選択シートを開かず、その場ですぐ古地図を復活・貼り直す
-                // （「左上の古地図を押すと再読み込み」）。GPU不具合で消えたまま古地図が
-                // 選択されている場合も、貼り直しリクエストで復帰できるようにする。
-                // 歩いていない時は、これまで通り選び直しシートを開く。
-                if mapSession.isWalking {
-                    mapSession.restoreOldMapForWalking()
-                    mapSession.requestOverlayReattach()
-                } else {
-                    isPresentingOldMapPicker = true
-                }
+                // 歩行記録中も、これまで通り選び直しシートを開く（`OverlayControlPanel`と
+                // 同じ理由で、歩行中だけシートを開かない特別扱いをやめた）。
+                isPresentingOldMapPicker = true
             } label: {
                 Image(systemName: "map")
                     .roundControlButtonStyle()

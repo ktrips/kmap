@@ -33,16 +33,17 @@ final class LocationManager: NSObject, ObservableObject {
     /// Apple Watchなどで気づかず記録が回りっぱなしになる不具合への保険として、
     /// 動いているかどうかによらずこの時間を超えたら自動的に記録を終了する。
     static let maximumRecordingDuration: TimeInterval = 8 * 3600
-    /// この時間、`movementResetThresholdMeters`以上の移動が無ければ自動的に一時停止する
-    /// （信号待ち・カフェで一休み等ではなく、その場に留まったまま気づかず記録し続ける
-    /// ことを防ぐため）。「設定」の「動きがない時に自動で一時停止」がオフの間は働かない。
-    private static let stationaryAutoPauseInterval: TimeInterval = 20 * 60
     /// GPSのわずかなブレを「移動した」と誤検知しないための最小移動距離（メートル）。
     private static let movementResetThresholdMeters: CLLocationDistance = 15
 
     /// 動きがない時に自動で一時停止する機能を使うかどうか。「設定」から切り替える
     /// （`MapScreen`が`AppSettings.autoPauseWhenStationary`を反映する）。
     var isAutoPauseForInactivityEnabled = true
+    /// この時間、`movementResetThresholdMeters`以上の移動が無ければ自動的に一時停止する
+    /// （信号待ち・カフェで一休み等ではなく、その場に留まったまま気づかず記録し続ける
+    /// ことを防ぐため）。「設定」で1〜20分の間から選べる（`MapScreen`が
+    /// `AppSettings.stationaryAutoPauseMinutes`を反映する）。
+    var stationaryAutoPauseInterval: TimeInterval = 5 * 60
 
     private var recordingStartedAt: Date?
     /// 最後に大きく（`movementResetThresholdMeters`以上）移動した時刻・座標。
@@ -242,7 +243,7 @@ extension LocationManager: CLLocationManagerDelegate {
             lastMovementCoordinate = coordinate
         } else if isAutoPauseForInactivityEnabled,
                   let lastMovementAt,
-                  Date().timeIntervalSince(lastMovementAt) >= Self.stationaryAutoPauseInterval {
+                  Date().timeIntervalSince(lastMovementAt) >= stationaryAutoPauseInterval {
             isWalkPaused = true
             isPausedAutomatically = true
             didAutoPauseForInactivity = true

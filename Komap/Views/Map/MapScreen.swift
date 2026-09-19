@@ -368,6 +368,7 @@ struct MapScreen: View {
         .onAppear {
             locationManager.requestPermissionIfNeeded()
             locationManager.isAutoPauseForInactivityEnabled = AppSettings.autoPauseWhenStationary
+        locationManager.stationaryAutoPauseInterval = TimeInterval(AppSettings.stationaryAutoPauseMinutes * 60)
             syncWatchState()
             recomputeActiveCheckpoints()
             recomputeSavedWalkPaths()
@@ -686,6 +687,7 @@ struct MapScreen: View {
         Task { await healthKitStepReader.requestAuthorizationIfNeeded() }
         Task { await healthKitWorkoutSaver.requestAuthorizationIfNeeded() }
         locationManager.isAutoPauseForInactivityEnabled = AppSettings.autoPauseWhenStationary
+        locationManager.stationaryAutoPauseInterval = TimeInterval(AppSettings.stationaryAutoPauseMinutes * 60)
         locationManager.startRecordingWalk()
         isFollowingCurrentLocation = true
         if let coordinate = locationManager.currentLocation {
@@ -774,6 +776,7 @@ struct MapScreen: View {
         }
         mapSession.overlayOpacity = draft.overlayOpacity
         locationManager.isAutoPauseForInactivityEnabled = AppSettings.autoPauseWhenStationary
+        locationManager.stationaryAutoPauseInterval = TimeInterval(AppSettings.stationaryAutoPauseMinutes * 60)
         locationManager.resumeRecordingWalk(from: draft.coordinates, startedAt: draft.startedAt)
         isFollowingCurrentLocation = true
         showOldMapForWalkingIfNeeded()

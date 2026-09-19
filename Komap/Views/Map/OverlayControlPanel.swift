@@ -21,17 +21,12 @@ struct OverlayControlPanel: View {
     var body: some View {
         VStack(spacing: 14) {
             Button {
-                // 歩行記録中は選択シートを開かず、その場ですぐ古地図を復活・貼り直す
-                // （「下の古地図を押すと再読み込み」）。GPU不具合で消えたまま古地図が
-                // 選択されている場合も、貼り直しリクエストで復帰できるようにする。
-                // 歩いていない時は、これまで通り選び直しシートを開く。
-                if mapSession.isWalking {
-                    mapSession.restoreOldMapForWalking()
-                    mapSession.requestOverlayReattach()
-                    onSelect(selectedOverlay)
-                } else {
-                    isPresentingPicker = true
-                }
+                // 歩行記録中も、これまで通り選び直しシートを開く（以前は歩行中だけ
+                // シートを開かず貼り直しリクエストのみ送っていたため、歩きながら
+                // 別の古地図に切り替えられなかった。定期貼り直しタイマーの追加で
+                // GPU不具合からの復帰はシート無しでも自動的に効くようになったため、
+                // ここでの特別扱いは不要になった）。
+                isPresentingPicker = true
             } label: {
                 HStack {
                     Image(systemName: "map.fill")

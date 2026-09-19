@@ -327,11 +327,26 @@ struct WalkRouteDetailView: View {
 
                 Spacer(minLength: 8)
 
-                Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
-                    .font(.caption.bold())
-                    .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
-                    .lineLimit(1)
-                    .layoutPriority(1)
+                Menu {
+                    ForEach(TripVisibility.allCases) { visibility in
+                        Button {
+                            Task { await setVisibility(visibility) }
+                        } label: {
+                            if visibility == currentVisibility {
+                                Label(visibility.menuTitle, systemImage: "checkmark")
+                            } else {
+                                Text(visibility.menuTitle)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
+                        .font(.caption.bold())
+                        .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                }
+                .disabled(isUpdatingShare)
             }
 
             if let shareErrorMessage {

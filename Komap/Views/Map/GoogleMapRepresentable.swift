@@ -262,8 +262,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 歩行記録中、進行方向を示す小さな三角を現在地マークのすぐ外側に表示するための
         /// 専用マーカー（本体のマーカーは回転させず、この三角だけ`rotation`で向きを変える）。
         private var headingMarker: GMSMarker?
-        /// 進行方向の三角アイコン。向きが変わっても作り直さず`rotation`だけ変えるため、使い回す。
-        private static let headingIcon: UIImage = makeHeadingIcon()
+        /// 直近に三角へ適用した見た目スタイル。現在地マークの色（`CurrentLocationIconStyle`）に
+        /// 揃えるため、これが変わった時だけアイコンを作り直す。
+        private var headingIconStyleUsed: CurrentLocationIconStyle?
         /// 直近に投稿写真ピンへ適用した「記録中で薄く表示」状態。
         private var arePhotoPostsDimmed = false
 
@@ -1042,10 +1043,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             if let headingMarker {
                 headingMarker.position = coordinate
                 headingMarker.rotation = heading
+                if style != headingIconStyleUsed {
+                    headingIconStyleUsed = style
+                    headingMarker.icon = Self.makeHeadingIcon(color: style.accentColor)
+                }
                 headingMarker.map = mapView
             } else {
+                headingIconStyleUsed = style
                 let marker = GMSMarker(position: coordinate)
-                marker.icon = Self.headingIcon
+                marker.icon = Self.makeHeadingIcon(color: style.accentColor)
                 marker.groundAnchor = CGPoint(x: 0.5, y: 1.0)
                 marker.rotation = heading
                 marker.zIndex = Self.currentLocationMarkerZIndex + 1
@@ -1055,10 +1061,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             }
         }
 
-        /// 進行方向を示す小さな三角アイコン。土台（下辺）を現在地マークの中心に
-        /// 合わせて描くため、`groundAnchor`は下辺中央（(0.5, 1.0)）にする
-        /// （`applyCurrentLocationMarker`参照）。
-        private static func makeHeadingIcon() -> UIImage {
+        /// 進行方向を示す小さな三角アイコン。現在地マーク（`CurrentLocationIconStyle`）の
+        /// 色に揃える。土台（下辺）を現在地マークの中心に合わせて描くため、
+        /// `groundAnchor`は下辺中央（(0.5, 1.0)）にする（`applyCurrentLocationMarker`参照）。
+        private static func makeHeadingIcon(color: UIColor) -> UIImage {
             let size = CGSize(width: 16, height: 20)
             let renderer = UIGraphicsImageRenderer(size: size)
             return renderer.image { context in
@@ -1070,7 +1076,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 path.closeSubpath()
 
                 cg.addPath(path)
-                cg.setFillColor(UIColor.systemBlue.cgColor)
+                cg.setFillColor(color.cgColor)
                 cg.fillPath()
 
                 cg.addPath(path)

@@ -23,6 +23,17 @@ enum CurrentLocationIconStyle: String, CaseIterable, Identifiable, Equatable {
         }
     }
 
+    /// このスタイルを代表する色。歩行中、進行方向を示す小さな三角
+    /// （`GoogleMapRepresentable`）の色をこのアイコンに揃えるために使う。
+    var accentColor: UIColor {
+        switch self {
+        case .blueDot: return .systemBlue
+        case .travelerHat: return UIColor(red: 0.36, green: 0.24, blue: 0.13, alpha: 1)
+        case .samurai: return UIColor(red: 0.16, green: 0.18, blue: 0.24, alpha: 1)
+        case .modernPerson: return .systemTeal
+        }
+    }
+
     /// 現在地マークのアイコンを生成する。`emphasized`（歩行記録中）は一回り大きくする。
     ///
     /// - Note: チェックポイント（御朱印）のマーカーは朱色系の縦長ピン（`GMSMarker.markerImage(with: .shuiro)`）

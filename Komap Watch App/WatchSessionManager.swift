@@ -48,6 +48,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// iPhone側の「設定」→「動きがない時に自動で一時停止」を反映する。
     /// `applyContext`で同期され、これから作るトラッカーにも渡す。
     private var isAutoPauseForInactivityEnabled = true
+    /// iPhone側の「設定」で選んだ、一時停止までの時間（秒）。
+    private var stationaryAutoPauseInterval: TimeInterval = 5 * 60
 
     private let session: WCSession?
     /// 「スタート」を押すまでHealthKit・位置情報まわりの初期化を行わないよう、
@@ -90,6 +92,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         let tracker = tracker ?? WatchWorkoutLocationTracker()
         self.tracker = tracker
         tracker.isAutoPauseForInactivityEnabled = isAutoPauseForInactivityEnabled
+        tracker.stationaryAutoPauseInterval = stationaryAutoPauseInterval
         tracker.onLocationUpdate = { [weak self] coordinate in
             self?.sendLocationUpdate(coordinate)
         }
@@ -294,8 +297,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
         selectedMapID = context["selectedMapID"] as? String
 
         isAutoPauseForInactivityEnabled = context["autoPauseWhenStationary"] as? Bool ?? true
+        let minutes = context["stationaryAutoPauseMinutes"] as? Int ?? 5
+        stationaryAutoPauseInterval = TimeInterval(minutes * 60)
         tracker?.isAutoPauseForInactivityEnabled = isAutoPauseForInactivityEnabled
+        tracker?.stationaryAutoPauseInterval = stationaryAutoPauseInterval
         companionTracker?.isAutoPauseForInactivityEnabled = isAutoPauseForInactivityEnabled
+        companionTracker?.stationaryAutoPauseInterval = stationaryAutoPauseInterval
     }
 
     /// iPhoneでの記録に、Watch自身のGPSを「伴走」させて開始する。Watch単体モード
@@ -307,6 +314,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         let tracker = WatchWorkoutLocationTracker()
         companionTracker = tracker
         tracker.isAutoPauseForInactivityEnabled = isAutoPauseForInactivityEnabled
+        tracker.stationaryAutoPauseInterval = stationaryAutoPauseInterval
         tracker.onLocationUpdate = { [weak self] coordinate in
             self?.sendCompanionLocationUpdate(coordinate)
         }

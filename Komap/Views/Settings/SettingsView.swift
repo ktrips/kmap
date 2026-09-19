@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var photoFilterStyle: PhotoFilterStyle = AppSettings.photoFilterStyle
     @State private var currentLocationIconStyle: CurrentLocationIconStyle = AppSettings.currentLocationIconStyle
     @State private var autoPauseWhenStationary: Bool = AppSettings.autoPauseWhenStationary
+    @State private var stationaryAutoPauseMinutes: Int = AppSettings.stationaryAutoPauseMinutes
 
     @State private var isShowingAdvancedSettings = false
     @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
@@ -192,10 +193,20 @@ struct SettingsView: View {
                 .onChange(of: autoPauseWhenStationary) { _, newValue in
                     AppSettings.autoPauseWhenStationary = newValue
                 }
+            if autoPauseWhenStationary {
+                Picker("一時停止までの時間", selection: $stationaryAutoPauseMinutes) {
+                    ForEach([1, 5, 10, 20], id: \.self) { minutes in
+                        Text("\(minutes)分").tag(minutes)
+                    }
+                }
+                .onChange(of: stationaryAutoPauseMinutes) { _, newValue in
+                    AppSettings.stationaryAutoPauseMinutes = newValue
+                }
+            }
         } header: {
             Text("記録の自動制御")
         } footer: {
-            Text("20分以上動きがない状態が続くと、記録を自動的に一時停止します（動き出すと自動で再開します）。iPhone・Apple Watchのどちらで記録していても、気づかず長時間GPSが回りっぱなしになるのを防ぎます。動いているかどうかによらず、8時間を超えたら自動的に保存して記録を終了します。")
+            Text("気づかずGPSが回りっぱなしにならないよう、動きがなくなると自動で一時停止し（動き出すと再開）、8時間で自動終了します。")
         }
     }
 

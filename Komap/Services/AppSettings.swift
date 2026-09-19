@@ -6,6 +6,7 @@ enum AppSettings {
     private static let photoFilterStyleKey = "photoFilterStyle"
     private static let currentLocationIconStyleKey = "currentLocationIconStyle"
     private static let autoPauseWhenStationaryKey = "autoPauseWhenStationary"
+    private static let stationaryAutoPauseMinutesKey = "stationaryAutoPauseMinutes"
     private static let defaultOverlayMapIDKey = "defaultOverlayMapID"
     private static let cameraLinkHostKey = "cameraLinkHost"
     private static let printerLinkHostKey = "printerLinkHost"
@@ -43,6 +44,16 @@ enum AppSettings {
             return UserDefaults.standard.bool(forKey: autoPauseWhenStationaryKey)
         }
         set { UserDefaults.standard.set(newValue, forKey: autoPauseWhenStationaryKey) }
+    }
+
+    /// 「動きがない時に自動で一時停止」までの時間（分）。1・5・10・20分から選べる。
+    /// 未設定時は5分。
+    static var stationaryAutoPauseMinutes: Int {
+        get {
+            let stored = UserDefaults.standard.integer(forKey: stationaryAutoPauseMinutesKey)
+            return stored == 0 ? 5 : stored
+        }
+        set { UserDefaults.standard.set(newValue, forKey: stationaryAutoPauseMinutesKey) }
     }
 
     /// アプリ起動時・記録開始時などにデフォルトで選ばれる古地図のID。未設定なら`nil`
