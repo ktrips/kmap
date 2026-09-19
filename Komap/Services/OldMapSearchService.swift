@@ -11,7 +11,7 @@ enum OldMapSearchError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "OpenAIとGoogleカスタム検索のAPIキーが両方とも必要です。「設定」タブから入力してください。"
+            return "OpenAIのAPIキーが必要です。「設定」タブから入力してください。"
         case .invalidResponse:
             return "検索結果を読み取れませんでした。しばらくしてから再度お試しください。"
         case .noImageFound:
@@ -19,8 +19,7 @@ enum OldMapSearchError: LocalizedError {
         case .server(let message):
             if message.localizedCaseInsensitiveContains("api key") {
                 return "APIキーが正しくないため検索できませんでした（\(message)）。"
-                    + "「設定」→「アドバンス設定」→「管理者設定」のGoogleカスタム検索APIキーと、"
-                    + "「AI設定」のOpenAI APIキーを確認してください。"
+                    + "「設定」→「アドバンス設定」→「AI設定」のOpenAI APIキーを確認してください。"
             }
             return "検索でエラーが発生しました: \(message)"
         }
@@ -38,16 +37,13 @@ struct OldMapSearchResult {
 }
 
 /// ユーザーが入力した地域の説明から、AI（OpenAI）でおおよその位置範囲・古地図の
-/// タイトルや時代を推定しつつ、Googleカスタム検索でそれらしい古地図の画像を探して
-/// 組み合わせ、古地図候補を1件作る。
+/// タイトルや時代を推定しつつ、Wikimedia Commons（APIキー不要）でそれらしい
+/// 古地図の画像を探して組み合わせ、古地図候補を1件作る。
 struct OldMapSearchService {
     var model: String = "gpt-4o-mini"
 
     func search(query: String) async throws -> OldMapSearchResult {
         guard SecretsConfig.openAIAPIKey != nil else { throw OldMapSearchError.missingAPIKey }
-        guard SecretsConfig.googleCustomSearchAPIKey != nil, SecretsConfig.googleCustomSearchEngineID != nil else {
-            throw OldMapSearchError.missingAPIKey
-        }
 
         async let boundsTask = estimateBounds(query: query)
         async let imageURLTask = searchImageURL(query: query)
@@ -123,41 +119,60 @@ struct OldMapSearchService {
         )
     }
 
-    // MARK: - Googleカスタム検索での画像検索
+    // MARK: - Wikimedia Commonsでの画像検索
 
+    /// Wikimedia Commons（APIキー不要）から古地図の画像を探す。日本語の検索語だと
+    /// ヒットしにくいため、検索語を変えながら最初に見つかった画像を使う。
     private func searchImageURL(query: String) async throws -> URL {
-        guard let apiKey = SecretsConfig.googleCustomSearchAPIKey,
-              let engineID = SecretsConfig.googleCustomSearchEngineID
-        else {
-            throw OldMapSearchError.missingAPIKey
+        for term in ["\(query) 古地図", "\(query) old map", query] {
+            if let url = try await searchCommons(term: term) { return url }
         }
+        throw OldMapSearchError.noImageFound
+    }
 
-        var components = URLComponents(string: "https://www.googleapis.com/customsearch/v1")!
+    private func searchCommons(term: String) async throws -> URL? {
+        var components = URLComponents(string: "https://commons.wikimedia.org/w/api.php")!
         components.queryItems = [
-            URLQueryItem(name: "key", value: apiKey),
-            URLQueryItem(name: "cx", value: engineID),
-            URLQueryItem(name: "q", value: "\(query) 古地図"),
-            URLQueryItem(name: "searchType", value: "image"),
-            URLQueryItem(name: "num", value: "1"),
-            URLQueryItem(name: "safe", value: "active"),
+            URLQueryItem(name: "action", value: "query"),
+            URLQueryItem(name: "format", value: "json"),
+            URLQueryItem(name: "generator", value: "search"),
+            URLQueryItem(name: "gsrsearch", value: "filetype:bitmap \(term)"),
+            URLQueryItem(name: "gsrnamespace", value: "6"),
+            URLQueryItem(name: "gsrlimit", value: "5"),
+            URLQueryItem(name: "prop", value: "imageinfo"),
+            URLQueryItem(name: "iiprop", value: "url|mime"),
+            URLQueryItem(name: "iiurlwidth", value: "2000"),
         ]
         guard let url = components.url else { throw OldMapSearchError.invalidResponse }
 
-        let (data, response) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: url)
+        // Wikimediaはユーザーエージェントの無いリクエストを拒否することがある。
+        request.setValue("Komap/1.0 (iOS app)", forHTTPHeaderField: "User-Agent")
+        let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else { throw OldMapSearchError.invalidResponse }
         guard (200..<300).contains(httpResponse.statusCode) else {
-            throw OldMapSearchError.server(Self.apiErrorMessage(from: data, statusCode: httpResponse.statusCode))
+            throw OldMapSearchError.server("HTTP \(httpResponse.statusCode)")
         }
 
-        let decoded = try JSONDecoder().decode(CustomSearchResponse.self, from: data)
-        guard let link = decoded.items?.first?.link, let imageURL = URL(string: link) else {
-            throw OldMapSearchError.noImageFound
+        let decoded = try JSONDecoder().decode(CommonsResponse.self, from: data)
+        let pages = (decoded.query?.pages.values).map { Array($0) } ?? []
+        // 検索順（index）に並べ、JPEG/PNGの画像だけを採用する。
+        let sorted = pages.sorted { ($0.index ?? .max) < ($1.index ?? .max) }
+        for page in sorted {
+            guard let info = page.imageinfo?.first,
+                  info.mime == "image/jpeg" || info.mime == "image/png",
+                  let link = info.thumburl ?? info.url,
+                  let imageURL = URL(string: link)
+            else { continue }
+            return imageURL
         }
-        return imageURL
+        return nil
     }
 
     private func downloadImage(from url: URL) async throws -> UIImage {
-        let (data, _) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: url)
+        request.setValue("Komap/1.0 (iOS app)", forHTTPHeaderField: "User-Agent")
+        let (data, _) = try await URLSession.shared.data(for: request)
         guard let image = UIImage(data: data) else { throw OldMapSearchError.noImageFound }
         return image
     }
@@ -226,11 +241,20 @@ private struct BoundsPayload: Decodable {
     let northEastLng: Double
 }
 
-// MARK: - Google Custom Search JSON API の入出力モデル
+// MARK: - Wikimedia Commons API の出力モデル
 
-private struct CustomSearchResponse: Decodable {
-    struct Item: Decodable {
-        let link: String
+private struct CommonsResponse: Decodable {
+    struct Query: Decodable {
+        let pages: [String: Page]
     }
-    let items: [Item]?
+    struct Page: Decodable {
+        struct ImageInfo: Decodable {
+            let url: String?
+            let thumburl: String?
+            let mime: String?
+        }
+        let index: Int?
+        let imageinfo: [ImageInfo]?
+    }
+    let query: Query?
 }

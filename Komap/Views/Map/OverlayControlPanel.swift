@@ -12,7 +12,7 @@ struct OverlayControlPanel: View {
     var onSelect: (HistoricalOverlayMap?) -> Void = { _ in }
     /// 「全ての古地図を表示」が選ばれた時に呼ばれる。
     var onSelectAll: () -> Void = {}
-    /// 「新しい古地図を登録」が選ばれた時に呼ばれる。OpenAI・Googleカスタム検索の
+    /// 「新しい古地図を登録」が選ばれた時に呼ばれる。OpenAIの
     /// APIキーが両方とも設定されている時だけメニューに表示する。
     var onRequestSearch: () -> Void = {}
 

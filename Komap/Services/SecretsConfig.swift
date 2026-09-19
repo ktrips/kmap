@@ -113,9 +113,9 @@ enum SecretsConfig {
         }
     }
 
-    /// 「古地図を検索」機能に必要なAPIキーがすべて揃っているか。
+    /// 「古地図を検索」機能に必要なAPIキー（OpenAI）が揃っているか。画像検索はキー不要のWikimedia Commonsを使う。
     static var isOldMapSearchConfigured: Bool {
-        openAIAPIKey != nil && googleCustomSearchAPIKey != nil && googleCustomSearchEngineID != nil
+        openAIAPIKey != nil
     }
 
     private static func nonEmpty(_ value: String?) -> String? {
