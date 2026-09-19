@@ -5,7 +5,8 @@ import SwiftUI
 /// 追加した古地図を、地図の上で編集する画面。
 /// 地図をタップしてポイントを追加し、ポイントをタップして削除する。古地図そのものの削除もここから行う。
 struct CustomOverlayEditorView: View {
-    let overlay: HistoricalOverlayMap
+    /// 編集中の古地図。名前や画像を変えたら、保存済みの最新の内容に読み直す。
+    @State private var overlay: HistoricalOverlayMap
     /// 古地図を削除した時に呼ばれる。
     var onDeleted: () -> Void = {}
 
@@ -16,9 +17,14 @@ struct CustomOverlayEditorView: View {
     @State private var newPointSummary = ""
     @State private var pointToDelete: HistoricSite?
     @State private var isConfirmingDeleteOverlay = false
+    @State private var isRenaming = false
+    @State private var editedTitle = ""
+    @State private var isPublic: Bool
+    @State private var isShowingUpdateSheet = false
 
     init(overlay: HistoricalOverlayMap, onDeleted: @escaping () -> Void = {}) {
-        self.overlay = overlay
+        _overlay = State(initialValue: overlay)
+        _isPublic = State(initialValue: CustomOverlayMapStore.isPublic(id: overlay.id))
         self.onDeleted = onDeleted
         _checkpoints = State(initialValue: HistoricSiteCatalog.sites(forOverlayID: overlay.id))
     }
@@ -50,11 +56,55 @@ struct CustomOverlayEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("古地図を削除", role: .destructive) { isConfirmingDeleteOverlay = true }
-                        .foregroundStyle(.red)
-                }
-                ToolbarItem(placement: .confirmationAction) {
                     Button("完了") { dismiss() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button {
+                            editedTitle = overlay.title
+                            isRenaming = true
+                        } label: {
+                            Label("地図名を変更", systemImage: "pencil")
+                        }
+
+                        Picker(selection: $isPublic) {
+                            Label("自分だけ", systemImage: "lock.fill").tag(false)
+                            Label("公開", systemImage: "person.2.fill").tag(true)
+                        } label: {
+                            Label("公開範囲", systemImage: "eye")
+                        }
+                        .pickerStyle(.menu)
+
+                        Button {
+                            isShowingUpdateSheet = true
+                        } label: {
+                            Label("地図をアップデート", systemImage: "wand.and.stars")
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            isConfirmingDeleteOverlay = true
+                        } label: {
+                            Label("この古地図を削除", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal")
+                    }
+                    .accessibilityLabel("メニュー")
+                }
+            }
+            .onChange(of: isPublic) { _, newValue in
+                CustomOverlayMapStore.setPublic(id: overlay.id, newValue)
+            }
+            .alert("地図名を変更", isPresented: $isRenaming) {
+                TextField("地図名", text: $editedTitle)
+                Button("変更する") { renameOverlay() }
+                Button("キャンセル", role: .cancel) {}
+            }
+            .sheet(isPresented: $isShowingUpdateSheet) {
+                UpdateOverlayMapSheet(overlay: overlay) {
+                    reloadOverlay()
                 }
             }
             .alert("新しいポイントを追加", isPresented: Binding(
@@ -100,6 +150,20 @@ struct CustomOverlayEditorView: View {
         }
     }
 
+    private func renameOverlay() {
+        let title = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return }
+        CustomOverlayMapStore.rename(id: overlay.id, to: title)
+        reloadOverlay()
+    }
+
+    /// 保存済みの最新の内容（名前・画像）を読み直す。
+    private func reloadOverlay() {
+        if let latest = CustomOverlayMapStore.all().first(where: { $0.id == overlay.id }) {
+            overlay = latest
+        }
+    }
+
     private func addPoint() {
         guard let coordinate = pendingCoordinate else { return }
         let name = newPointName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -131,6 +195,8 @@ private struct OverlayEditorMapView: UIViewRepresentable {
         let groundOverlay = GMSGroundOverlay(bounds: bounds, icon: overlay.image)
         groundOverlay.opacity = 0.7
         groundOverlay.map = mapView
+        context.coordinator.groundOverlay = groundOverlay
+        context.coordinator.shownImageFileName = overlay.imageFileName
         mapView.moveCamera(GMSCameraUpdate.fit(bounds, withPadding: 24))
         return mapView
     }
@@ -139,6 +205,16 @@ private struct OverlayEditorMapView: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.onTapMap = onTapMap
         coordinator.onTapCheckpoint = onTapCheckpoint
+        // 画像を差し替えた時は、地図に貼った画像も入れ替える。
+        if coordinator.shownImageFileName != overlay.imageFileName {
+            coordinator.shownImageFileName = overlay.imageFileName
+            coordinator.groundOverlay?.map = nil
+            let bounds = GMSCoordinateBounds(coordinate: overlay.southWest, coordinate: overlay.northEast)
+            let replacement = GMSGroundOverlay(bounds: bounds, icon: overlay.image)
+            replacement.opacity = 0.7
+            replacement.map = mapView
+            coordinator.groundOverlay = replacement
+        }
         coordinator.sitesByID = Dictionary(checkpoints.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         // ポイントの増減があった時だけマーカーを作り直す。
@@ -162,6 +238,8 @@ private struct OverlayEditorMapView: UIViewRepresentable {
         var sitesByID: [String: HistoricSite] = [:]
         var shownIDs: Set<String> = []
         var markers: [GMSMarker] = []
+        var groundOverlay: GMSGroundOverlay?
+        var shownImageFileName: String?
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
             onTapMap(coordinate)
@@ -172,6 +250,96 @@ private struct OverlayEditorMapView: UIViewRepresentable {
                 onTapCheckpoint(site)
             }
             return true
+        }
+    }
+}
+
+/// 説明を入れて、AIに古地図の見た目をもっと綺麗にわかりやすく描き直してもらうシート。
+/// いまの地図の画像をもとに、位置や範囲はそのままで絵だけを差し替える。
+private struct UpdateOverlayMapSheet: View {
+    let overlay: HistoricalOverlayMap
+    var onUpdated: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var instructions = ""
+    @State private var isUpdating = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(
+                        "例: 川と道をはっきり描いて、緑を増やし、全体を明るく見やすく",
+                        text: $instructions,
+                        axis: .vertical
+                    )
+                    .lineLimit(4...8)
+
+                    Button {
+                        Task { await update() }
+                    } label: {
+                        if isUpdating {
+                            HStack {
+                                ProgressView()
+                                Text("アップデート中…")
+                            }
+                        } else {
+                            Label("この内容でアップデート", systemImage: "wand.and.stars")
+                        }
+                    }
+                    .disabled(isUpdating)
+                } header: {
+                    Text("どんな地図にしたいか")
+                } footer: {
+                    Text("いまの地図をもとに、説明に沿って、もっと綺麗でわかりやすい見た目にAIが描き直します（何も書かなければ、全体をより綺麗に整えます）。範囲やポイントの位置は変わりません。画像の生成はOpenAI・Googleで利用できます。")
+                }
+
+                if let errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("地図をアップデート")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") { dismiss() }
+                        .disabled(isUpdating)
+                }
+            }
+            .interactiveDismissDisabled(isUpdating)
+        }
+    }
+
+    private func update() async {
+        guard let current = overlay.image else {
+            errorMessage = "いまの地図の画像を読み込めませんでした。"
+            return
+        }
+        isUpdating = true
+        errorMessage = nil
+        defer { isUpdating = false }
+
+        let wish = instructions.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prompt = """
+        Redraw this map illustration so that it is more beautiful, clear and easy to read. \
+        Keep the same geographic layout, coastlines, rivers, roads and the position of every feature \
+        so it still lines up with the original map, and keep the aged parchment look unless told otherwise. \
+        Make roads, water, green areas and landmarks clearly distinguishable with harmonious colors. \
+        The map is called "\(overlay.title)" (\(overlay.era)). \
+        \(wish.isEmpty ? "" : "Follow these instructions from the user: \(wish). ")\
+        Fill the entire square frame edge to edge, no border, no text, no letters, no legend.
+        """
+        do {
+            let generated = try await AIClient.generateImage(prompt: prompt, referenceImage: current)
+            CustomOverlayMapStore.replaceImage(id: overlay.id, with: generated)
+            onUpdated()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

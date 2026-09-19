@@ -208,7 +208,10 @@ enum AIClient {
 
     /// デフォルトのAIプロバイダーに画像を1枚生成してもらう（正方形）。
     /// OpenAI・Googleに対応。Anthropicは画像生成APIが無いためエラーにする。
-    static func generateImage(prompt: String) async throws -> UIImage {
+    ///
+    /// `referenceImage`を渡すと、その画像をもとに指示どおり描き直した画像を得る
+    /// （既存の地図の見た目を保ったまま、より綺麗にする時などに使う）。
+    static func generateImage(prompt: String, referenceImage: UIImage? = nil) async throws -> UIImage {
         let provider = AppSettings.aiProvider
         guard let apiKey = SecretsConfig.apiKey(for: provider) else {
             throw AIClientError.missingAPIKey(provider)
@@ -217,17 +220,25 @@ enum AIClient {
         let request: URLRequest
         switch provider {
         case .openAI:
-            request = try makeRequest(
-                URL(string: "https://api.openai.com/v1/images/generations")!,
-                headers: ["Authorization": "Bearer \(apiKey)"],
-                body: ["model": "gpt-image-1", "prompt": prompt, "size": "1024x1024", "quality": "low", "n": 1]
-            )
+            if let referenceImage, let png = referenceImage.pngData() {
+                request = multipartImageEditRequest(apiKey: apiKey, prompt: prompt, png: png)
+            } else {
+                request = try makeRequest(
+                    URL(string: "https://api.openai.com/v1/images/generations")!,
+                    headers: ["Authorization": "Bearer \(apiKey)"],
+                    body: ["model": "gpt-image-1", "prompt": prompt, "size": "1024x1024", "quality": "low", "n": 1]
+                )
+            }
         case .google:
+            var parts: [[String: Any]] = [["text": prompt]]
+            if let referenceImage, let png = referenceImage.pngData() {
+                parts.append(["inlineData": ["mimeType": "image/png", "data": png.base64EncodedString()]])
+            }
             request = try makeRequest(
                 URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent")!,
                 headers: googleHeaders(apiKey),
                 body: [
-                    "contents": [["parts": [["text": prompt]]]],
+                    "contents": [["parts": parts]],
                     "generationConfig": ["responseModalities": ["IMAGE"]],
                 ]
             )
@@ -262,5 +273,28 @@ enum AIClient {
             throw AIClientError.invalidResponse
         }
         return image
+    }
+
+    /// OpenAIの画像編集API（`/v1/images/edits`）用の`multipart/form-data`リクエスト。
+    private static func multipartImageEditRequest(apiKey: String, prompt: String, png: Data) -> URLRequest {
+        let boundary = "komap-\(UUID().uuidString)"
+        var body = Data()
+        func field(_ name: String, _ value: String) {
+            body.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)\r\n".data(using: .utf8)!)
+        }
+        field("model", "gpt-image-1")
+        field("prompt", prompt)
+        field("size", "1024x1024")
+        field("quality", "medium")
+        body.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"image\"; filename=\"map.png\"\r\nContent-Type: image/png\r\n\r\n".data(using: .utf8)!)
+        body.append(png)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+
+        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/images/edits")!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.httpBody = body
+        return request
     }
 }

@@ -9,16 +9,18 @@ import UIKit
 enum CustomOverlayMapStore {
     fileprivate struct Record: Codable {
         let id: String
-        let title: String
+        var title: String
         let era: String
         let summary: String
-        let imageFileName: String
+        var imageFileName: String
         let southWestLat: Double
         let southWestLng: Double
         let northEastLat: Double
         let northEastLng: Double
         /// 画像が見つからずAIが生成したチェックポイント。古い保存データには無いため省略可。
         var checkpoints: [CheckpointRecord]?
+        /// 公開範囲。`true`なら公開、`nil`・`false`なら自分だけ（古い保存データには無い）。
+        var isPublic: Bool?
     }
 
     fileprivate struct CheckpointRecord: Codable {
@@ -153,6 +155,38 @@ enum CustomOverlayMapStore {
         return HistoricSite(
             id: checkpoint.id!, overlayMapID: overlayID, name: name, summary: summary, coordinate: coordinate
         )
+    }
+
+    /// 追加した古地図の名前を変える。
+    static func rename(id: String, to title: String) {
+        var current = records()
+        guard let index = current.firstIndex(where: { $0.id == id }) else { return }
+        current[index].title = title
+        save(current)
+    }
+
+    /// 追加した古地図の公開範囲を切り替える。
+    static func setPublic(id: String, _ isPublic: Bool) {
+        var current = records()
+        guard let index = current.firstIndex(where: { $0.id == id }) else { return }
+        current[index].isPublic = isPublic
+        save(current)
+    }
+
+    static func isPublic(id: String) -> Bool {
+        records().first { $0.id == id }?.isPublic ?? false
+    }
+
+    /// 追加した古地図の画像を差し替える（古い画像ファイルは、新しいものが保存できてから削除する）。
+    /// 画像ファイル名が変わるので、表示側のキャッシュも自然に作り直される。
+    static func replaceImage(id: String, with image: UIImage) {
+        var current = records()
+        guard let index = current.firstIndex(where: { $0.id == id }),
+              let newFileName = StampPhotoStore.save(squareImage(image))
+        else { return }
+        StampPhotoStore.delete(current[index].imageFileName)
+        current[index].imageFileName = newFileName
+        save(current)
     }
 
     /// 追加した古地図のポイントを1つ削除する。

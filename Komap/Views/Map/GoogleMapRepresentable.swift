@@ -208,6 +208,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         private var currentOverlay: GMSGroundOverlay?
         private var currentOverlayID: String?
+        /// `currentOverlayID`に画像の識別子を加えたもの（画像差し替えの検知用）。
+        private var currentOverlayKey: String?
         /// 「全ての古地図を表示」中に、同梱・登録済みの古地図それぞれに対応するグラウンドオーバーレイ。
         private var allOverlays: [GMSGroundOverlay] = []
         /// `allOverlays`の各要素がどの古地図（画像・範囲のキー）に対応するかを保持する。
@@ -311,6 +313,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             currentOverlay?.map = nil
             currentOverlay = nil
             currentOverlayID = nil
+            currentOverlayKey = nil
 
             // 「五色不動めぐり」「松尾芭蕉ゆかりの地」など、同じ広域画像・同じ範囲を
             // 使い回しているだけの古地図が複数あると、見た目は完全に重なって
@@ -431,6 +434,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentOverlay?.map = nil
                 currentOverlay = nil
                 currentOverlayID = nil
+                currentOverlayKey = nil
                 currentBaseImage = nil
                 return
             }
@@ -444,7 +448,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 lastHandledReattachRequestID = reattachRequestID
             }
 
-            let isNewOverlay = currentOverlayID != overlayMap.id
+            // 画像を差し替えた古地図（同じIDで`imageFileName`だけ変わる）で古い画像が
+            // 使い回されないよう、作り直しの判定・キャッシュのキーには画像の識別子も含める。
+            let cacheKey = "\(overlayMap.id)|\(overlayMap.imageFileName ?? overlayMap.imageAssetName ?? "")"
+            let isNewOverlay = currentOverlayKey != cacheKey
             if !isNewOverlay && shouldForceReattach, let currentOverlay {
                 currentOverlay.map = nil
                 currentOverlay.map = mapView
@@ -461,13 +468,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     coordinate: overlayMap.northEast
                 )
                 let overlayID = overlayMap.id
-
                 // フル解像度（3000px超のことがある）の画像をそのまま縮小すると、
                 // デコード＋再描画の負荷でメインスレッドが一瞬止まり、「地図タブを開いた
                 // 瞬間に表示がもたつく」原因になっていた。縮小結果はオーバーレイIDごとに
                 // キャッシュし、初回だけバックグラウンドで計算する（2回目以降は
                 // キャッシュ済みの画像を使うため即座に表示できる）。
-                if let cached = Self.singleOverlayImageCache[overlayID] {
+                if let cached = Self.singleOverlayImageCache[cacheKey] {
                     currentBaseImage = cached
                     let overlay = GMSGroundOverlay(bounds: bounds, icon: cached)
                     overlay.bearing = overlayMap.bearing
@@ -490,10 +496,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                         let downsampled = Self.downsampledForSingleOverlay(sourceImage)
                         if let downsampled {
-                            Self.singleOverlayImageCache[overlayID] = downsampled
+                            Self.singleOverlayImageCache[cacheKey] = downsampled
                         }
                         DispatchQueue.main.async {
-                            guard let self, self.currentOverlayID == overlayID else { return }
+                            guard let self, self.currentOverlayKey == cacheKey else { return }
                             self.currentBaseImage = downsampled
                             self.currentOverlay?.icon = downsampled
                             // この時点でスライダーの不透明度を反映しておく（次の`updateUIView`を
@@ -503,6 +509,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                     }
                 }
                 currentOverlayID = overlayMap.id
+                currentOverlayKey = cacheKey
 
                 // 古地図全体（かなり広いことがある）に合わせるのではなく、その古地図の
                 // チェックポイントが収まる範囲にカメラを合わせる（その方が見やすくズームできる）。

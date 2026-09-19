@@ -158,6 +158,13 @@ struct OldMapPickerSheet: View {
             }
             .sheet(item: $editingOverlay, onDismiss: {
                 customOverlays = CustomOverlayMapStore.all()
+                // 名前や画像を変えた古地図を表示中なら、最新の内容に差し替える。
+                if let selected = selectedOverlay,
+                   let latest = customOverlays.first(where: { $0.id == selected.id }),
+                   latest.title != selected.title || latest.imageFileName != selected.imageFileName {
+                    selectedOverlay = latest
+                    onSelect(latest)
+                }
             }) { overlay in
                 CustomOverlayEditorView(overlay: overlay, onDeleted: {
                     // 表示中の古地図を削除した場合は、既定の古地図に戻す。
