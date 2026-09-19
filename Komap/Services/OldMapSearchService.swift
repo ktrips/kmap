@@ -34,10 +34,60 @@ struct OldMapSearchResult {
     let southWest: CLLocationCoordinate2D
     let northEast: CLLocationCoordinate2D
     let image: UIImage
-    /// 古地図の画像が見つからず、条件に合わせてAIが作った地図レイヤーかどうか。
-    var isGenerated: Bool = false
-    /// 画像が見つからなかった時に、AIが条件に合わせて作ったチェックポイント。
+    /// 画像が見つからずAIが作った時・ファンタジー地図の時などに見せる補足の案内。
+    var notice: String?
+    /// 画像が見つからなかった時・ファンタジー地図の時に、AIが条件に合わせて作ったチェックポイント。
     var checkpoints: [GeneratedCheckpoint] = []
+}
+
+/// 検索・作成する地図の範囲の限定（緯度経度の矩形）。
+struct OldMapSearchBounds {
+    let southWest: CLLocationCoordinate2D
+    let northEast: CLLocationCoordinate2D
+
+    /// 中心から東西南北に`radiusKm`kmの範囲。
+    static func around(_ center: CLLocationCoordinate2D, radiusKm: Double) -> OldMapSearchBounds {
+        let latDelta = radiusKm / 111.32
+        let lngDelta = radiusKm / (111.32 * max(cos(center.latitude * .pi / 180), 0.01))
+        return OldMapSearchBounds(
+            southWest: CLLocationCoordinate2D(latitude: center.latitude - latDelta, longitude: center.longitude - lngDelta),
+            northEast: CLLocationCoordinate2D(latitude: center.latitude + latDelta, longitude: center.longitude + lngDelta)
+        )
+    }
+
+    var center: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(
+            latitude: (southWest.latitude + northEast.latitude) / 2,
+            longitude: (southWest.longitude + northEast.longitude) / 2
+        )
+    }
+}
+
+/// 「古地図を検索」画面の範囲の選択肢。
+enum OldMapSearchArea: String, CaseIterable, Identifiable {
+    case unlimited, currentView, within5km, within10km
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .unlimited: return "限定しない"
+        case .currentView: return "現在の範囲"
+        case .within5km: return "周囲5km"
+        case .within10km: return "周囲10km"
+        }
+    }
+
+    /// 検索を始めた時の地図の表示範囲`visible`から、限定する範囲を求める。`unlimited`は`nil`。
+    func bounds(visible: OldMapSearchBounds?) -> OldMapSearchBounds? {
+        guard let visible else { return nil }
+        switch self {
+        case .unlimited: return nil
+        case .currentView: return visible
+        case .within5km: return .around(visible.center, radiusKm: 5)
+        case .within10km: return .around(visible.center, radiusKm: 10)
+        }
+    }
 }
 
 /// AIが生成したチェックポイント1件分。
@@ -51,10 +101,18 @@ struct GeneratedCheckpoint {
 /// タイトルや時代を推定しつつ、国立国会図書館デジタルコレクションとWikimedia Commons
 /// （どちらもAPIキー不要）でそれらしい古地図の画像を探して組み合わせ、古地図候補を1件作る。
 struct OldMapSearchService {
-    func search(query: String) async throws -> OldMapSearchResult {
+    /// - Parameters:
+    ///   - limitedTo: 指定すると、作る地図の範囲とチェックポイントをこの範囲の中に収める。
+    ///   - fantasy: `true`の時は実在の古地図を探さず、その地域を舞台にしたファンタジー地図を
+    ///     AIで作る（画像生成に対応したプロバイダーなら画像も生成する）。
+    func search(query: String, limitedTo limit: OldMapSearchBounds? = nil, fantasy: Bool = false) async throws -> OldMapSearchResult {
         guard SecretsConfig.apiKey(for: AppSettings.aiProvider) != nil else { throw OldMapSearchError.missingAPIKey }
 
-        async let boundsTask = estimateBounds(query: query)
+        if fantasy {
+            return try await makeFantasyMap(query: query, limit: limit)
+        }
+
+        async let boundsTask = estimateBounds(query: query, limit: limit, fantasy: false)
         async let imageURLTask = searchImageURL(query: query)
 
         let bounds = try await boundsTask
@@ -72,9 +130,48 @@ struct OldMapSearchService {
                 title: bounds.title, era: bounds.era, summary: bounds.summary,
                 southWest: bounds.southWest, northEast: bounds.northEast,
                 image: Self.makeGeneratedLayerImage(title: bounds.title, era: bounds.era),
-                isGenerated: true,
+                notice: "条件に合う古地図の画像が見つからなかったため、AIが条件に合わせて地図レイヤーとチェックポイントを作りました。範囲や位置は概算です。",
                 checkpoints: bounds.checkpoints
             )
+        }
+    }
+
+    /// ファンタジー地図を作る。範囲・名前・チェックポイントはAIのテキスト回答から、
+    /// 地図の絵はプロバイダーの画像生成から得る（画像生成できない時は方眼の紙のレイヤーで代用）。
+    private func makeFantasyMap(query: String, limit: OldMapSearchBounds?) async throws -> OldMapSearchResult {
+        let bounds = try await estimateBounds(query: query, limit: limit, fantasy: true)
+        let prompt = """
+        A top-down fantasy world map illustration on aged parchment, hand-drawn adventure map style, \
+        inspired by the area described as "\(query)". Show rivers, forests, mountains, roads, villages, \
+        a castle and towers. Fill the entire square frame edge to edge, no border, no text, no letters, no legend.
+        """
+        do {
+            let generated = try await AIClient.generateImage(prompt: prompt)
+            return OldMapSearchResult(
+                title: bounds.title, era: bounds.era, summary: bounds.summary,
+                southWest: bounds.southWest, northEast: bounds.northEast,
+                image: Self.squareImage(generated),
+                notice: "AIがこの地域を舞台にしたファンタジー地図を生成しました。実在の地図とは異なる架空の世界です。範囲や位置は概算です。",
+                checkpoints: bounds.checkpoints
+            )
+        } catch {
+            return OldMapSearchResult(
+                title: bounds.title, era: bounds.era, summary: bounds.summary,
+                southWest: bounds.southWest, northEast: bounds.northEast,
+                image: Self.makeGeneratedLayerImage(title: bounds.title, era: bounds.era),
+                notice: "ファンタジー地図の画像を生成できなかったため、方眼の地図レイヤーで代用しました（\(error.localizedDescription)）。名前とチェックポイントはAIが作った架空のものです。",
+                checkpoints: bounds.checkpoints
+            )
+        }
+    }
+
+    /// `GMSGroundOverlay`が確実に描画できるよう、1024×1024pxの正方形に描き直す。
+    private static func squareImage(_ image: UIImage) -> UIImage {
+        let size = CGSize(width: 1024, height: 1024)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
         }
     }
 
@@ -114,24 +211,50 @@ struct OldMapSearchService {
 
     // MARK: - AIによる位置・タイトルの推定
 
-    private func estimateBounds(query: String) async throws -> (
+    private func estimateBounds(query: String, limit: OldMapSearchBounds?, fantasy: Bool) async throws -> (
         title: String, era: String, summary: String,
         southWest: CLLocationCoordinate2D, northEast: CLLocationCoordinate2D,
         checkpoints: [GeneratedCheckpoint]
     ) {
-        let systemPrompt = """
-        あなたは日本の地理・歴史に詳しいアシスタントです。ユーザーが説明する地域について、\
-        おおよその緯度経度の範囲（南西の角・北東の角）と、その地域にふさわしい古地図の\
-        タイトル・時代表現・短い紹介文を推定してください。位置はあくまで概算で構いません。\
-        出力は必ず次の形式のJSONのみとし、それ以外の文字は含めないでください。
-        {"title": "古地図のタイトル（20文字程度）", "era": "時代表現（例: 明治時代（1890年代）", \
-        "summary": "60文字程度の紹介文", "southWestLat": 数値, "southWestLng": 数値, \
-        "northEastLat": 数値, "northEastLng": 数値, \
-        "checkpoints": [{"name": "その地域にある史跡・名所の名前", "summary": "40文字程度の説明", \
-        "lat": 数値, "lng": 数値}]}
-        checkpointsには、ユーザーの説明に合った実在の史跡・名所を必ず5件、上の範囲の内側に入る\
-        緯度経度で含めてください。
-        """
+        var systemPrompt: String
+        if fantasy {
+            systemPrompt = """
+            あなたは想像力豊かなファンタジー世界の地図作家です。ユーザーが説明する実在の地域を舞台に、\
+            その地形や地名の雰囲気を生かした架空のファンタジー世界の地図を作ります。\
+            おおよその緯度経度の範囲（南西の角・北東の角）と、その世界にふさわしい地図の\
+            タイトル・時代表現（例: 「剣と魔法の時代」）・短い紹介文を考えてください。\
+            出力は必ず次の形式のJSONのみとし、それ以外の文字は含めないでください。
+            {"title": "地図のタイトル（20文字程度）", "era": "時代表現", \
+            "summary": "60文字程度の紹介文", "southWestLat": 数値, "southWestLng": 数値, \
+            "northEastLat": 数値, "northEastLng": 数値, \
+            "checkpoints": [{"name": "ファンタジー世界の城・塔・森・村などの名前", "summary": "40文字程度の説明", \
+            "lat": 数値, "lng": 数値}]}
+            checkpointsには、その地域の実際の名所などの位置に重ねた架空の場所を必ず5件、上の範囲の内側に入る\
+            緯度経度で含めてください。
+            """
+        } else {
+            systemPrompt = """
+            あなたは日本の地理・歴史に詳しいアシスタントです。ユーザーが説明する地域について、\
+            おおよその緯度経度の範囲（南西の角・北東の角）と、その地域にふさわしい古地図の\
+            タイトル・時代表現・短い紹介文を推定してください。位置はあくまで概算で構いません。\
+            出力は必ず次の形式のJSONのみとし、それ以外の文字は含めないでください。
+            {"title": "古地図のタイトル（20文字程度）", "era": "時代表現（例: 明治時代（1890年代）", \
+            "summary": "60文字程度の紹介文", "southWestLat": 数値, "southWestLng": 数値, \
+            "northEastLat": 数値, "northEastLng": 数値, \
+            "checkpoints": [{"name": "その地域にある史跡・名所の名前", "summary": "40文字程度の説明", \
+            "lat": 数値, "lng": 数値}]}
+            checkpointsには、ユーザーの説明に合った実在の史跡・名所を必ず5件、上の範囲の内側に入る\
+            緯度経度で含めてください。
+            """
+        }
+        if let limit {
+            systemPrompt += """
+
+            重要: 範囲（南西・北東）もcheckpointsの位置も、必ず次の範囲の内側に収めてください。\
+            南西(緯度\(limit.southWest.latitude), 経度\(limit.southWest.longitude))、\
+            北東(緯度\(limit.northEast.latitude), 経度\(limit.northEast.longitude))。
+            """
+        }
 
         let payloadData: Data
         do {
@@ -148,10 +271,26 @@ struct OldMapSearchService {
         }
 
         // AIが南北・東西を取り違えても範囲の作成で落ちないよう、min/maxで整える。
-        let latRange = min(payload.southWestLat, payload.northEastLat)...max(payload.southWestLat, payload.northEastLat)
-        let lngRange = min(payload.southWestLng, payload.northEastLng)...max(payload.southWestLng, payload.northEastLng)
+        var south = min(payload.southWestLat, payload.northEastLat)
+        var north = max(payload.southWestLat, payload.northEastLat)
+        var west = min(payload.southWestLng, payload.northEastLng)
+        var east = max(payload.southWestLng, payload.northEastLng)
+        // 範囲の限定がある時は、AIの答えがはみ出していても限定範囲の内側に収める
+        // （重なりが無い・つぶれてしまう場合は、限定範囲そのものを使う）。
+        if let limit {
+            south = max(south, limit.southWest.latitude)
+            north = min(north, limit.northEast.latitude)
+            west = max(west, limit.southWest.longitude)
+            east = min(east, limit.northEast.longitude)
+            if south >= north || west >= east {
+                south = limit.southWest.latitude
+                north = limit.northEast.latitude
+                west = limit.southWest.longitude
+                east = limit.northEast.longitude
+            }
+        }
         let checkpoints = (payload.checkpoints ?? [])
-            .filter { latRange.contains($0.lat) && lngRange.contains($0.lng) }
+            .filter { (south...north).contains($0.lat) && (west...east).contains($0.lng) }
             .prefix(5)
             .map {
                 GeneratedCheckpoint(
@@ -164,8 +303,8 @@ struct OldMapSearchService {
             payload.title,
             payload.era,
             payload.summary,
-            CLLocationCoordinate2D(latitude: payload.southWestLat, longitude: payload.southWestLng),
-            CLLocationCoordinate2D(latitude: payload.northEastLat, longitude: payload.northEastLng),
+            CLLocationCoordinate2D(latitude: south, longitude: west),
+            CLLocationCoordinate2D(latitude: north, longitude: east),
             Array(checkpoints)
         )
     }

@@ -283,6 +283,9 @@ struct MapScreen: View {
                 },
                 onUserPanned: {
                     isFollowingCurrentLocation = false
+                },
+                onVisibleBoundsChange: { bounds in
+                    mapSession.visibleBounds = bounds
                 }
             )
             .ignoresSafeArea()

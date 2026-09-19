@@ -11,6 +11,11 @@ struct OldMapSearchView: View {
     @ObservedObject private var cache = OldMapSearchCache.shared
     @State private var isSearching = false
     @State private var errorMessage: String?
+    @EnvironmentObject private var mapSession: MapSessionState
+    /// この画面を開いた時の元の地図の表示範囲。範囲の限定の基準にする。
+    @State private var originBounds: OldMapSearchBounds?
+    @State private var area: OldMapSearchArea = .unlimited
+    @State private var isFantasy = false
 
     private let service = OldMapSearchService()
 
@@ -25,6 +30,16 @@ struct OldMapSearchView: View {
                     )
                     .lineLimit(3...6)
 
+                    Picker("範囲", selection: $area) {
+                        ForEach(OldMapSearchArea.allCases) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(originBounds == nil)
+
+                    Toggle("ファンタジー地図を生成", isOn: $isFantasy)
+
                     Button {
                         Task { await search() }
                     } label: {
@@ -38,7 +53,7 @@ struct OldMapSearchView: View {
                 } header: {
                     Text("見つけたい古地図の地域")
                 } footer: {
-                    Text("AIが説明からおおよその位置を推定し、Web検索で見つけた古地図の画像と組み合わせて候補を作ります。位置合わせは概算のため、実際の史料とは多少ずれます。検索結果はこの画面を閉じても保持され、追加するまで再検索は行われません。")
+                    Text("AIが説明からおおよその位置を推定し、Web検索で見つけた古地図の画像と組み合わせて候補を作ります。範囲を選ぶと、この画面を開いた時の地図の表示範囲（または、その中心から5km・10km以内）の中だけで地図とチェックポイントを作ります。「ファンタジー地図を生成」をオンにすると、実在の古地図ではなく、その地域を舞台にした架空のファンタジー地図をAIで作ります（画像の生成はOpenAI・Googleで利用できます）。位置合わせは概算のため、実際の史料とは多少ずれます。検索結果はこの画面を閉じても保持され、追加するまで再検索は行われません。")
                 }
 
                 if let errorMessage {
@@ -52,6 +67,7 @@ struct OldMapSearchView: View {
                     resultSection(result)
                 }
             }
+            .onAppear { originBounds = mapSession.visibleBounds }
             .navigationTitle("古地図を検索")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -78,10 +94,12 @@ struct OldMapSearchView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            if result.isGenerated {
-                Text("条件に合う古地図の画像が見つからなかったため、AIが条件に合わせて地図レイヤーとチェックポイントを作りました。範囲や位置は概算です。")
+            if let notice = result.notice {
+                Text(notice)
                     .font(.caption)
                     .foregroundStyle(.orange)
+            }
+            if !result.checkpoints.isEmpty {
                 ForEach(Array(result.checkpoints.enumerated()), id: \.offset) { index, checkpoint in
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(index + 1). \(checkpoint.name)")
@@ -104,7 +122,11 @@ struct OldMapSearchView: View {
         errorMessage = nil
         cache.result = nil
         do {
-            cache.result = try await service.search(query: cache.query)
+            cache.result = try await service.search(
+                query: cache.query,
+                limitedTo: area.bounds(visible: originBounds),
+                fantasy: isFantasy
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -129,4 +151,5 @@ struct OldMapSearchView: View {
 
 #Preview {
     OldMapSearchView(onAdd: { _ in })
+        .environmentObject(MapSessionState())
 }

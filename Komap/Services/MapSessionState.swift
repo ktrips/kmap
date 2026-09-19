@@ -47,6 +47,9 @@ final class MapSessionState: ObservableObject {
     /// 古地図の選び方が「現在地」（現在地を含む古地図を自動で選ぶ）かどうか。
     /// 既定は「現在地」で、他の古地図・「全地図」・「地図無し」を選ぶと`false`になる。
     @Published var isCurrentLocationMode: Bool = true
+    /// 地図が最後に止まった時の表示範囲。「古地図を検索」で、作る地図を今見ている範囲や
+    /// その周囲に限定するために使う（変わるたびに画面を再描画しないよう`@Published`にはしない）。
+    var visibleBounds: OldMapSearchBounds?
     /// 歩行記録中（iPhone本体・Apple Watchどちらでも）かどうか。`MapScreen`が
     /// 実際の記録状態（`LocationManager.isRecordingWalk`等）と同期させる。左上・下部の
     /// 古地図コントロールなど、`MapScreen`の外からも「今歩いているか」を参照したい

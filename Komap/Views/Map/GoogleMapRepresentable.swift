@@ -96,6 +96,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     /// ユーザーが指でマップをドラッグ・ピンチ操作した時に呼ばれる。
     /// 現在地追従中はこれをきっかけに追従をやめる（プログラムによるカメラ移動では呼ばれない）。
     var onUserPanned: () -> Void = {}
+    /// カメラが止まるたびに、その時の表示範囲（南西・北東）を渡す。
+    var onVisibleBoundsChange: (OldMapSearchBounds) -> Void = { _ in }
 
     func makeUIView(context: Context) -> GMSMapView {
         let initialCamera = GMSCameraPosition.camera(
@@ -132,6 +134,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         context.coordinator.onCheckpointTap = onCheckpointTap
         context.coordinator.onPhotoPostTap = onPhotoPostTap
         context.coordinator.onUserPanned = onUserPanned
+        context.coordinator.onVisibleBoundsChange = onVisibleBoundsChange
         context.coordinator.mapView = mapView
         // 歩行記録中（iPhone本体・Apple Watch伴走どちらでも）は、GPSの更新が来ない
         // （信号待ち・写真撮影などで静止している）間もGPU側のテクスチャ喪失バグから
@@ -188,6 +191,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         var onCheckpointTap: (HistoricSite) -> Void = { _ in }
         var onPhotoPostTap: (WalkPhotoPost) -> Void = { _ in }
         var onUserPanned: () -> Void = {}
+        var onVisibleBoundsChange: (OldMapSearchBounds) -> Void = { _ in }
         var lastHandledMoveRequestID: UUID?
         var lastHandledReattachRequestID: UUID?
         /// 貼り直しタイマー（`setWalkingHealingTimerActive`）が使う、最新の`mapView`への弱参照。
@@ -619,6 +623,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         ///   カメラが落ち着いたタイミングで、既存のオーバーレイを画像の再デコードなど
         ///   重い処理をせずに一旦外して貼り直すことで、この消失を防ぐ。
         func mapView(_ mapView: GMSMapView, idleAt position: GMSCameraPosition) {
+            let region = mapView.projection.visibleRegion()
+            let bounds = GMSCoordinateBounds(region: region)
+            onVisibleBoundsChange(OldMapSearchBounds(southWest: bounds.southWest, northEast: bounds.northEast))
             if let lastOverlayRefreshZoom,
                abs(position.zoom - lastOverlayRefreshZoom) < overlayRefreshZoomThreshold {
                 return

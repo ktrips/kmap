@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 enum AIClientError: LocalizedError {
     case missingAPIKey(AIProvider)
@@ -185,5 +186,65 @@ enum AIClient {
         }
         if let raw = String(data: data, encoding: .utf8), !raw.isEmpty { return raw }
         return "HTTP \(statusCode)"
+    }
+
+    // MARK: - 画像の生成
+
+    /// デフォルトのAIプロバイダーに画像を1枚生成してもらう（正方形）。
+    /// OpenAI・Googleに対応。Anthropicは画像生成APIが無いためエラーにする。
+    static func generateImage(prompt: String) async throws -> UIImage {
+        let provider = AppSettings.aiProvider
+        guard let apiKey = SecretsConfig.apiKey(for: provider) else {
+            throw AIClientError.missingAPIKey(provider)
+        }
+
+        let request: URLRequest
+        switch provider {
+        case .openAI:
+            request = try makeRequest(
+                URL(string: "https://api.openai.com/v1/images/generations")!,
+                headers: ["Authorization": "Bearer \(apiKey)"],
+                body: ["model": "gpt-image-1", "prompt": prompt, "size": "1024x1024", "quality": "low", "n": 1]
+            )
+        case .google:
+            request = try makeRequest(
+                URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent")!,
+                headers: ["x-goog-api-key": apiKey],
+                body: [
+                    "contents": [["parts": [["text": prompt]]]],
+                    "generationConfig": ["responseModalities": ["IMAGE"]],
+                ]
+            )
+        case .anthropic:
+            throw AIClientError.server("Anthropicは画像を生成できません（画像の生成にはOpenAIまたはGoogleを選んでください）")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw AIClientError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            throw AIClientError.server(errorMessage(from: data, statusCode: http.statusCode))
+        }
+
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw AIClientError.invalidResponse
+        }
+        var base64: String?
+        switch provider {
+        case .openAI:
+            base64 = ((root["data"] as? [[String: Any]])?.first)?["b64_json"] as? String
+        case .google:
+            let candidates = root["candidates"] as? [[String: Any]]
+            let parts = (candidates?.first?["content"] as? [String: Any])?["parts"] as? [[String: Any]]
+            for part in parts ?? [] {
+                let inline = (part["inlineData"] ?? part["inline_data"]) as? [String: Any]
+                if let value = inline?["data"] as? String { base64 = value; break }
+            }
+        case .anthropic:
+            break
+        }
+        guard let base64, let imageData = Data(base64Encoded: base64), let image = UIImage(data: imageData) else {
+            throw AIClientError.invalidResponse
+        }
+        return image
     }
 }
