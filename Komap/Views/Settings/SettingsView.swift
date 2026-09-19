@@ -17,8 +17,6 @@ struct SettingsView: View {
     @State private var stationaryAutoPauseMinutes: Int = AppSettings.stationaryAutoPauseMinutes
 
     @State private var isShowingAdvancedSettings = false
-    @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
-    @State private var savedMessage: String?
 
     private let syncService = SyncService()
 
@@ -265,6 +263,13 @@ struct SettingsView: View {
         Section {
             DisclosureGroup("アドバンス設定を表示", isExpanded: $isShowingAdvancedSettings) {
                 NavigationLink {
+                    AISettingsView()
+                } label: {
+                    Label("AI設定", systemImage: "sparkles")
+                }
+                .padding(.vertical, 6)
+
+                NavigationLink {
                     LinkedDevicesSettingsView()
                 } label: {
                     Label("連携機能", systemImage: "network")
@@ -277,32 +282,11 @@ struct SettingsView: View {
                     Label("管理者設定", systemImage: "gearshape.2")
                 }
                 .padding(.vertical, 6)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("OpenAI APIキー")
-                        .font(.subheadline.bold())
-                    SecureField("sk-...", text: $openAIKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("保存する") {
-                        SecretsConfig.saveOpenAIAPIKey(openAIKey)
-                        savedMessage = "保存しました"
-                    }
-                    if let savedMessage {
-                        Text(savedMessage)
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-                    Text("地点をタップした際にAIが昔の物語を生成するために使用します。キーはこの端末のKeychainに安全に保存され、外部には送信されません。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 6)
             }
         } header: {
             Text("アドバンス設定")
         } footer: {
-            Text("カメラ・プリンター連携、管理者設定（Googleカスタム検索・Google Maps）、OpenAI APIキーなど。")
+            Text("AI設定（OpenAI・Google・Anthropic）、カメラ・プリンター連携、管理者設定（Googleカスタム検索・Google Maps）など。")
         }
     }
 

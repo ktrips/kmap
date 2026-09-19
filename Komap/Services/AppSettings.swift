@@ -8,6 +8,7 @@ enum AppSettings {
     private static let autoPauseWhenStationaryKey = "autoPauseWhenStationary"
     private static let stationaryAutoPauseMinutesKey = "stationaryAutoPauseMinutes"
     private static let allowAddingNewMapContentKey = "allowAddingNewMapContent"
+    private static let aiProviderKey = "aiProvider"
     private static let defaultOverlayMapIDKey = "defaultOverlayMapID"
     private static let cameraLinkHostKey = "cameraLinkHost"
     private static let printerLinkHostKey = "printerLinkHost"
@@ -64,6 +65,15 @@ enum AppSettings {
     static var allowAddingNewMapContent: Bool {
         get { UserDefaults.standard.bool(forKey: allowAddingNewMapContentKey) }
         set { UserDefaults.standard.set(newValue, forKey: allowAddingNewMapContentKey) }
+    }
+
+    /// 「設定」の「AI設定」で選ぶ、物語生成に使うデフォルトのAIプロバイダー。未設定時はOpenAI。
+    static var aiProvider: AIProvider {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: aiProviderKey) else { return .openAI }
+            return AIProvider(rawValue: raw) ?? .openAI
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: aiProviderKey) }
     }
 
     /// アプリ起動時・記録開始時などにデフォルトで選ばれる古地図のID。未設定なら`nil`

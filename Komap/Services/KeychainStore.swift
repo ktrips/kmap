@@ -48,4 +48,6 @@ enum SecretKey {
     static let openAIApiKey = "openAIApiKey"
     static let customSearchAPIKey = "customSearchAPIKey"
     static let customSearchEngineID = "customSearchEngineID"
+    static let googleAIApiKey = "googleAIApiKey"
+    static let anthropicApiKey = "anthropicApiKey"
 }

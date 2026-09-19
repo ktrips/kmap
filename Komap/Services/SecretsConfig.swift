@@ -1,5 +1,22 @@
 import Foundation
 
+/// 「設定」の「AI設定」で選べる、物語生成に使うAIプロバイダー。
+enum AIProvider: String, CaseIterable, Identifiable {
+    case openAI
+    case google
+    case anthropic
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .openAI: return "OpenAI"
+        case .google: return "Google"
+        case .anthropic: return "Anthropic"
+        }
+    }
+}
+
 /// アプリ内で使うAPIキーの取得口をまとめたもの。
 ///
 /// - Google MapsのAPIキー: `Config/Secrets.xcconfig` → `Info.plist` の
@@ -30,6 +47,35 @@ enum SecretsConfig {
             KeychainStore.shared.remove(forKey: SecretKey.openAIApiKey)
         } else {
             KeychainStore.shared.set(trimmed, forKey: SecretKey.openAIApiKey)
+        }
+    }
+
+    /// 「AI設定」で入力する、物語生成用のGoogle APIキー（Gemini等）。
+    /// 「古地図を検索」機能で使うGoogleカスタム検索のAPIキーとは別物。
+    static var googleAIAPIKey: String? {
+        nonEmpty(KeychainStore.shared.get(forKey: SecretKey.googleAIApiKey))
+    }
+
+    static func saveGoogleAIAPIKey(_ key: String) {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            KeychainStore.shared.remove(forKey: SecretKey.googleAIApiKey)
+        } else {
+            KeychainStore.shared.set(trimmed, forKey: SecretKey.googleAIApiKey)
+        }
+    }
+
+    /// 「AI設定」で入力する、物語生成用のAnthropic APIキー。
+    static var anthropicAPIKey: String? {
+        nonEmpty(KeychainStore.shared.get(forKey: SecretKey.anthropicApiKey))
+    }
+
+    static func saveAnthropicAPIKey(_ key: String) {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            KeychainStore.shared.remove(forKey: SecretKey.anthropicApiKey)
+        } else {
+            KeychainStore.shared.set(trimmed, forKey: SecretKey.anthropicApiKey)
         }
     }
 
