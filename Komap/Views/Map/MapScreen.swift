@@ -29,6 +29,8 @@ struct MapScreen: View {
     /// 自体は`@Published`のため、同じ値を代入してもここより先にpublishされてしまい、
     /// 選び直し後の値との比較には使えない）。
     @State private var lastSelectedOverlayID: String?
+    /// 起動後、最初に現在地が取れた時に一度だけ「現在地」の古地図を自動選択したかどうか。
+    @State private var didAutoSelectCurrentLocationOverlay = false
     /// 「現在地から古地図を探す」で見つからなかった時などに見せる案内。
     @State private var currentLocationSearchMessage: String?
     @State private var tappedPoint: TappedPoint?
@@ -191,16 +193,7 @@ struct MapScreen: View {
             return
         }
 
-        let matches = OldMapCatalog.allIncludingCustom.filter { $0.contains(location) }
-        if let nearest = matches.min(by: { distanceToCenter($0, from: location) < distanceToCenter($1, from: location) }) {
-            mapSession.isShowingAllOverlays = false
-            if nearest.id == mapSession.selectedOverlay?.id {
-                mapSession.requestOverlayReattach()
-            }
-            mapSession.selectedOverlay = nearest
-            lastSelectedOverlayID = nearest.id
-            return
-        }
+        if selectOverlayContaining(location) { return }
 
         guard AppSettings.allowAddingNewMapContent, SecretsConfig.isOldMapSearchConfigured else {
             currentLocationSearchMessage = "現在地を含む古地図はありませんでした。現在地から古地図を作るには、「設定」→「アドバンス設定」→「AI設定」でOpenAI APIキーを設定し、「新しい地図を追加」をオンにしてください。"
@@ -212,6 +205,23 @@ struct MapScreen: View {
         OldMapSearchCache.shared.clear()
         OldMapSearchCache.shared.query = "\(placeName ?? "現在地")付近（\(coordinateText)）の古地図を見つけて"
         mapSession.isShowingOldMapSearch = true
+    }
+
+    /// 現在地を含む古地図があれば、それを選択して`true`を返す（複数ある時は中心が最も近いもの）。
+    @discardableResult
+    private func selectOverlayContaining(_ location: CLLocationCoordinate2D) -> Bool {
+        let matches = OldMapCatalog.allIncludingCustom.filter { $0.contains(location) }
+        guard let nearest = matches.min(by: {
+            distanceToCenter($0, from: location) < distanceToCenter($1, from: location)
+        }) else { return false }
+        mapSession.isShowingAllOverlays = false
+        if nearest.id == mapSession.selectedOverlay?.id {
+            mapSession.requestOverlayReattach()
+        }
+        mapSession.selectedOverlay = nearest
+        mapSession.isCurrentLocationMode = true
+        lastSelectedOverlayID = nearest.id
+        return true
     }
 
     private func distanceToCenter(_ overlay: HistoricalOverlayMap, from location: CLLocationCoordinate2D) -> CLLocationDistance {
@@ -364,6 +374,7 @@ struct MapScreen: View {
         }
         .sheet(isPresented: $mapSession.isShowingOldMapSearch) {
             OldMapSearchView(onAdd: { overlay in
+                mapSession.isCurrentLocationMode = false
                 mapSession.selectedOverlay = overlay
                 mapSession.requestOverlayReattach()
             })
@@ -497,6 +508,13 @@ struct MapScreen: View {
             saveInProgressWalkDraftIfNeeded()
         }
         .onChange(of: locationManager.locationUpdateTick) { _, _ in
+            // 既定の「現在地」モードでは、最初に現在地が取れた時に現在地を含む古地図を選ぶ
+            // （無ければ、これまでの既定の古地図のまま）。
+            if !didAutoSelectCurrentLocationOverlay, mapSession.isCurrentLocationMode,
+               let location = locationManager.currentLocation {
+                didAutoSelectCurrentLocationOverlay = true
+                selectOverlayContaining(location)
+            }
             // 記録中でない時（古地図を切り替えて眺めているだけの時など）まで追従すると、
             // チェックポイントに合わせたカメラフィットを現在地追従が直後に上書きしてしまい、
             // マーカーが画面外へ出て「消えた」ように見えてしまう。歩行記録中だけ追従する。

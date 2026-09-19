@@ -44,6 +44,9 @@ final class MapSessionState: ObservableObject {
     /// 「現在地から古地図を探す」が選ばれたことを`MapScreen`へ伝えるリクエスト
     /// （現在地は`MapScreen`の`LocationManager`が持っているため）。
     @Published var currentLocationSearchRequest: UUID?
+    /// 古地図の選び方が「現在地」（現在地を含む古地図を自動で選ぶ）かどうか。
+    /// 既定は「現在地」で、他の古地図・「全地図」・「地図無し」を選ぶと`false`になる。
+    @Published var isCurrentLocationMode: Bool = true
     /// 歩行記録中（iPhone本体・Apple Watchどちらでも）かどうか。`MapScreen`が
     /// 実際の記録状態（`LocationManager.isRecordingWalk`等）と同期させる。左上・下部の
     /// 古地図コントロールなど、`MapScreen`の外からも「今歩いているか」を参照したい
@@ -63,6 +66,7 @@ final class MapSessionState: ObservableObject {
     /// 引き上げる。歩行記録中に古地図の選択が意図せず外れてしまった時、
     /// 左上・下部の古地図コントロールをもう一度押すだけで復帰できるようにするために使う。
     func restoreOldMapForWalking() {
+        isCurrentLocationMode = false
         if selectedOverlay == nil && !isShowingAllOverlays {
             selectedOverlay = OldMapCatalog.defaultOverlay
         }

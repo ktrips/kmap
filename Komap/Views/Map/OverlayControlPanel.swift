@@ -68,7 +68,7 @@ struct OverlayControlPanel: View {
     }
 }
 
-/// 古地図選択シートの中身（「全ての古地図を表示」「古地図なしで歩く」古地図一覧・新規登録）。
+/// 古地図選択シートの中身（上部のクイックボタン（現在地・新地図・全地図・地図無し）と古地図一覧・新規登録）。
 /// 画面下部の`OverlayControlPanel`と、右上のハンバーガーメニュー内の「古地図選択」、
 /// 両方から`.sheet`として表示する。
 ///
@@ -91,39 +91,37 @@ struct OldMapPickerSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Button {
-                        isShowingAllOverlays = true
-                        onSelectAll()
-                        dismiss()
-                    } label: {
-                        if isShowingAllOverlays {
-                            Label("全ての古地図を表示", systemImage: "checkmark")
-                        } else {
-                            Text("全ての古地図を表示")
-                        }
-                    }
-                    Button("古地図なしで歩く") {
-                        isShowingAllOverlays = false
-                        selectedOverlay = nil
-                        onSelect(nil)
-                        dismiss()
-                    }
-                    Button {
-                        mapSession.requestCurrentLocationSearch()
-                        dismiss()
-                    } label: {
-                        Label("現在地から古地図を探す", systemImage: "location.magnifyingglass")
-                    }
-                    // 「管理者設定」の「新しい地図を追加」がオンの間だけ表示する
-                    // （AI・Web検索のAPIを呼び出す機能のため、意図しない利用を防ぐ）。
-                    if AppSettings.allowAddingNewMapContent && SecretsConfig.isOldMapSearchConfigured {
-                        Button {
-                            onRequestSearch()
+                    HStack(spacing: 8) {
+                        quickButton("現在地", systemImage: "magnifyingglass",
+                                    isSelected: mapSession.isCurrentLocationMode && !isShowingAllOverlays) {
+                            mapSession.requestCurrentLocationSearch()
                             dismiss()
-                        } label: {
-                            Label("新しい地図を追加", systemImage: "plus.circle")
+                        }
+                        // 「新地図」は、AI設定の「新しい地図を追加」がオンの間だけ表示する
+                        // （AI・Web検索のAPIを呼び出す機能のため、意図しない利用を防ぐ）。
+                        if AppSettings.allowAddingNewMapContent && SecretsConfig.isOldMapSearchConfigured {
+                            quickButton("新地図", systemImage: "plus", isSelected: false) {
+                                onRequestSearch()
+                                dismiss()
+                            }
+                        }
+                        quickButton("全地図", systemImage: "globe", isSelected: isShowingAllOverlays) {
+                            mapSession.isCurrentLocationMode = false
+                            isShowingAllOverlays = true
+                            onSelectAll()
+                            dismiss()
+                        }
+                        quickButton("地図無し", systemImage: "nosign",
+                                    isSelected: selectedOverlay == nil && !isShowingAllOverlays) {
+                            mapSession.isCurrentLocationMode = false
+                            isShowingAllOverlays = false
+                            selectedOverlay = nil
+                            onSelect(nil)
+                            dismiss()
                         }
                     }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                    .listRowBackground(Color.clear)
                 }
 
                 ForEach(OldMapCatalog.Category.allCases, id: \.self) { category in
@@ -163,8 +161,36 @@ struct OldMapPickerSheet: View {
         CustomOverlayMapStore.all()
     }
 
+    /// 一覧の先頭に横並びで置く、アイコン付きのコンパクトなボタン。
+    private func quickButton(
+        _ title: String,
+        systemImage: String,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.subheadline)
+                Text(title)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .foregroundStyle(isSelected ? Color.white : Color.accentColor)
+            .background(
+                isSelected ? Color.accentColor : Color.accentColor.opacity(0.12),
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func overlayButton(for overlay: HistoricalOverlayMap) -> some View {
         Button {
+            mapSession.isCurrentLocationMode = false
             isShowingAllOverlays = false
             selectedOverlay = overlay
             onSelect(overlay)
