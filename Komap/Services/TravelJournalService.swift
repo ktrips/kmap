@@ -9,7 +9,7 @@ enum TravelJournalError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "\(AppSettings.aiProvider.apiKeyLabel)が設定されていません。「設定」→「アドバンス設定」→「AI設定」から入力してください。"
+            return AIClientError.missingAPIKey(AppSettings.aiProvider).errorDescription
         case .invalidResponse:
             return "AIからの応答を読み取れませんでした。しばらくしてから再度お試しください。"
         case .server(let message):
@@ -33,9 +33,6 @@ struct GeneratedTravelJournal {
 /// そのまま表示する（サマリー本文には繰り返し含めない）ため、アプリ上のチェックポイント詳細・
 /// 旅日記・Web上の旅日記表示のすべてで同じ内容になる。
 struct TravelJournalService {
-    /// テキスト生成に使うモデル名。必要に応じて変更可能。
-    var model: String = "gpt-4o-mini"
-
     private let historyService = AIHistoryService()
 
     func generateJournal(
@@ -44,10 +41,6 @@ struct TravelJournalService {
         photoPosts: [WalkPhotoPost],
         modelContext: ModelContext
     ) async throws -> GeneratedTravelJournal {
-        guard let apiKey = SecretsConfig.openAIAPIKey else {
-            throw TravelJournalError.missingAPIKey
-        }
-
         let checkpointDetails = try await resolveCheckpointDetails(
             for: stamps,
             overlayMap: route.overlayMap,
@@ -70,37 +63,17 @@ struct TravelJournalService {
 
         let userPrompt = buildUserPrompt(route: route, checkpointDetails: checkpointDetails, photoPosts: photoPosts)
 
-        let requestBody = JournalChatRequest(
-            model: model,
-            messages: [
-                .init(role: "system", content: systemPrompt),
-                .init(role: "user", content: userPrompt),
-            ],
-            temperature: 0.8,
-            responseFormat: .init(type: "json_object")
-        )
-
-        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONEncoder().encode(requestBody)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TravelJournalError.invalidResponse
+        let payloadData: Data
+        do {
+            payloadData = try await AIClient.completeJSON(system: systemPrompt, user: userPrompt)
+        } catch let error as AIClientError {
+            switch error {
+            case .missingAPIKey: throw TravelJournalError.missingAPIKey
+            case .invalidResponse: throw TravelJournalError.invalidResponse
+            case .server(let message): throw TravelJournalError.server(message)
+            }
         }
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            let message = String(data: data, encoding: .utf8) ?? "HTTP \(httpResponse.statusCode)"
-            throw TravelJournalError.server(message)
-        }
-
-        let decoded = try JSONDecoder().decode(JournalChatResponse.self, from: data)
-        guard let content = decoded.choices.first?.message.content,
-              let contentData = content.data(using: .utf8),
-              let journal = try? JSONDecoder().decode(JournalPayload.self, from: contentData)
-        else {
+        guard let journal = try? JSONDecoder().decode(JournalPayload.self, from: payloadData) else {
             throw TravelJournalError.invalidResponse
         }
 
@@ -196,38 +169,6 @@ struct TravelJournalService {
 
         return lines.joined(separator: "\n")
     }
-}
-
-// MARK: - OpenAI Chat Completions の入出力モデル
-
-private struct JournalChatRequest: Encodable {
-    struct Message: Encodable {
-        let role: String
-        let content: String
-    }
-    struct ResponseFormat: Encodable {
-        let type: String
-    }
-
-    let model: String
-    let messages: [Message]
-    let temperature: Double
-    let responseFormat: ResponseFormat
-
-    enum CodingKeys: String, CodingKey {
-        case model, messages, temperature
-        case responseFormat = "response_format"
-    }
-}
-
-private struct JournalChatResponse: Decodable {
-    struct Choice: Decodable {
-        struct Message: Decodable {
-            let content: String
-        }
-        let message: Message
-    }
-    let choices: [Choice]
 }
 
 private struct JournalPayload: Decodable {

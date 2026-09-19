@@ -51,10 +51,8 @@ struct GeneratedCheckpoint {
 /// タイトルや時代を推定しつつ、国立国会図書館デジタルコレクションとWikimedia Commons
 /// （どちらもAPIキー不要）でそれらしい古地図の画像を探して組み合わせ、古地図候補を1件作る。
 struct OldMapSearchService {
-    var model: String = "gpt-4o-mini"
-
     func search(query: String) async throws -> OldMapSearchResult {
-        guard SecretsConfig.openAIAPIKey != nil else { throw OldMapSearchError.missingAPIKey }
+        guard SecretsConfig.apiKey(for: AppSettings.aiProvider) != nil else { throw OldMapSearchError.missingAPIKey }
 
         async let boundsTask = estimateBounds(query: query)
         async let imageURLTask = searchImageURL(query: query)
@@ -121,8 +119,6 @@ struct OldMapSearchService {
         southWest: CLLocationCoordinate2D, northEast: CLLocationCoordinate2D,
         checkpoints: [GeneratedCheckpoint]
     ) {
-        guard let apiKey = SecretsConfig.openAIAPIKey else { throw OldMapSearchError.missingAPIKey }
-
         let systemPrompt = """
         あなたは日本の地理・歴史に詳しいアシスタントです。ユーザーが説明する地域について、\
         おおよその緯度経度の範囲（南西の角・北東の角）と、その地域にふさわしい古地図の\
@@ -137,33 +133,17 @@ struct OldMapSearchService {
         緯度経度で含めてください。
         """
 
-        let requestBody = ChatRequest(
-            model: model,
-            messages: [
-                .init(role: "system", content: systemPrompt),
-                .init(role: "user", content: query),
-            ],
-            temperature: 0.3,
-            responseFormat: .init(type: "json_object")
-        )
-
-        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONEncoder().encode(requestBody)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else { throw OldMapSearchError.invalidResponse }
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            throw OldMapSearchError.server(Self.apiErrorMessage(from: data, statusCode: httpResponse.statusCode))
+        let payloadData: Data
+        do {
+            payloadData = try await AIClient.completeJSON(system: systemPrompt, user: query, temperature: 0.3)
+        } catch let error as AIClientError {
+            switch error {
+            case .missingAPIKey: throw OldMapSearchError.missingAPIKey
+            case .invalidResponse: throw OldMapSearchError.invalidResponse
+            case .server(let message): throw OldMapSearchError.server(message)
+            }
         }
-
-        let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
-        guard let content = decoded.choices.first?.message.content,
-              let contentData = content.data(using: .utf8),
-              let payload = try? JSONDecoder().decode(BoundsPayload.self, from: contentData)
-        else {
+        guard let payload = try? JSONDecoder().decode(BoundsPayload.self, from: payloadData) else {
             throw OldMapSearchError.invalidResponse
         }
 
@@ -298,59 +278,6 @@ struct OldMapSearchService {
         guard let image = UIImage(data: data) else { throw OldMapSearchError.noImageFound }
         return image
     }
-
-    /// OpenAI・Google Custom Searchはどちらもエラー時に`{"error": {"message": "..."}}`
-    /// 形式のJSONを返す。生のJSON（`google.rpc.LocalizedMessage`等を含む長い構造体）を
-    /// そのままエラーメッセージとして見せると読みにくいため、`message`だけを取り出す。
-    /// 取り出せない場合は、返ってきた本文をそのまま使う（最後の手段としてHTTPステータスのみ）。
-    private static func apiErrorMessage(from data: Data, statusCode: Int) -> String {
-        struct ErrorEnvelope: Decodable {
-            struct ErrorBody: Decodable {
-                let message: String?
-            }
-            let error: ErrorBody?
-        }
-        if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data),
-           let message = envelope.error?.message, !message.isEmpty {
-            return message
-        }
-        if let raw = String(data: data, encoding: .utf8), !raw.isEmpty {
-            return raw
-        }
-        return "HTTP \(statusCode)"
-    }
-}
-
-// MARK: - OpenAI Chat Completions の入出力モデル
-
-private struct ChatRequest: Encodable {
-    struct Message: Encodable {
-        let role: String
-        let content: String
-    }
-    struct ResponseFormat: Encodable {
-        let type: String
-    }
-
-    let model: String
-    let messages: [Message]
-    let temperature: Double
-    let responseFormat: ResponseFormat
-
-    enum CodingKeys: String, CodingKey {
-        case model, messages, temperature
-        case responseFormat = "response_format"
-    }
-}
-
-private struct ChatResponse: Decodable {
-    struct Choice: Decodable {
-        struct Message: Decodable {
-            let content: String
-        }
-        let message: Message
-    }
-    let choices: [Choice]
 }
 
 private struct BoundsPayload: Decodable {

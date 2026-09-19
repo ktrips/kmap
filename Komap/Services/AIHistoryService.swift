@@ -10,7 +10,7 @@ enum AIHistoryError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "\(AppSettings.aiProvider.apiKeyLabel)が設定されていません。「設定」→「アドバンス設定」→「AI設定」から入力してください。"
+            return AIClientError.missingAPIKey(AppSettings.aiProvider).errorDescription
         case .invalidResponse:
             return "AIからの応答を読み取れませんでした。しばらくしてから再度お試しください。"
         case .server(let message):
@@ -25,14 +25,11 @@ struct GeneratedStory {
     let body: String
 }
 
-/// 指定した座標・時代に基づいて、OpenAI APIに「昔の出来事や物語」を生成してもらうサービス。
+/// 指定した座標・時代に基づいて、「AI設定」で選んだデフォルトのAI（OpenAI・Google・Anthropic）に「昔の出来事や物語」を生成してもらうサービス。
 ///
 /// `photo`を渡すと、位置情報だけでなく実際に撮った写真の内容（何が写っているか・
-/// どんな雰囲気か）も踏まえた説明文を生成する（OpenAIのVision対応モデルを使用）。
+/// どんな雰囲気か）も踏まえた説明文を生成する（各プロバイダーの画像入力対応モデルを使用）。
 struct AIHistoryService {
-    /// 生成に使うモデル名。必要に応じて変更可能。`gpt-4o-mini`は画像入力にも対応している。
-    var model: String = "gpt-4o-mini"
-
     /// 添付する写真の長辺の上限。AIへの送信サイズを抑えつつ、内容が判別できる範囲。
     private static let maxPhotoDimension: CGFloat = 768
     private static let photoJPEGQuality: CGFloat = 0.6
@@ -44,10 +41,6 @@ struct AIHistoryService {
         userTitle: String? = nil,
         photo: UIImage? = nil
     ) async throws -> GeneratedStory {
-        guard let apiKey = SecretsConfig.openAIAPIKey else {
-            throw AIHistoryError.missingAPIKey
-        }
-
         let era = overlayMap?.era ?? "江戸時代"
         let placeHint = placeName ?? overlayMap?.title ?? "この付近"
         let trimmedUserTitle = userTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -94,50 +87,29 @@ struct AIHistoryService {
         }
         let userPromptText = userPromptLines.joined(separator: "\n")
 
-        var userContentParts: [ChatRequest.ContentPart] = [.text(userPromptText)]
-        if let photo, let dataURL = Self.dataURL(for: photo) {
-            userContentParts.append(.imageURL(dataURL))
+        let payloadData: Data
+        do {
+            payloadData = try await AIClient.completeJSON(
+                system: systemPrompt,
+                user: userPromptText,
+                jpeg: photo.flatMap(Self.jpegData(for:))
+            )
+        } catch let error as AIClientError {
+            switch error {
+            case .missingAPIKey: throw AIHistoryError.missingAPIKey
+            case .invalidResponse: throw AIHistoryError.invalidResponse
+            case .server(let message): throw AIHistoryError.server(message)
+            }
         }
-
-        let requestBody = ChatRequest(
-            model: model,
-            messages: [
-                .init(role: "system", content: .text(systemPrompt)),
-                .init(role: "user", content: hasPhoto ? .parts(userContentParts) : .text(userPromptText)),
-            ],
-            temperature: 0.8,
-            responseFormat: .init(type: "json_object")
-        )
-
-        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONEncoder().encode(requestBody)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw AIHistoryError.invalidResponse
-        }
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            let message = String(data: data, encoding: .utf8) ?? "HTTP \(httpResponse.statusCode)"
-            throw AIHistoryError.server(message)
-        }
-
-        let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
-        guard let content = decoded.choices.first?.message.content,
-              let contentData = content.data(using: .utf8),
-              let story = try? JSONDecoder().decode(StoryPayload.self, from: contentData)
-        else {
+        guard let story = try? JSONDecoder().decode(StoryPayload.self, from: payloadData) else {
             throw AIHistoryError.invalidResponse
         }
 
         return GeneratedStory(title: story.title, body: story.body)
     }
 
-    /// 写真を送信サイズまで縮小・JPEG圧縮し、Vision APIが受け付ける`data:`URL文字列にする。
-    private static func dataURL(for image: UIImage) -> String? {
+    /// 写真を送信サイズまで縮小・JPEG圧縮する。
+    private static func jpegData(for image: UIImage) -> Data? {
         let longestSide = max(image.size.width, image.size.height)
         let resized: UIImage
         if longestSide > maxPhotoDimension {
@@ -150,82 +122,8 @@ struct AIHistoryService {
         } else {
             resized = image
         }
-        guard let jpegData = resized.jpegData(compressionQuality: photoJPEGQuality) else { return nil }
-        return "data:image/jpeg;base64,\(jpegData.base64EncodedString())"
+        return resized.jpegData(compressionQuality: photoJPEGQuality)
     }
-}
-
-// MARK: - OpenAI Chat Completions の入出力モデル
-
-private struct ChatRequest: Encodable {
-    struct Message: Encodable {
-        let role: String
-        let content: MessageContent
-    }
-
-    /// OpenAI Chat Completionsの`content`は、テキストのみの場合は単純な文字列、
-    /// 画像を含む場合は`{type, text}`/`{type, image_url}`の配列という2つの形を取る。
-    enum MessageContent: Encodable {
-        case text(String)
-        case parts([ContentPart])
-
-        func encode(to encoder: Encoder) throws {
-            var container = encoder.singleValueContainer()
-            switch self {
-            case .text(let text):
-                try container.encode(text)
-            case .parts(let parts):
-                try container.encode(parts)
-            }
-        }
-    }
-
-    struct ContentPart: Encodable {
-        let type: String
-        let text: String?
-        let imageURL: ImageURL?
-
-        struct ImageURL: Encodable {
-            let url: String
-        }
-
-        enum CodingKeys: String, CodingKey {
-            case type, text
-            case imageURL = "image_url"
-        }
-
-        static func text(_ text: String) -> ContentPart {
-            ContentPart(type: "text", text: text, imageURL: nil)
-        }
-
-        static func imageURL(_ url: String) -> ContentPart {
-            ContentPart(type: "image_url", text: nil, imageURL: ImageURL(url: url))
-        }
-    }
-
-    struct ResponseFormat: Encodable {
-        let type: String
-    }
-
-    let model: String
-    let messages: [Message]
-    let temperature: Double
-    let responseFormat: ResponseFormat
-
-    enum CodingKeys: String, CodingKey {
-        case model, messages, temperature
-        case responseFormat = "response_format"
-    }
-}
-
-private struct ChatResponse: Decodable {
-    struct Choice: Decodable {
-        struct Message: Decodable {
-            let content: String
-        }
-        let message: Message
-    }
-    let choices: [Choice]
 }
 
 private struct StoryPayload: Decodable {

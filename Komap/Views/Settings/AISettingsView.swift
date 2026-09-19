@@ -3,9 +3,8 @@ import SwiftUI
 /// 「AI設定」（物語生成に使うAIプロバイダーとAPIキー、新しい地図の追加、Google Mapsの設定状況）をまとめた画面。
 /// 「設定」画面の「アドバンス設定」→「AI設定」から開く。
 ///
-/// - Note: 実際に物語・旅日記を生成する処理（`AIHistoryService`／`TravelJournalService`）は
-///   現時点ではOpenAIのみに対応している。Google・AnthropicのAPIキーとデフォルト
-///   プロバイダーの選択はここで保存できるが、生成処理側の切り替えは別途対応が必要。
+/// - Note: 物語・旅日記・古地図検索などの生成処理は、ここで選んだデフォルトの
+///   AIプロバイダー（`AIClient`経由でOpenAI・Google・Anthropic）のAPIを呼び出す。
 struct AISettingsView: View {
     @State private var aiProvider: AIProvider = AppSettings.aiProvider
     @State private var openAIKey: String = SecretsConfig.openAIAPIKey ?? ""
@@ -61,7 +60,7 @@ struct AISettingsView: View {
                 AppSettings.aiProvider = newValue
             }
         } footer: {
-            Text("物語・旅日記の生成に使うAIプロバイダーです。既定はOpenAIです。ポイントの説明や旅日記などを作る時、ここで選んだプロバイダーのAPIキーが必要と案内します。")
+            Text("物語・旅日記の生成に使うAIプロバイダーです。既定はOpenAIです。ポイントの説明・旅日記・古地図の検索などで、ここで選んだプロバイダーのAPIを使います。")
         }
     }
 

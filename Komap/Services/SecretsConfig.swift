@@ -81,9 +81,9 @@ enum SecretsConfig {
         }
     }
 
-    /// 「古地図を検索」機能に必要なAPIキー（OpenAI）が揃っているか。画像検索は国立国会図書館とWikimedia Commons（キー不要）を使う。
+    /// 「古地図を検索」機能に必要なAPIキー（デフォルトのAIプロバイダーのもの）が揃っているか。画像検索は国立国会図書館とWikimedia Commons（キー不要）を使う。
     static var isOldMapSearchConfigured: Bool {
-        openAIAPIKey != nil
+        apiKey(for: AppSettings.aiProvider) != nil
     }
 
     private static func nonEmpty(_ value: String?) -> String? {
