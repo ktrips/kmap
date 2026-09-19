@@ -69,19 +69,6 @@ struct StampCheckInSheet: View {
 
                     photoButtons
 
-                    if stamp.photo != nil && AppSettings.printerLinkHost != nil {
-                        Button {
-                            Task { await printToLinkedPrinter() }
-                        } label: {
-                            if isPrintingToLinkedPrinter {
-                                ProgressView()
-                            } else {
-                                Label("連携プリント", systemImage: "printer.fill")
-                            }
-                        }
-                        .disabled(isPrintingToLinkedPrinter)
-                    }
-
                     if stamp.photo != nil {
                         Button("写真を削除", role: .destructive) {
                             applyPhotoUpdate(nil)
@@ -189,11 +176,27 @@ struct StampCheckInSheet: View {
                 Button {
                     Task { await captureFromLinkedCamera() }
                 } label: {
-                    Label("連携カメラで撮る", systemImage: "network")
+                    Label("連携カメラ", systemImage: "network")
                 }
                 .disabled(isLoadingPhoto)
             }
+
+            if stamp.photo != nil && AppSettings.printerLinkHost != nil {
+                Button {
+                    Task { await printToLinkedPrinter() }
+                } label: {
+                    if isPrintingToLinkedPrinter {
+                        ProgressView()
+                    } else {
+                        Label("連携プリント", systemImage: "printer.fill")
+                    }
+                }
+                .disabled(isPrintingToLinkedPrinter)
+            }
         }
+        // 3つ並んでも横一線に収まるよう、折り返さず必要なら少し縮める。
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
     }
 
     /// 場所の詳細（由来やエピソード）をAIで補足する。
