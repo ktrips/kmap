@@ -37,10 +37,18 @@ enum CustomOverlayMapStore {
     /// ディスクからの読み込み・JSONデコードを毎回行わずに済むよう、一度読んだら
     /// メモリ上に保持しておく。`add`で更新した時だけ作り直す。
     private static var cachedRecords: [Record]?
+    /// `records()`から作った`HistoricalOverlayMap`・`HistoricSite`の一覧。`all()`/`sites()`は
+    /// 地図の表示・御朱印の照会などから頻繁に呼ばれるため、呼ぶたびに作り直さず、
+    /// `add`で内容が変わった時だけ破棄する。
+    private static var cachedMaps: [HistoricalOverlayMap]?
+    private static var cachedSites: [HistoricSite]?
 
     /// 保存済みの古地図一覧を読み込む。
     static func all() -> [HistoricalOverlayMap] {
-        records().map { $0.overlayMap }
+        if let cachedMaps { return cachedMaps }
+        let maps = records().map { $0.overlayMap }
+        cachedMaps = maps
+        return maps
     }
 
     /// 検索結果を古地図として保存し、追加された`HistoricalOverlayMap`を返す。
@@ -79,6 +87,8 @@ enum CustomOverlayMapStore {
         guard let data = try? JSONEncoder().encode(current) else { return nil }
         try? data.write(to: fileURL)
         cachedRecords = current
+        cachedMaps = nil
+        cachedSites = nil
         OldMapCatalog.invalidateAllIncludingCustomCache()
 
         return record.overlayMap
@@ -86,6 +96,13 @@ enum CustomOverlayMapStore {
 
     /// 追加した古地図に属する、生成されたチェックポイントの一覧。
     static func sites() -> [HistoricSite] {
+        if let cachedSites { return cachedSites }
+        let sites = makeSites()
+        cachedSites = sites
+        return sites
+    }
+
+    private static func makeSites() -> [HistoricSite] {
         records().flatMap { record in
             (record.checkpoints ?? []).enumerated().map { index, checkpoint in
                 HistoricSite(

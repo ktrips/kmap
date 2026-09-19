@@ -392,13 +392,29 @@ enum OldMapCatalog {
         }
         let combined = all + CustomOverlayMapStore.all()
         allIncludingCustomCache = combined
+        allIncludingCustomByID = Dictionary(combined.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return combined
     }
+
+    /// `allIncludingCustom`のID索引（キャッシュと同時に作り直す）。
+    private static var allIncludingCustomByID: [String: HistoricalOverlayMap] = [:]
+
+    /// 同梱・追加済みの古地図からIDで1件探す。全件走査せず索引を引く。
+    static func overlay(withID id: String) -> HistoricalOverlayMap? {
+        _ = allIncludingCustom
+        return allIncludingCustomByID[id]
+    }
+
+    /// 分類ごとの同梱古地図（一覧シートの表示のたびに絞り込み直さないよう、一度だけ作る）。
+    static let allByCategory: [Category: [HistoricalOverlayMap]] = Dictionary(
+        grouping: all.filter { category(of: $0) != nil }, by: { category(of: $0)! }
+    )
 
     /// カスタム古地図が追加された時など、`allIncludingCustom`の内容が実際に変わった
     /// タイミングで呼び、次回参照時に作り直させる。
     static func invalidateAllIncludingCustomCache() {
         allIncludingCustomCache = nil
+        allIncludingCustomByID = [:]
     }
 
     /// 統合によって廃止されたID → 統合先IDの対応表。
@@ -418,6 +434,6 @@ enum OldMapCatalog {
     static func resolve(id: String?) -> HistoricalOverlayMap? {
         guard let id else { return nil }
         let resolvedID = mergedIntoID[id] ?? id
-        return allIncludingCustom.first { $0.id == resolvedID }
+        return overlay(withID: resolvedID)
     }
 }

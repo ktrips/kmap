@@ -41,7 +41,7 @@ struct StampCheckInSheet: View {
     }
 
     private var overlayMap: HistoricalOverlayMap? {
-        OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID }
+        OldMapCatalog.overlay(withID: site.overlayMapID)
     }
 
     var body: some View {

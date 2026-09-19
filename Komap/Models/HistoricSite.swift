@@ -821,19 +821,29 @@ enum HistoricSiteCatalog {
         ),
     ]
 
+    /// 同梱のチェックポイントのID・古地図IDによる索引。`site(withID:)`や
+    /// `sites(forOverlayID:)`は地図・御朱印一覧・同期などから何度も呼ばれるため、
+    /// 毎回全件を走査せず、一度だけ作った索引を引く。
+    private static let bundledByID: [String: HistoricSite] = Dictionary(
+        all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }
+    )
+    private static let bundledByOverlayID: [String: [HistoricSite]] = Dictionary(grouping: all, by: \.overlayMapID)
+
     /// 同梱のチェックポイント + ユーザーが検索・生成して追加した古地図のチェックポイント。
     static var allIncludingCustom: [HistoricSite] {
-        all + CustomOverlayMapStore.sites()
+        let custom = CustomOverlayMapStore.sites()
+        return custom.isEmpty ? all : all + custom
     }
 
     static func site(withID id: String) -> HistoricSite? {
-        allIncludingCustom.first { $0.id == id }
+        bundledByID[id] ?? CustomOverlayMapStore.sites().first { $0.id == id }
     }
 
     /// 指定した古地図に属するチェックポイントだけを返す。
     /// `overlayMapID`が`nil`（古地図を表示していない）場合は空配列を返す。
     static func sites(forOverlayID overlayMapID: String?) -> [HistoricSite] {
         guard let overlayMapID else { return [] }
-        return allIncludingCustom.filter { $0.overlayMapID == overlayMapID }
+        if let bundled = bundledByOverlayID[overlayMapID] { return bundled }
+        return CustomOverlayMapStore.sites().filter { $0.overlayMapID == overlayMapID }
     }
 }

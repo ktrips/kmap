@@ -16,7 +16,7 @@ struct StampListView: View {
     private let cardColumns = [GridItem(.adaptive(minimum: 140), spacing: 12)]
 
     private var overlayMap: HistoricalOverlayMap? {
-        overlayMapID.flatMap { id in OldMapCatalog.allIncludingCustom.first { $0.id == id } }
+        overlayMapID.flatMap { OldMapCatalog.overlay(withID: $0) }
     }
 
     private var sites: [HistoricSite] {

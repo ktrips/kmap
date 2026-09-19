@@ -421,7 +421,7 @@ struct MapScreen: View {
         .sheet(item: $tappedCheckpoint) { site in
             CheckpointInfoSheet(
                 site: site,
-                overlayMap: OldMapCatalog.allIncludingCustom.first { $0.id == site.overlayMapID },
+                overlayMap: OldMapCatalog.overlay(withID: site.overlayMapID),
                 checkInPhoto: collectedStamps.first { $0.siteID == site.id }?.photo,
                 isAlreadyCollected: cachedCollectedSiteIDs.contains(site.id),
                 nearbyPastRouteID: nearbyPastRouteID(for: site),
@@ -939,7 +939,7 @@ struct MapScreen: View {
                 discardActiveWalkRecording()
             }
         case .selectMap(let id):
-            guard let overlay = OldMapCatalog.allIncludingCustom.first(where: { $0.id == id }) else { return }
+            guard let overlay = OldMapCatalog.overlay(withID: id) else { return }
             mapSession.selectedOverlay = overlay
             mapSession.moveCamera(to: overlay.center)
         case .watchTrackingStarted(let sessionID):

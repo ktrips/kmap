@@ -153,7 +153,7 @@ struct OldMapPickerSheet: View {
 
     /// 同梱の古地図のうち、指定した分類に属するものだけを返す。
     private func overlays(in category: OldMapCatalog.Category) -> [HistoricalOverlayMap] {
-        OldMapCatalog.all.filter { OldMapCatalog.category(of: $0) == category }
+        OldMapCatalog.allByCategory[category] ?? []
     }
 
     /// ユーザーが検索して追加した古地図（同梱リストの分類には属さない）。
