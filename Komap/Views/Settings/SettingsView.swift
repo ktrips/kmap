@@ -10,7 +10,7 @@ struct SettingsView: View {
     @State private var isSyncing = false
     @State private var syncMessage: String?
     @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
-    @State private var defaultOverlayMapID: String? = OldMapCatalog.defaultOverlay.id
+    @State private var defaultOverlayMapID: String = AppSettings.defaultOverlayMapID ?? AppSettings.defaultOverlayCurrentLocationToken
     @State private var photoFilterStyle: PhotoFilterStyle = AppSettings.photoFilterStyle
     @State private var currentLocationIconStyle: CurrentLocationIconStyle = AppSettings.currentLocationIconStyle
     @State private var autoPauseWhenStationary: Bool = AppSettings.autoPauseWhenStationary
@@ -151,8 +151,10 @@ struct SettingsView: View {
     private var overlayOpacitySection: some View {
         Section {
             Picker("最初に表示する古地図", selection: $defaultOverlayMapID) {
-                ForEach(OldMapCatalog.all) { overlay in
-                    Text(overlay.title).tag(overlay.id as String?)
+                Text("現在地").tag(AppSettings.defaultOverlayCurrentLocationToken)
+                Text("全地図").tag(AppSettings.defaultOverlayAllToken)
+                ForEach(OldMapCatalog.allIncludingCustom) { overlay in
+                    Text(overlay.title).tag(overlay.id)
                 }
             }
             .onChange(of: defaultOverlayMapID) { _, newValue in
@@ -177,7 +179,7 @@ struct SettingsView: View {
         } header: {
             Text("古地図のデフォルト")
         } footer: {
-            Text("マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
+            Text("「現在地」は、現在地を含む古地図を自動で選びます。「全地図」は全ての古地図を重ねて表示します。マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
         }
     }
 

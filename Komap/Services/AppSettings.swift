@@ -76,8 +76,15 @@ enum AppSettings {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: aiProviderKey) }
     }
 
-    /// アプリ起動時・記録開始時などにデフォルトで選ばれる古地図のID。未設定なら`nil`
-    /// （その場合`OldMapCatalog.defaultOverlay`は同梱の「江戸城周辺」にフォールバックする）。
+    /// 「最初に表示する古地図」の選択肢のうち、古地図そのものではないもの。
+    /// `defaultOverlayMapID`にはこの値か、古地図のIDが入る。
+    static let defaultOverlayCurrentLocationToken = "current-location"
+    static let defaultOverlayAllToken = "all-overlays"
+
+    /// アプリ起動時・記録開始時などにデフォルトで選ばれる古地図のID（または上の特別な値）。
+    /// 未設定なら`nil`で、「現在地」（現在地を含む古地図を選ぶ）として扱う。
+    /// 現在地を含む古地図が無い時などの代わりには、`OldMapCatalog.defaultOverlay`が
+    /// 同梱の「江戸城周辺」にフォールバックする。
     static var defaultOverlayMapID: String? {
         get { nonEmpty(UserDefaults.standard.string(forKey: defaultOverlayMapIDKey)) }
         set { UserDefaults.standard.set(newValue, forKey: defaultOverlayMapIDKey) }

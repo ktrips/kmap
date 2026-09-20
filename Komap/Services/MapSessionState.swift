@@ -104,6 +104,22 @@ final class MapSessionState: ObservableObject {
     /// 古地図の選択メニューから、今表示中と同じ古地図であっても選び直された時に呼ぶ。
     /// 歩行中にGoogle Maps SDK側のGPU不具合で古地図が見えなくなった時、
     /// もう一度同じ古地図を選ぶだけでオーバーレイを貼り直して復帰できるようにするため。
+    /// 「設定」の「最初に表示する古地図」（現在地・全地図・特定の古地図）を、起動時の状態に反映する。
+    init() {
+        switch AppSettings.defaultOverlayMapID {
+        case AppSettings.defaultOverlayAllToken:
+            isShowingAllOverlays = true
+            isCurrentLocationMode = false
+        case let id? where id != AppSettings.defaultOverlayCurrentLocationToken:
+            if let overlay = OldMapCatalog.resolve(id: id) {
+                selectedOverlay = overlay
+                isCurrentLocationMode = false
+            }
+        default:
+            break // 現在地（最初に現在地が取れた時に、現在地を含む古地図を自動で選ぶ）
+        }
+    }
+
     func requestCurrentLocationSearch() {
         currentLocationSearchRequest = UUID()
     }
