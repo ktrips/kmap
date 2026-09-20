@@ -101,9 +101,6 @@ final class MapSessionState: ObservableObject {
         cameraMoveRequest = CameraMoveRequest(coordinate, zoom: zoom)
     }
 
-    /// 古地図の選択メニューから、今表示中と同じ古地図であっても選び直された時に呼ぶ。
-    /// 歩行中にGoogle Maps SDK側のGPU不具合で古地図が見えなくなった時、
-    /// もう一度同じ古地図を選ぶだけでオーバーレイを貼り直して復帰できるようにするため。
     /// 「設定」の「最初に表示する古地図」（現在地・全地図・特定の古地図）を、起動時の状態に反映する。
     init() {
         switch AppSettings.defaultOverlayMapID {
@@ -124,6 +121,9 @@ final class MapSessionState: ObservableObject {
         currentLocationSearchRequest = UUID()
     }
 
+    /// 古地図の選択メニューから、今表示中と同じ古地図であっても選び直された時に呼ぶ。
+    /// 歩行中にGoogle Maps SDK側のGPU不具合で古地図が見えなくなった時、
+    /// もう一度同じ古地図を選ぶだけでオーバーレイを貼り直して復帰できるようにするため。
     func requestOverlayReattach() {
         overlayReattachRequest = UUID()
     }

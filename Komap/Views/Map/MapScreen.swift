@@ -204,6 +204,8 @@ struct MapScreen: View {
         mapSession.selectedOverlay = nearest
         mapSession.isCurrentLocationMode = true
         lastSelectedOverlayID = nearest.id
+        // 古地図の選択に伴うカメラのフィットの後で、画面の中心を現在地に合わせる。
+        mapSession.moveCamera(to: location)
         return true
     }
 

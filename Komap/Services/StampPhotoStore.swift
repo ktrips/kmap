@@ -69,7 +69,12 @@ enum StampPhotoStore {
 
         let scale = maxDimension / longerSide
         let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let renderer = UIGraphicsImageRenderer(size: newSize)
+        // `format.scale`を指定しないと端末の画面スケール（3倍機なら3倍）で描かれ、
+        // 1600pxに縮小したつもりが最大4800pxの巨大な画像になってしまう
+        // （元より大きくなることもあった）。実ピクセル数で縮小するため1にする。
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }
