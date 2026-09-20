@@ -71,6 +71,14 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
     /// 含まれるかどうか。「全ての古地図を表示」中に地図をタップして、その古地図単体の
     /// 表示に切り替える機能で使う。
     func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        guard let fraction = imageFraction(of: coordinate) else { return false }
+        return (0...1).contains(fraction.u) && (0...1).contains(fraction.v)
+    }
+
+    /// 座標が、画像（`bearing`による回転も考慮）のどこにあたるか。左上を原点とした
+    /// 0〜1の割合（範囲外なら0〜1をはみ出す）。古地図の詳細画面で、画像の上に
+    /// チェックポイントを重ねて描くために使う。範囲が潰れている時は`nil`。
+    func imageFraction(of coordinate: CLLocationCoordinate2D) -> (u: Double, v: Double)? {
         let centerLat = (southWest.latitude + northEast.latitude) / 2
         let centerLng = (southWest.longitude + northEast.longitude) / 2
         let metersPerDegreeLat = 111_320.0
@@ -85,11 +93,9 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
 
         let widthMeters = (northEast.longitude - southWest.longitude) * metersPerDegreeLng
         let heightMeters = (northEast.latitude - southWest.latitude) * metersPerDegreeLat
-        guard widthMeters != 0, heightMeters != 0 else { return false }
+        guard widthMeters != 0, heightMeters != 0 else { return nil }
 
-        let uFraction = 0.5 + uMeters / widthMeters
-        let vFraction = 0.5 + vMeters / heightMeters
-        return (0...1).contains(uFraction) && (0...1).contains(vFraction)
+        return (0.5 + uMeters / widthMeters, 0.5 + vMeters / heightMeters)
     }
 
     /// 地図上部のラベルなど、短い表示が必要な場所で使う名称。

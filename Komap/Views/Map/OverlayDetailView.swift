@@ -31,53 +31,12 @@ struct OverlayDetailView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    if let image = overlay.image {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-
-                    Text(overlay.title)
-                        .font(.title3.bold())
-                    Label(category, systemImage: "folder")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(overlay.era)
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.brown)
-                    Text(overlay.summary)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text(String(
-                        format: "範囲: 南西 %.4f, %.4f ／ 北東 %.4f, %.4f",
-                        overlay.southWest.latitude, overlay.southWest.longitude,
-                        overlay.northEast.latitude, overlay.northEast.longitude
-                    ))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                    Divider()
-
-                    Text("チェックポイント（\(checkpoints.count)件）")
-                        .font(.headline)
-                    if checkpoints.isEmpty {
-                        Text("この古地図にはチェックポイントがありません。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(checkpoints) { site in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(site.name).font(.subheadline.bold())
-                            if !site.summary.isEmpty {
-                                Text(site.summary).font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
+                OverlayInfoContent(
+                    overlay: overlay,
+                    checkpoints: checkpoints,
+                    category: category,
+                    showsRange: true
+                )
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

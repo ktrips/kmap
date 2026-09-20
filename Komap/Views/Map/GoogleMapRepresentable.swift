@@ -1072,7 +1072,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 headingIconStyleUsed = style
                 let marker = GMSMarker(position: coordinate)
                 marker.icon = Self.makeHeadingIcon(color: style.accentColor)
-                marker.groundAnchor = CGPoint(x: 0.5, y: 1.0)
+                marker.groundAnchor = Self.headingIconAnchor
                 marker.rotation = heading
                 marker.zIndex = Self.currentLocationMarkerZIndex + 1
                 marker.isTappable = false
@@ -1081,11 +1081,20 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             }
         }
 
+        /// 進行方向の三角の`groundAnchor`。三角は現在地マークの中心を軸に回転するため、
+        /// 軸（アンカー）を三角の下辺より下（中心側）に置くと、その分だけ三角が現在地マークから
+        /// 離れた位置を回る。強調表示の現在地マーク（直径40〜44pt）の縁から少しだけ
+        /// （約4pt）離すため、中心から縁＋隙間ぶん（26pt）の位置に三角の下辺が来るようにする。
+        private static let headingIconHeight: CGFloat = 20
+        private static let headingIconDistanceFromCenter: CGFloat = 26
+        private static let headingIconAnchor = CGPoint(
+            x: 0.5, y: 1.0 + headingIconDistanceFromCenter / headingIconHeight
+        )
+
         /// 進行方向を示す小さな三角アイコン。現在地マーク（`CurrentLocationIconStyle`）の
-        /// 色に揃える。土台（下辺）を現在地マークの中心に合わせて描くため、
-        /// `groundAnchor`は下辺中央（(0.5, 1.0)）にする（`applyCurrentLocationMarker`参照）。
+        /// 色に揃える。位置は`headingIconAnchor`で現在地マークから少し離す（`applyCurrentLocationMarker`参照）。
         private static func makeHeadingIcon(color: UIColor) -> UIImage {
-            let size = CGSize(width: 16, height: 20)
+            let size = CGSize(width: 16, height: headingIconHeight)
             let renderer = UIGraphicsImageRenderer(size: size)
             return renderer.image { context in
                 let cg = context.cgContext
