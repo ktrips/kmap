@@ -102,11 +102,12 @@ struct HistoricalOverlayMap: Identifiable, Hashable {
 
     /// 同梱アセット・検索で追加した画像のどちらかから、表示用の画像を読み込む。
     var image: UIImage? {
-        if let imageAssetName, let image = UIImage(named: imageAssetName) {
+        // 管理者が差し替えた画像（ファイル）があれば、同梱の画像より優先する。
+        if let imageFileName, let image = StampPhotoStore.load(imageFileName) {
             return image
         }
-        if let imageFileName {
-            return StampPhotoStore.load(imageFileName)
+        if let imageAssetName {
+            return UIImage(named: imageAssetName)
         }
         return nil
     }
@@ -390,7 +391,7 @@ enum OldMapCatalog {
         if let allIncludingCustomCache {
             return allIncludingCustomCache
         }
-        let combined = all + CustomOverlayMapStore.all()
+        let combined = all.map(OverlayOverrideStore.apply(to:)) + CustomOverlayMapStore.all()
         allIncludingCustomCache = combined
         allIncludingCustomByID = Dictionary(combined.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return combined
@@ -404,6 +405,13 @@ enum OldMapCatalog {
         _ = allIncludingCustom
         return allIncludingCustomByID[id]
     }
+
+    /// 同梱の古地図のIDかどうか（管理者による上書きの対象になる）。
+    static func isBundled(id: String) -> Bool {
+        bundledIDs.contains(id)
+    }
+
+    private static let bundledIDs = Set(all.map(\.id))
 
     /// 分類ごとの同梱古地図（一覧シートの表示のたびに絞り込み直さないよう、一度だけ作る）。
     static let allByCategory: [Category: [HistoricalOverlayMap]] = Dictionary(

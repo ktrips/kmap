@@ -827,23 +827,44 @@ enum HistoricSiteCatalog {
     private static let bundledByID: [String: HistoricSite] = Dictionary(
         all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }
     )
-    private static let bundledByOverlayID: [String: [HistoricSite]] = Dictionary(grouping: all, by: \.overlayMapID)
 
-    /// 同梱のチェックポイント + ユーザーが検索・生成して追加した古地図のチェックポイント。
-    static var allIncludingCustom: [HistoricSite] {
-        let custom = CustomOverlayMapStore.sites()
-        return custom.isEmpty ? all : all + custom
+    /// 表示するチェックポイント全件（同梱 − 管理者が削除したもの + 管理者が追加したもの +
+    /// ユーザーが追加した古地図のもの）と、古地図IDごとの索引。呼ぶたびに作り直さないよう
+    /// キャッシュし、いずれかのストアが変わった時（`invalidateCache`）だけ破棄する。
+    private static var cachedAll: [HistoricSite]?
+    private static var cachedByOverlayID: [String: [HistoricSite]]?
+
+    static func invalidateCache() {
+        cachedAll = nil
+        cachedByOverlayID = nil
     }
 
+    /// 同梱のチェックポイント + 管理者による変更 + ユーザーが追加した古地図のチェックポイント。
+    static var allIncludingCustom: [HistoricSite] {
+        if let cachedAll { return cachedAll }
+        let hidden = OverlayOverrideStore.allHiddenSiteIDs()
+        let bundled = hidden.isEmpty ? all : all.filter { !hidden.contains($0.id) }
+        let combined = bundled + OverlayOverrideStore.allExtraSites() + CustomOverlayMapStore.sites()
+        cachedAll = combined
+        cachedByOverlayID = Dictionary(grouping: combined, by: \.overlayMapID)
+        return combined
+    }
+
+    /// 同梱のポイントかどうか（削除の仕方が、追加したポイントと異なる）。
+    static func isBundledSite(_ id: String) -> Bool {
+        bundledByID[id] != nil
+    }
+
+    /// 削除（非表示）した同梱ポイントも含めて探す（獲得済みの御朱印から辿れるようにするため）。
     static func site(withID id: String) -> HistoricSite? {
-        bundledByID[id] ?? CustomOverlayMapStore.sites().first { $0.id == id }
+        bundledByID[id] ?? allIncludingCustom.first { $0.id == id }
     }
 
     /// 指定した古地図に属するチェックポイントだけを返す。
     /// `overlayMapID`が`nil`（古地図を表示していない）場合は空配列を返す。
     static func sites(forOverlayID overlayMapID: String?) -> [HistoricSite] {
         guard let overlayMapID else { return [] }
-        if let bundled = bundledByOverlayID[overlayMapID] { return bundled }
-        return CustomOverlayMapStore.sites().filter { $0.overlayMapID == overlayMapID }
+        _ = allIncludingCustom
+        return cachedByOverlayID?[overlayMapID] ?? []
     }
 }

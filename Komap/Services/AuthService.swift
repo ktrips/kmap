@@ -44,6 +44,10 @@ final class AuthService: NSObject, ObservableObject {
     private var authStateHandle: AuthStateDidChangeListenerHandle?
 
     var isSignedIn: Bool { userID != nil }
+
+    /// 管理者（同梱の古地図の内容を編集できるユーザー）。検証済みのメールアドレスで判定する。
+    static let adminEmail = "kenichiyoshida13@gmail.com"
+    var isAdmin: Bool { email?.lowercased() == Self.adminEmail }
     var isFirebaseConfigured: Bool { FirebaseApp.app() != nil }
 
     override init() {

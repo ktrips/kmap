@@ -2,8 +2,11 @@ import CoreLocation
 import GoogleMaps
 import SwiftUI
 
-/// 追加した古地図を、地図の上で編集する画面。
-/// 地図をタップしてポイントを追加し、ポイントをタップして削除する。古地図そのものの削除もここから行う。
+/// 古地図を、地図の上で編集する画面。
+/// 地図をタップしてポイントを追加し、ポイントをタップして削除する。
+/// 追加した古地図は、公開範囲の変更・古地図そのものの削除もここから行う。
+/// 同梱の古地図（管理者だけが編集できる）は、変更を端末内の「上書き」として保存し、
+/// 削除の代わりに「変更を元に戻す」ができる。
 struct CustomOverlayEditorView: View {
     /// 編集中の古地図。名前や画像を変えたら、保存済みの最新の内容に読み直す。
     @State private var overlay: HistoricalOverlayMap
@@ -18,6 +21,7 @@ struct CustomOverlayEditorView: View {
     @State private var newPointSummary = ""
     @State private var pointToDelete: HistoricSite?
     @State private var isConfirmingDeleteOverlay = false
+    @State private var isConfirmingResetOverlay = false
     @State private var isRenaming = false
     @State private var editedTitle = ""
     @State private var isPublic: Bool
@@ -26,6 +30,9 @@ struct CustomOverlayEditorView: View {
     @State private var cloudErrorMessage: String?
 
     private let shareService = OverlayMapShareService()
+
+    /// 同梱の古地図かどうか（追加した古地図と、保存先・使える操作が異なる）。
+    private var isBundled: Bool { OldMapCatalog.isBundled(id: overlay.id) }
 
     init(overlay: HistoricalOverlayMap, onDeleted: @escaping () -> Void = {}) {
         _overlay = State(initialValue: overlay)
@@ -72,13 +79,15 @@ struct CustomOverlayEditorView: View {
                             Label("地図名を変更", systemImage: "pencil")
                         }
 
-                        Picker(selection: publicBinding) {
-                            Label("自分だけ", systemImage: "lock.fill").tag(false)
-                            Label("公開", systemImage: "person.2.fill").tag(true)
-                        } label: {
-                            Label("公開範囲", systemImage: "eye")
+                        if !isBundled {
+                            Picker(selection: publicBinding) {
+                                Label("自分だけ", systemImage: "lock.fill").tag(false)
+                                Label("公開", systemImage: "person.2.fill").tag(true)
+                            } label: {
+                                Label("公開範囲", systemImage: "eye")
+                            }
+                            .pickerStyle(.menu)
                         }
-                        .pickerStyle(.menu)
 
                         Button {
                             isShowingUpdateSheet = true
@@ -88,10 +97,19 @@ struct CustomOverlayEditorView: View {
 
                         Divider()
 
-                        Button(role: .destructive) {
-                            isConfirmingDeleteOverlay = true
-                        } label: {
-                            Label("この古地図を削除", systemImage: "trash")
+                        if isBundled {
+                            Button(role: .destructive) {
+                                isConfirmingResetOverlay = true
+                            } label: {
+                                Label("変更を元に戻す", systemImage: "arrow.uturn.backward")
+                            }
+                            .disabled(!OverlayOverrideStore.hasOverride(id: overlay.id))
+                        } else {
+                            Button(role: .destructive) {
+                                isConfirmingDeleteOverlay = true
+                            } label: {
+                                Label("この古地図を削除", systemImage: "trash")
+                            }
                         }
                     } label: {
                         Image(systemName: "line.3.horizontal")
@@ -146,11 +164,29 @@ struct CustomOverlayEditorView: View {
                 presenting: pointToDelete
             ) { site in
                 Button("「\(site.name)」を削除", role: .destructive) {
-                    CustomOverlayMapStore.deleteCheckpoint(siteID: site.id)
+                    if isBundled {
+                        OverlayOverrideStore.removeCheckpoint(overlayID: overlay.id, siteID: site.id)
+                    } else {
+                        CustomOverlayMapStore.deleteCheckpoint(siteID: site.id)
+                    }
                     checkpoints = HistoricSiteCatalog.sites(forOverlayID: overlay.id)
                     resyncIfPublic()
                 }
                 Button("キャンセル", role: .cancel) {}
+            }
+            .confirmationDialog(
+                "この古地図への変更を元に戻しますか？",
+                isPresented: $isConfirmingResetOverlay,
+                titleVisibility: .visible
+            ) {
+                Button("元に戻す", role: .destructive) {
+                    OverlayOverrideStore.reset(id: overlay.id)
+                    reloadOverlay()
+                    checkpoints = HistoricSiteCatalog.sites(forOverlayID: overlay.id)
+                }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("名前・画像・ポイントの変更がすべて取り消され、アプリに同梱の内容に戻ります。")
             }
             .confirmationDialog(
                 "この古地図を削除しますか？",
@@ -225,14 +261,18 @@ struct CustomOverlayEditorView: View {
     private func renameOverlay() {
         let title = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
-        CustomOverlayMapStore.rename(id: overlay.id, to: title)
+        if isBundled {
+            OverlayOverrideStore.setTitle(id: overlay.id, title)
+        } else {
+            CustomOverlayMapStore.rename(id: overlay.id, to: title)
+        }
         reloadOverlay()
         resyncIfPublic()
     }
 
     /// 保存済みの最新の内容（名前・画像）を読み直す。
     private func reloadOverlay() {
-        if let latest = CustomOverlayMapStore.all().first(where: { $0.id == overlay.id }) {
+        if let latest = OldMapCatalog.overlay(withID: overlay.id) {
             overlay = latest
         }
     }
@@ -241,12 +281,16 @@ struct CustomOverlayEditorView: View {
         guard let coordinate = pendingCoordinate else { return }
         let name = newPointName.trimmingCharacters(in: .whitespacesAndNewlines)
         let summary = newPointSummary.trimmingCharacters(in: .whitespacesAndNewlines)
-        CustomOverlayMapStore.addCheckpoint(
-            toOverlayID: overlay.id,
-            name: name.isEmpty ? "新しいポイント" : name,
-            summary: summary,
-            coordinate: coordinate
-        )
+        let pointName = name.isEmpty ? "新しいポイント" : name
+        if isBundled {
+            OverlayOverrideStore.addCheckpoint(
+                toOverlayID: overlay.id, name: pointName, summary: summary, coordinate: coordinate
+            )
+        } else {
+            CustomOverlayMapStore.addCheckpoint(
+                toOverlayID: overlay.id, name: pointName, summary: summary, coordinate: coordinate
+            )
+        }
         pendingCoordinate = nil
         checkpoints = HistoricSiteCatalog.sites(forOverlayID: overlay.id)
         resyncIfPublic()
@@ -409,7 +453,11 @@ private struct UpdateOverlayMapSheet: View {
         """
         do {
             let generated = try await AIClient.generateImage(prompt: prompt, referenceImage: current)
-            CustomOverlayMapStore.replaceImage(id: overlay.id, with: generated)
+            if OldMapCatalog.isBundled(id: overlay.id) {
+                OverlayOverrideStore.replaceImage(id: overlay.id, with: generated)
+            } else {
+                CustomOverlayMapStore.replaceImage(id: overlay.id, with: generated)
+            }
             onUpdated()
             dismiss()
         } catch {

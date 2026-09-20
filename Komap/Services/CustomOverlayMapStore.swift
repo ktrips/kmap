@@ -60,7 +60,7 @@ enum CustomOverlayMapStore {
     /// （`HistoricalOverlayMap.imageAssetName`の注意書き参照）ため、保存前に1024×1024の
     /// 正方形へ描き直す。オーバーレイは元々位置合わせの範囲いっぱいに引き伸ばして
     /// 貼られるので、見た目は変わらない。大きな画像の読み込み・デコードも軽くなる。
-    private static func squareImage(_ image: UIImage) -> UIImage {
+    static func squareImage(_ image: UIImage) -> UIImage {
         let size = CGSize(width: 1024, height: 1024)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -229,6 +229,7 @@ enum CustomOverlayMapStore {
         cachedMaps = nil
         cachedSites = nil
         OldMapCatalog.invalidateAllIncludingCustomCache()
+        HistoricSiteCatalog.invalidateCache()
         return true
     }
 

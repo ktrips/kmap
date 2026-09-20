@@ -89,7 +89,11 @@ struct OldMapPickerSheet: View {
 
     /// 追加した古地図の一覧。編集・削除の後に読み直す。
     @State private var customOverlays: [HistoricalOverlayMap] = CustomOverlayMapStore.all()
-    @State private var editingOverlay: HistoricalOverlayMap?
+    @State private var detailOverlay: HistoricalOverlayMap?
+    /// 「みんなの古地図」（クラウドで公開されているもの）。一覧の最下部に出す。
+    @State private var sharedMaps: [RemoteOverlayMap] = []
+    @State private var importingSharedID: String?
+    @EnvironmentObject private var authService: AuthService
 
     var body: some View {
         NavigationStack {
@@ -126,25 +130,12 @@ struct OldMapPickerSheet: View {
                     }
                     .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
                     .listRowBackground(Color.clear)
-
-                    NavigationLink {
-                        SharedOverlayMapsView { overlay in
-                            // 取り込んだ古地図をそのまま表示して閉じる。
-                            mapSession.isCurrentLocationMode = false
-                            isShowingAllOverlays = false
-                            selectedOverlay = overlay
-                            onSelect(overlay)
-                            dismiss()
-                        }
-                    } label: {
-                        Label("みんなの古地図を見る", systemImage: "person.2")
-                    }
                 }
 
                 ForEach(OldMapCatalog.Category.allCases, id: \.self) { category in
                     Section(category.rawValue) {
                         ForEach(overlays(in: category)) { overlay in
-                            overlayButton(for: overlay)
+                            overlayRow(for: overlay)
                         }
                     }
                 }
@@ -152,34 +143,17 @@ struct OldMapPickerSheet: View {
                 if !customOverlays.isEmpty {
                     Section("追加した古地図") {
                         ForEach(customOverlays) { overlay in
-                            HStack {
-                                overlayButton(for: overlay)
-                                Spacer()
-                                Button {
-                                    editingOverlay = overlay
-                                } label: {
-                                    Image(systemName: "pencil.circle")
-                                        .font(.title3)
-                                }
-                                .accessibilityLabel("編集")
-                            }
-                            .buttonStyle(.borderless)
+                            overlayRow(for: overlay)
                         }
                     }
                 }
 
+
+                sharedMapsSection
             }
-            .sheet(item: $editingOverlay, onDismiss: {
-                customOverlays = CustomOverlayMapStore.all()
-                // 名前や画像を変えた古地図を表示中なら、最新の内容に差し替える。
-                if let selected = selectedOverlay,
-                   let latest = customOverlays.first(where: { $0.id == selected.id }),
-                   latest.title != selected.title || latest.imageFileName != selected.imageFileName {
-                    selectedOverlay = latest
-                    onSelect(latest)
-                }
-            }) { overlay in
-                CustomOverlayEditorView(overlay: overlay, onDeleted: {
+            .task { await loadSharedMaps() }
+            .sheet(item: $detailOverlay, onDismiss: refreshAfterDetail) { overlay in
+                OverlayDetailView(overlay: overlay, onDeleted: {
                     // 表示中の古地図を削除した場合は、既定の古地図に戻す。
                     if selectedOverlay?.id == overlay.id {
                         selectedOverlay = OldMapCatalog.defaultOverlay
@@ -197,9 +171,96 @@ struct OldMapPickerSheet: View {
         }
     }
 
-    /// 同梱の古地図のうち、指定した分類に属するものだけを返す。
+    /// 同梱の古地図のうち、指定した分類に属するものだけを返す
+    /// （管理者による名前・画像の変更を反映した内容で）。
     private func overlays(in category: OldMapCatalog.Category) -> [HistoricalOverlayMap] {
-        OldMapCatalog.allByCategory[category] ?? []
+        (OldMapCatalog.allByCategory[category] ?? []).compactMap { OldMapCatalog.overlay(withID: $0.id) }
+    }
+
+    /// 古地図1件の行。左に選択ボタン、右に詳細アイコン（押すと詳細情報の画面が開く）。
+    private func overlayRow(for overlay: HistoricalOverlayMap) -> some View {
+        HStack {
+            overlayButton(for: overlay)
+            Spacer()
+            Button {
+                detailOverlay = overlay
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.title3)
+            }
+            .accessibilityLabel("詳細")
+        }
+        .buttonStyle(.borderless)
+    }
+
+    /// 詳細画面（編集を含む）を閉じた後、一覧と、表示中の古地図を最新の内容に読み直す。
+    private func refreshAfterDetail() {
+        customOverlays = CustomOverlayMapStore.all()
+        if let selected = selectedOverlay,
+           let latest = OldMapCatalog.overlay(withID: selected.id),
+           latest.title != selected.title || latest.imageFileName != selected.imageFileName {
+            selectedOverlay = latest
+            onSelect(latest)
+        }
+    }
+
+    /// 一覧の最下部の「みんなの古地図」（公開されているもの）。追加ボタンで自分の古地図に取り込める。
+    @ViewBuilder
+    private var sharedMapsSection: some View {
+        let others = sharedMaps.filter { $0.ownerUserID != authService.userID }
+        if !others.isEmpty {
+            Section("みんなの古地図") {
+                ForEach(others.prefix(10)) { remote in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(remote.title).font(.body)
+                            Text("\(remote.era)・チェックポイント\(remote.checkpoints.count)件")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button {
+                            Task { await importShared(remote) }
+                        } label: {
+                            if importingSharedID == remote.id {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "plus.circle").font(.title3)
+                            }
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(importingSharedID != nil)
+                        .accessibilityLabel("追加する")
+                    }
+                }
+                NavigationLink {
+                    SharedOverlayMapsView { overlay in selectImported(overlay) }
+                } label: {
+                    Label("みんなの古地図をすべて見る", systemImage: "person.2")
+                }
+            }
+        }
+    }
+
+    private func loadSharedMaps() async {
+        sharedMaps = (try? await OverlayMapShareService().fetchPublicMaps(limit: 30)) ?? []
+    }
+
+    private func importShared(_ remote: RemoteOverlayMap) async {
+        importingSharedID = remote.id
+        defer { importingSharedID = nil }
+        if let overlay = try? await OverlayMapShareService().importMap(remote) {
+            selectImported(overlay)
+        }
+    }
+
+    /// 取り込んだ古地図をそのまま表示して閉じる。
+    private func selectImported(_ overlay: HistoricalOverlayMap) {
+        mapSession.isCurrentLocationMode = false
+        isShowingAllOverlays = false
+        selectedOverlay = overlay
+        onSelect(overlay)
+        dismiss()
     }
 
     /// 一覧の先頭に横並びで置く、アイコン付きのコンパクトなボタン。
