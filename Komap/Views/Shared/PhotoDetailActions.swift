@@ -1,62 +1,85 @@
 import PhotosUI
 import SwiftUI
 
-/// チェックインと投稿写真の詳細で共通の、写真まわりの操作ボタン行
-/// （写真を変更／連携プリント／非公開／削除）。両画面で並びと見た目をそろえるために共有する。
+/// チェックインと投稿写真の詳細で共通の、写真の下の表示と操作。
+/// 1行目: 日付（左寄せ）と、公開／非公開・削除（右寄せ）。
+/// 2行目: 写真を変更・連携カメラ・連携プリントを横一線に並べる。
+/// 両画面で並びと見た目をそろえるために共有する。
 struct PhotoDetailActionRow: View {
+    var date: Date
     /// 写真がまだ無い時は「写真を追加」になる。
     var hasPhoto: Bool
     var isBusy: Bool = false
+    var showsLinkedCamera: Bool
     var showsPrint: Bool
     var isPrinting: Bool
     var isHidden: Bool
     var isUpdatingVisibility: Bool
-    /// 「非公開」「削除」を出すか（写真がある時だけ意味がある）。
+    /// 「公開／非公開」「削除」を出すか（写真がある時だけ意味がある）。
     var showsRemoveActions: Bool
     var onChange: () -> Void
+    var onLinkedCamera: () -> Void
     var onPrint: () -> Void
     var onToggleHidden: () -> Void
     var onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            Button(action: onChange) {
-                Label(hasPhoto ? "写真を変更" : "写真を追加", systemImage: "camera.fill")
-            }
-            .disabled(isBusy)
+        VStack(spacing: 12) {
+            HStack(spacing: 16) {
+                Text(date, format: .dateTime.year().month().day().hour().minute())
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
 
-            if showsPrint {
-                Button(action: onPrint) {
-                    if isPrinting {
-                        ProgressView()
-                    } else {
-                        Label("連携プリント", systemImage: "printer.fill")
+                Spacer(minLength: 8)
+
+                if showsRemoveActions {
+                    Button(action: onToggleHidden) {
+                        if isUpdatingVisibility {
+                            ProgressView()
+                        } else {
+                            Label(
+                                isHidden ? "非公開" : "公開",
+                                systemImage: isHidden ? "eye.slash.fill" : "eye"
+                            )
+                        }
+                    }
+                    .disabled(isUpdatingVisibility)
+
+                    Button(role: .destructive, action: onDelete) {
+                        Label("削除", systemImage: "trash")
                     }
                 }
-                .disabled(isPrinting)
             }
 
-            if showsRemoveActions {
-                Button(action: onToggleHidden) {
-                    if isUpdatingVisibility {
-                        ProgressView()
-                    } else {
-                        Label(
-                            isHidden ? "非公開中" : "非公開",
-                            systemImage: isHidden ? "eye.slash.fill" : "eye.slash"
-                        )
-                    }
+            HStack(spacing: 12) {
+                Button(action: onChange) {
+                    Label(hasPhoto ? "写真を変更" : "写真を追加", systemImage: "camera.fill")
                 }
-                .disabled(isUpdatingVisibility)
+                .disabled(isBusy)
 
-                Button(role: .destructive, action: onDelete) {
-                    Label("削除", systemImage: "trash")
+                if showsLinkedCamera {
+                    Button(action: onLinkedCamera) {
+                        Label("連携カメラ", systemImage: "network")
+                    }
+                    .disabled(isBusy)
+                }
+
+                if showsPrint {
+                    Button(action: onPrint) {
+                        if isPrinting {
+                            ProgressView()
+                        } else {
+                            Label("連携プリント", systemImage: "printer.fill")
+                        }
+                    }
+                    .disabled(isPrinting)
                 }
             }
         }
-        // 4つ並んでも横一線に収まるよう、折り返さず必要なら少し縮める。
+        // 3つ・2つ並んでも横一線に収まるよう、折り返さず必要なら少し縮める。
         .lineLimit(1)
         .minimumScaleFactor(0.7)
+        .frame(maxWidth: .infinity)
     }
 }
 

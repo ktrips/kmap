@@ -63,32 +63,22 @@ struct StampCheckInSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
 
-                    Text(stamp.collectedAt, format: .dateTime.year().month().day().hour().minute())
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
                     PhotoDetailActionRow(
+                        date: stamp.collectedAt,
                         hasPhoto: stamp.photo != nil,
                         isBusy: isLoadingPhoto,
+                        showsLinkedCamera: isCameraLinkConfigured,
                         showsPrint: stamp.photo != nil && AppSettings.printerLinkHost != nil,
                         isPrinting: isPrintingToLinkedPrinter,
                         isHidden: stamp.isHiddenFromSharing,
                         isUpdatingVisibility: isUpdatingVisibility,
                         showsRemoveActions: stamp.photo != nil,
                         onChange: { isShowingCamera = true },
+                        onLinkedCamera: { Task { await captureFromLinkedCamera() } },
                         onPrint: { Task { await printToLinkedPrinter() } },
                         onToggleHidden: { Task { await toggleVisibility() } },
                         onDelete: { isConfirmingDelete = true }
                     )
-
-                    if isCameraLinkConfigured {
-                        Button {
-                            Task { await captureFromLinkedCamera() }
-                        } label: {
-                            Label("連携カメラで撮る", systemImage: "network")
-                        }
-                        .disabled(isLoadingPhoto)
-                    }
 
                     if let photoSyncErrorMessage {
                         Text(photoSyncErrorMessage)

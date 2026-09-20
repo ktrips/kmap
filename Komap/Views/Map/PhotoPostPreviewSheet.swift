@@ -98,19 +98,18 @@ struct PhotoPostPageView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
-                Text(post.postedAt, format: .dateTime.year().month().day().hour().minute())
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
                 PhotoDetailActionRow(
+                    date: post.postedAt,
                     hasPhoto: true,
                     isBusy: isChangingPhoto,
+                    showsLinkedCamera: AppSettings.cameraLinkHost != nil,
                     showsPrint: post.photo != nil && AppSettings.printerLinkHost != nil,
                     isPrinting: isPrintingToLinkedPrinter,
                     isHidden: post.isHiddenFromSharing,
                     isUpdatingVisibility: isUpdatingVisibility,
                     showsRemoveActions: true,
                     onChange: { isShowingPhotoChange = true },
+                    onLinkedCamera: { Task { await changePhotoFromLinkedCamera() } },
                     onPrint: { Task { await printToLinkedPrinter() } },
                     onToggleHidden: { Task { await toggleVisibility() } },
                     onDelete: { isConfirmingDelete = true }
@@ -193,6 +192,19 @@ struct PhotoPostPageView: View {
         .task {
             editableUserTitle = post.userTitle ?? ""
             await loadInfoIfNeeded()
+        }
+    }
+
+    /// 連携カメラで撮った最新の写真に差し替える。
+    private func changePhotoFromLinkedCamera() async {
+        isChangingPhoto = true
+        do {
+            let image = try await CameraLinkService().fetchLatestPhoto()
+            isChangingPhoto = false
+            await changePhoto(to: image)
+        } catch {
+            isChangingPhoto = false
+            printMessage = error.localizedDescription
         }
     }
 
