@@ -79,7 +79,9 @@ struct WalkRouteDetailView: View {
     @State private var mapViewForSharing: GMSMapView?
     @State private var isGeneratingVideo = false
     @State private var videoErrorMessage: String?
-    @State private var videoItem: TripVideoItem?
+    /// 作成済みの動画（再生し直す時は作り直さず使い回す）。
+    @State private var videoURL: URL?
+    @State private var isShowingVideo = false
 
     private let syncService = SyncService()
     private let journalService = TravelJournalService()
@@ -271,8 +273,10 @@ struct WalkRouteDetailView: View {
         .sheet(isPresented: $isShowingShareSheet) {
             ActivityShareSheet(items: shareItems)
         }
-        .sheet(item: $videoItem) { item in
-            TripVideoPlayerSheet(videoURL: item.url)
+        .sheet(isPresented: $isShowingVideo) {
+            if let videoURL {
+                TripVideoPlayerSheet(videoURL: videoURL)
+            }
         }
         .sheet(isPresented: $isShowingJournal) {
             TravelJournalView(
@@ -433,22 +437,35 @@ struct WalkRouteDetailView: View {
     private var videoSection: some View {
         if route.coordinates.count >= 2 {
             VStack(alignment: .leading, spacing: 6) {
-                Button {
-                    Task { await generateAndPlayVideo() }
-                } label: {
-                    if isGeneratingVideo {
-                        HStack {
-                            ProgressView()
-                            Text("動画を作成中…")
-                        }
-                        .frame(maxWidth: .infinity)
-                    } else {
-                        Label("動画を再生", systemImage: "play.rectangle.fill")
+                HStack(spacing: 8) {
+                    Button {
+                        Task { await generateAndPlayVideo() }
+                    } label: {
+                        if isGeneratingVideo {
+                            HStack {
+                                ProgressView()
+                                Text("動画を作成中…")
+                            }
                             .frame(maxWidth: .infinity)
+                        } else {
+                            Label("動画を再生", systemImage: "play.rectangle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isGeneratingVideo)
+
+                    // 動画ができたら、再生ボタンの右横に共有ボタンを出す
+                    // （共有シートの「ビデオを保存」で写真ライブラリにも保存できる）。
+                    if let videoURL {
+                        ShareLink(item: videoURL) {
+                            Image(systemName: "square.and.arrow.up")
+                                .frame(width: 20)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("動画を共有")
                     }
                 }
-                .buttonStyle(.bordered)
-                .disabled(isGeneratingVideo)
 
                 if let videoErrorMessage {
                     Text(videoErrorMessage)
@@ -462,6 +479,11 @@ struct WalkRouteDetailView: View {
     /// 歩いた軌跡と写真の地点から動画を書き出し、再生シートを開く。
     /// 背景には、画面に表示中の地図（古地図・チェックポイント入り）のスナップショットを使う。
     private func generateAndPlayVideo() async {
+        // 作成済みなら、作り直さずそのまま再生する。
+        if let videoURL, FileManager.default.fileExists(atPath: videoURL.path) {
+            isShowingVideo = true
+            return
+        }
         guard let mapView = mapViewForSharing, let base = captureMapSnapshot() else {
             videoErrorMessage = "地図の表示を待ってから、もう一度お試しください。"
             return
@@ -498,7 +520,8 @@ struct WalkRouteDetailView: View {
         }
 
         do {
-            videoItem = TripVideoItem(url: try await TripVideoRenderer.render(base: base, points: points, stops: stops))
+            videoURL = try await TripVideoRenderer.render(base: base, points: points, stops: stops)
+            isShowingVideo = true
         } catch {
             videoErrorMessage = error.localizedDescription
         }

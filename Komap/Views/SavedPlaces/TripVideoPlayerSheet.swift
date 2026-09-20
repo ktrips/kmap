@@ -1,12 +1,6 @@
 import AVKit
 import SwiftUI
 
-/// 動画シートを`.sheet(item:)`で開くための入れ物。
-struct TripVideoItem: Identifiable {
-    let id = UUID()
-    let url: URL
-}
-
 /// 作った旅の動画を再生し、再生が終わったら共有（保存を含む）ボタンを出すシート。
 struct TripVideoPlayerSheet: View {
     let videoURL: URL

@@ -200,7 +200,11 @@ enum TripVideoRenderer {
         drawIcon(at: current)
 
         if let photo {
-            drawPhotoCard(photo.stop, alpha: photo.alpha, progress: photo.progress, canvas: canvas)
+            drawPhotoCard(photo.stop, alpha: photo.alpha, progress: photo.progress, canvas: canvas, iconAt: current)
+            // 写真の間も、いま進んでいる地点が見えるよう、アイコンを写真より前に描き直し、
+            // 波紋を広げて目立たせる。
+            drawPulse(at: current, progress: photo.progress, alpha: photo.alpha)
+            drawIcon(at: current)
         }
     }
 
@@ -219,28 +223,59 @@ enum TripVideoRenderer {
         }
     }
 
-    /// 暗くした背景の中央に、白い縁取りの写真カード（と名前）をふわっと表示する。
-    private static func drawPhotoCard(_ stop: TripVideoStop, alpha: CGFloat, progress: CGFloat, canvas: CGSize) {
+    /// 進んでいる地点（アイコン）の周りに広がる波紋。
+    private static func drawPulse(at point: CGPoint, progress: CGFloat, alpha: CGFloat) {
+        for ring in 0..<2 {
+            let phase = (progress * 3 + CGFloat(ring) * 0.5).truncatingRemainder(dividingBy: 1)
+            let radius = 22 + phase * 34
+            UIColor.liveWalkedTrailBorder.withAlphaComponent((1 - phase) * 0.7 * alpha).setStroke()
+            let path = UIBezierPath(ovalIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2))
+            path.lineWidth = 4
+            path.stroke()
+        }
+    }
+
+    /// 少し暗くした背景の上に、白い縁取りの写真カード（と名前）をふわっと表示する。
+    /// 写真は大きく、しかも動いているポイント（アイコン）に重ならないよう、アイコンから遠い側
+    /// （画面の上下のうち広く空いている方）へずらして置く。
+    private static func drawPhotoCard(
+        _ stop: TripVideoStop, alpha: CGFloat, progress: CGFloat, canvas: CGSize, iconAt icon: CGPoint
+    ) {
         guard let context = UIGraphicsGetCurrentContext() else { return }
         context.saveGState()
         defer { context.restoreGState() }
 
-        UIColor.black.withAlphaComponent(0.4 * alpha).setFill()
+        UIColor.black.withAlphaComponent(0.25 * alpha).setFill()
         UIBezierPath(rect: CGRect(origin: .zero, size: canvas)).fill()
 
-        let maxSize = CGSize(width: canvas.width * 0.78, height: canvas.height * 0.5)
-        let fit = min(maxSize.width / stop.photo.size.width, maxSize.height / stop.photo.size.height)
-        let photoSize = CGSize(width: stop.photo.size.width * fit, height: stop.photo.size.height * fit)
+        let margin: CGFloat = 24
+        let gapFromIcon: CGFloat = 48
+        let spaceAbove = icon.y - gapFromIcon - margin
+        let spaceBelow = canvas.height - icon.y - gapFromIcon - margin
+        let placeBelow = spaceBelow >= spaceAbove
+        let availableHeight = max(placeBelow ? spaceBelow : spaceAbove, canvas.height * 0.3)
+
         let border: CGFloat = 12
         let captionHeight: CGFloat = stop.caption == nil ? 0 : 44
+        let maxPhoto = CGSize(
+            width: canvas.width * 0.92 - border * 2,
+            height: min(availableHeight, canvas.height * 0.6) - border * 2 - captionHeight
+        )
+        let fit = min(maxPhoto.width / stop.photo.size.width, maxPhoto.height / stop.photo.size.height)
+        let photoSize = CGSize(width: stop.photo.size.width * fit, height: stop.photo.size.height * fit)
         let cardSize = CGSize(
             width: photoSize.width + border * 2,
             height: photoSize.height + border * 2 + captionHeight
         )
 
+        // アイコンの反対側の端に寄せて置く（中央からずらす）。
+        let centerY: CGFloat = placeBelow
+            ? canvas.height - margin - cardSize.height / 2
+            : margin + cardSize.height / 2
+        let center = CGPoint(x: canvas.width / 2, y: centerY)
+
         // ゆっくり少し拡大しながら表示する。
         let zoom = 0.94 + 0.06 * progress
-        let center = CGPoint(x: canvas.width / 2, y: canvas.height / 2)
         context.translateBy(x: center.x, y: center.y)
         context.scaleBy(x: zoom, y: zoom)
         context.translateBy(x: -cardSize.width / 2, y: -cardSize.height / 2)
