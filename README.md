@@ -12,19 +12,49 @@
   に代えて、自前描画の大きな現在地マークを写真ピンより必ず前面に表示する
   （記録中はさらに拡大）。歩行記録中はGPSの進行方向（`CLLocation.course`）が
   分かっている間、現在地マークから外向きに小さな三角を突き出して、
-  進んでいる方向がひと目で分かるようにする（静止中など進行方向を算出できていない間は隠す。
+  進んでいる方向がひと目で分かるようにする（三角は現在地マークの縁から少し離して表示する。
+  静止中など進行方向を算出できていない間は隠す。
   三角の色は選んでいる現在地マークの見た目（`CurrentLocationIconStyle`）に揃える）
 - 江戸〜明治期の古地図（同梱サンプル、詳細は後述）を現在の地図に重ねて表示
 - スライダーで「現在の地図」⇔「古地図」の濃さ（不透明度）を自由に調整
 - 「全ての古地図を表示」を選ぶと、同梱・登録済みの古地図とチェックポイントを
   地図上にまとめて重ねて見られる（チェックポイント以外の場所をタップすると、
   その座標を含む古地図があればその単体表示に切り替わる）
-- 「設定」→「アドバンス設定」→「管理者設定」の「新しい地図を追加」がオンの間だけ、
-  OpenAI + Google カスタム検索を使って新しい古地図をその場で検索して追加する機能
-  （古地図選択シートの「古地図を表示しない」の下に表示）と、地図上の好きな地点を
-  タップしてAIが昔の出来事や物語を生成する機能が使える（意図しないAPI呼び出しを
-  防ぐため既定はオフ）。史跡チェックポイントのアイコンをタップした時の物語生成は、
-  この設定に関係なく常に使える
+- **古地図の選択**（マップ下部・左上どちらからでも開く「古地図を選択」）
+  - 一番上に、コンパクトな4つのクイックボタン「現在地」「新地図」「全地図」「地図無し」を横並びで
+    表示する。「現在地」は現在地を含む古地図を自動で選び（複数あれば中心が最も近いもの）、
+    画面の中心も現在地へ動かす。含む古地図が無い時は、現在地付近の古地図を作る検索画面
+    （検索文に現在地の地名・緯度経度が入った状態）へ進む。「新地図」は「設定」→「アドバンス設定」→
+    「AI設定」の「新しい地図を追加」がオンの時だけ表示する（AI APIを呼ぶ機能のため既定はオフ）。
+    「全地図」は全ての古地図を重ねて表示、「地図無し」は古地図を出さずに歩く
+  - 各地図の右側の詳細アイコン（ⓘ）から、古地図の詳細（画像・その上の番号つきチェックポイントの
+    ピン・時代・紹介文・範囲・番号に対応したチェックポイントの説明）を見られる。マップ上部中央の
+    地図名を押した時の説明シートも、歩行中を含めて同じ形式（`OverlayInfoContent`）で表示する
+  - 一覧の最下部に「追加した古地図」（自分が追加したもの）と「みんなの古地図」（クラウドで
+    公開されているもの。＋で自分の古地図として取り込める）を並べる
+  - 「設定」→「古地図のデフォルト」の「最初に表示する古地図」は「現在地」「全地図」「各古地図」から
+    選べる（未設定は「現在地」＝最初に現在地が取れた時に現在地を含む古地図を自動選択）
+- **新しい古地図の検索・作成**（古地図選択の「新地図」）。AI（デフォルトのAIプロバイダー）が
+  地域の説明から位置範囲・タイトル・時代を推定し、画像は国立国会図書館デジタルコレクション
+  （IIIF、APIキー不要）→ Wikimedia Commons（APIキー不要）の順に探す。どちらでも画像が
+  見つからない時は、条件に合わせてAIが範囲とチェックポイント5件を考え、古地図風の半透明の
+  地図レイヤーで代用する。範囲は「現在の範囲」（既定）・「周囲5km」・「周囲10km」から選べ、
+  画面を開いた時の地図の表示範囲（またはその中心から）の内側にだけ地図とチェックポイントを作る。
+  「ファンタジー地図を生成」をオンにすると、実在の古地図を探さず、その地域を舞台にした
+  架空のファンタジー地図（名前・チェックポイントはAI、絵はOpenAI/Googleの画像生成）を作る
+  （Anthropicは画像生成APIが無いため方眼レイヤーで代用）。追加した画像は
+  1024×1024pxの正方形に揃えて保存する（Google Maps SDKの描画の制約）
+- **追加した古地図の編集**: 詳細画面の「編集」（右上メニュー）から、地図の上でポイントの追加
+  （地図をタップ）・削除（ポイントをタップ）、地図名の変更、公開範囲（自分だけ／公開）、
+  「地図をアップデート」（説明を入れると、いまの画像をもとにAIが見た目をより綺麗に描き直す。
+  OpenAI/Google）、古地図の削除ができる。公開にするとFirestore（`sharedOverlayMaps`）と
+  Storageへ画像・範囲・ポイントを上げ、「みんなの古地図」に出る（編集に合わせて自動更新）。
+  メインの地図をタップしてポイントを追加する機能は廃止し、追加は編集画面の中だけにした
+- **管理者による同梱の古地図の編集**: `kenichiyoshida13@gmail.com`（`AuthService.adminEmail`）で
+  サインインしている管理者は、同梱の古地図の詳細画面にも「編集」が出て、名前・画像・
+  ポイント（追加／削除＝非表示）を変更できる。変更は元のデータを書き換えず、端末内の
+  「上書き」（`OverlayOverrideStore`）として保存し、「変更を元に戻す」で同梱の内容に戻せる
+  （この上書きはその端末だけで有効）
 - 史跡チェックポイントをタップした時に出る名前表示は、GPSの更新やカメラのパン・ズームで
   巻き添えに閉じられることなく、タップした状態のまま表示され続ける
 - 歩行中にGoogle Maps SDK側のGPU不具合で古地図が透明になって消えてしまっても、
@@ -33,9 +63,17 @@
   GPSの更新が来ない（信号待ち・写真撮影等で静止している）間やカメラを操作していない間も、
   一定間隔（4秒ごと）でオーバーレイを自動的に貼り直し続けるため、手動で選び直さなくても
   古地図が消えたまま長時間戻らない状態になりにくい
+- 歩行中も、マップ上部中央の地図名を押すと地図の説明シートが開く（GPU不具合で古地図が
+  消えた時のための「古地図を再読み込み」ボタンは、歩行中だけそのシートの中に出る）
 - マップ左上・下部どちらの「古地図選択」からも、歩行記録中かどうかによらず選び直しシートが
   開き、実際に別の古地図へ切り替えられる（以前は歩行中だけシートを開かず貼り直しのみ行って
   いたため、歩きながら古地図を変更できなかった）
+
+- **表示のパフォーマンス**: 地図の描画フレームレートを60Hzに抑え（既定は最大）、古地図の上では
+  不要な立体の建物・屋内地図の描画を止めている。古地図・チェックポイントの参照はID索引と
+  キャッシュで行い、写真は一覧・地図ピン用にImageIOで必要なサイズだけ縮小読み込み
+  （`StampPhotoStore.thumbnail`）する。写真の縮小は実ピクセル数（`format.scale = 1`）で行い、
+  以前の版で巨大なまま保存された写真は、起動後に一度だけ長辺1600pxへ縮小し直す
 
 ### 記録・ゲーミフィケーション
 - 「スタート」でGPSによる徒歩ルートの記録を開始。「完了」を押すと、大きな「保存」ボタンと
@@ -109,10 +147,15 @@
   自動終了はWatch側の`WatchWorkoutLocationTracker`にも同じ仕組みで実装しており、
   iPhoneの「設定」の切り替え（オン/オフ・一時停止までの時間）はWatch接続時に自動で同期される
 - 「設定」→「アドバンス設定」の一番上「AI設定」で、デフォルトのAIプロバイダー
-  （OpenAI／Google／Anthropic、既定はOpenAI）と、それぞれのAPIキーを設定できる
-  （キーはこの端末のKeychainに保存）。現時点で実際に物語・旅日記を生成する処理は
-  OpenAIのみに対応しており、Google・Anthropicのキー・選択自体は保存できるが
-  生成処理側の切り替えは今後の対応
+  （OpenAI／Google／Anthropic、既定はOpenAI）と、それぞれのAPIキー、「新しい地図を追加」の
+  オン・オフ、Google Mapsの設定状況を確認できる（キーはこの端末のKeychainに保存）。
+  物語・旅日記・古地図検索などの生成処理は、ここで選んだプロバイダーのAPIを
+  `AIClient`経由で呼び出す（OpenAI: gpt-4o-mini／Google: gemini-2.5-flash／
+  Anthropic: claude-haiku-4-5。画像生成はOpenAI: gpt-image-1／Google: gemini-2.5-flash-image）。
+  選択中のプロバイダーのキーが未設定なら、そのプロバイダー名で入力を案内する。
+  GoogleのAPIキーで「blocked」エラーが出る場合は、キーの「APIの制限」に
+  Generative Language APIが許可されていないため、Google AI Studioで作ったGemini用の
+  キーを使うか、Cloud ConsoleでそのキーにこのAPIを許可する
 - 「設定」→「アドバンス設定」→「連携機能」から、同じWi-Fi上の外部機器と連携できる
   - **連携カメラ**: ホスト名/IPを設定すると、御朱印チェックイン・写真投稿の画面に
     「連携カメラで撮る」が追加される（画像バイナリを直接返すタイプ、JSONで画像URLを
@@ -127,9 +170,19 @@
     M5Stackなど簡易なHTTPサーバーのバッファ上限を超えていることが多いため、
     「写真の大きさ」を下げる・「転送方式」を「写真のURLを渡す」に切り替えるよう
     具体的に案内するメッセージを表示する
-- 投稿した写真を開くと、同じ時空旅の他の写真へ左右のフリックで移動できる。写真ごとに
-  「削除」（クラウド上のコピーも含めて削除）と「非公開にする」（時空旅自体は公開中でも、
-  その写真だけ「みんなの時空旅」から外す）を設定できる
+- 投稿した写真を開くと、同じ時空旅の他の写真へ左右のフリックで移動できる。
+  チェックイン（御朱印）の詳細と投稿写真の詳細は、写真の下を同じ2段の表示にそろえている
+  （`PhotoDetailActionRow`）: 1段目に日付（左）と「公開／非公開」「削除」（右）、2段目に
+  「写真を変更」「連携カメラ」「連携プリント」を横一線。「写真を変更」を押すとまずカメラが開き、
+  左下のボタンからライブラリの写真にも切り替えられる。「非公開」は時空旅自体は公開中でも、
+  その写真だけ「みんなの時空旅」から外す。「削除」はクラウド上のコピーも含めて削除する
+- **旅の動画**: 時間旅の詳細画面の旅日記ボタンの下の「動画を再生」で、歩いた軌跡の上を
+  アイコンが進み、写真（投稿写真・写真つきの御朱印）の地点で写真を大きく（動いている
+  ポイントから遠い側にずらして）表示する動画（MP4、720px幅の縦長）を作って再生する。背景は
+  画面に表示中の地図（古地図・チェックポイント入り）のスナップショット。動画は端末に保存して
+  再利用し（長押しで作り直し）、作成後は再生ボタンの右に共有ボタンを出す（共有シートの
+  「ビデオを保存」で写真ライブラリへ保存できる）。サインイン中はクラウド（Storage）にも上げ、
+  共有リンクを旅日記の末尾（と「旅の動画を見る」ボタン。Webの旅日記にも同じリンクが載る）にセットする
 - 時間旅の詳細画面は、名前（使った古地図）＋公開状況（例：「公開中」「自分だけ」「マップ非表示」）
   ／日付・距離・歩数・時間（`YYYY/M/D HH:MI`形式）／御朱印・写真・いいねの件数／感想と
   「旅日記を作成する」ボタン／御朱印・チェックポイント／投稿した写真／コメント、の順に
@@ -161,6 +214,10 @@
   以前発行した`?trip=<UUID>`形式のリンクも引き続き開ける
 
 ### クラウド連携
+- 追加した古地図をFirestore（`sharedOverlayMaps/{id}`）とStorage（`sharedOverlayMaps/{uid}/{id}.jpg`）で
+  公開でき、他のユーザーが「みんなの古地図」から自分の端末に取り込める（読み取りは誰でも可、
+  書き込み・削除は持ち主のみ。ルールは`firebase/*.rules`に追加済みで、
+  `firebase deploy --only firestore:rules,storage`で反映する）
 - Googleでサインインすると、保存した地点・御朱印・時間旅（歩いたルート）・投稿写真がクラウド
   （Firestore）に同期され、Webアプリからも同じ記録を閲覧できる
 - 御朱印・投稿写真の画像本体はFirebase Storageへ自動アップロードされ、Web側やシェア時にも
@@ -228,7 +285,9 @@
 | 歩数 | CMPedometer + HealthKit（歩数の読み取りのみ） |
 | Watch連携 | Apple Watch単体アプリ（WatchOS）+ WatchConnectivity |
 | ローカル保存 | SwiftData（保存した地点・物語・時間旅・御朱印・投稿写真） |
-| AI | OpenAI Chat Completions API（`gpt-4o-mini`） |
+| AI | デフォルトのプロバイダー（OpenAI／Google Gemini／Anthropic Claude）のAPIを`AIClient`経由で呼び出し。画像生成はOpenAI・Google |
+| 古地図画像の検索 | 国立国会図書館サーチ（OpenSearch）+ デジタルコレクションIIIF、Wikimedia Commons（いずれもAPIキー不要） |
+| 動画生成 | AVFoundation（`AVAssetWriter`）で軌跡・写真をフレーム描画してMP4化 |
 | クラウド同期 | Firebase Authentication（Googleサインイン） + Cloud Firestore + Firebase Storage（画像） |
 | Webアプリ | Vite + React + TypeScript、Firebase JS SDK、Google Maps JavaScript API |
 | iOSプロジェクト管理 | [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`project.yml` から `.xcodeproj` を生成） |
@@ -246,13 +305,16 @@ Komap Watch App/             # Apple Watch単体アプリ（スタート/一時�
 firebase.json               # Firebase Hosting / Firestore の設定
 .firebaserc                 # Firebaseプロジェクトのエイリアス（要編集）
 firebase/
-  firestore.rules            # Firestoreセキュリティルール（本人のplaces/stamps/walkRoutes/photoPostsのみ読み書き可、sharedTripsは閲覧のみ全員可）
+  firestore.rules            # Firestoreセキュリティルール（本人のplaces/stamps/walkRoutes/photoPostsのみ読み書き可、sharedTrips・sharedOverlayMapsは閲覧のみ全員可）
   firestore.indexes.json
-  storage.rules               # Firebase Storageセキュリティルール（御朱印・投稿写真の画像本体。sharedPhotosは未サインインの訪問者も含め閲覧のみ全員可）
+  storage.rules               # Firebase Storageセキュリティルール（御朱印・投稿写真の画像本体。sharedPhotos・sharedOverlayMapsは未サインインの訪問者も含め閲覧のみ全員可）
+scripts/
+  clean-derived-data.sh       # KomapのXcode DerivedData（ビルド成果物・インデックス）を削除（launchdで毎日実行する想定）
 web/                         # Webアプリ本体（Vite + React）
 .github/workflows/
   deploy-web.yml              # main へのpushでWebアプリをFirebase Hostingへ自動デプロイ
 docs/
+  CHANGELOG.md                # 主な機能追加・変更の更新履歴
   GeoGameAppWithGoogleMap.md  # 本アプリの開発・収益化手法をまとめたKindle向け原稿（Markdown）
   Komap_週末リリースと収益化ガイド.docx # 上記原稿をKindleペーパーバック判型（8.27x10.11in）で書き出したWord版
 ```
@@ -280,13 +342,16 @@ GOOGLE_MAPS_API_KEY = ここに実際のAPIキーを貼り付け
 > このキーが未設定（デフォルト値のまま）の場合、アプリ起動時にセットアップ案内画面が表示され、
 > 地図タブは利用できません。
 
-### 1-3. OpenAI APIキーの設定
+### 1-3. AI APIキーの設定
 
-- [OpenAI Platform](https://platform.openai.com/) でAPIキーを発行してください。
-- キーはビルド時に設定する必要はありません。アプリを起動し、「設定」タブから入力すると、
-  端末のKeychainに安全に保存されます。
+- 使いたいAIプロバイダーのAPIキーを発行してください:
+  [OpenAI Platform](https://platform.openai.com/)（既定）、
+  [Google AI Studio](https://aistudio.google.com)（Gemini）、Anthropic Console（Claude）。
+- キーはビルド時に設定する必要はありません。アプリを起動し、「設定」→「アドバンス設定」→
+  「AI設定」でデフォルトのプロバイダーを選び、そのキーを入力すると、端末のKeychainに
+  安全に保存されます。画像の生成（ファンタジー地図・地図のアップデート）はOpenAI・Googleのみ対応です。
 - （任意）`Config/Secrets.xcconfig` の `OPENAI_API_KEY_DEFAULT` に設定すると、
-  初回起動時のデフォルト値として使われます（開発・検証用途を想定）。
+  初回起動時のOpenAI用デフォルト値として使われます（開発・検証用途を想定）。
 
 ### 1-4. Firebase（Web連携）のセットアップ
 
@@ -638,17 +703,24 @@ Komap/
     TappedPoint.swift
   Services/
     LocationManager.swift       # 現在地・徒歩ルートの記録
-    AIHistoryService.swift      # OpenAI APIで物語を生成
-    TravelJournalService.swift  # OpenAI APIで時間旅の記録から旅日記を生成
+    AIClient.swift              # デフォルトのAIプロバイダー（OpenAI/Google/Anthropic）へのテキスト・画像生成の共通クライアント
+    AIHistoryService.swift      # AIで物語を生成
+    TravelJournalService.swift  # AIで時間旅の記録から旅日記を生成
     KeychainStore.swift         # APIキーの安全な保存
     SecretsConfig.swift         # APIキーの読み込み口
     AuthService.swift           # Googleサインイン → Firebase Auth
     SyncService.swift           # Firestoreへの同期（地点・御朱印・時間旅・旅日記）
     WatchConnectivityManager.swift # Apple Watchとのコマンド・状態のやり取り
-    OldMapSearchService.swift    # AI + Google検索で新しい古地図を探す
+    OldMapSearchService.swift    # AI + 国立国会図書館/Wikimedia Commonsで新しい古地図を探す・作る（範囲の限定・ファンタジー地図）
+    CustomOverlayMapStore.swift  # 追加した古地図（画像・ポイント・公開範囲）の端末内保存
+    OverlayOverrideStore.swift   # 管理者による同梱の古地図への変更（上書き）の端末内保存
+    OverlayMapShareService.swift # 追加した古地図のクラウド公開・取り込み（sharedOverlayMaps）
+    TripVideoRenderer.swift      # 軌跡・写真から旅の動画（MP4）を書き出す
+    TripVideoStore.swift         # 作った旅の動画の端末内保存
   Views/
     RootView.swift
-    Map/                         # マップ画面・古地図オーバーレイ・物語シート
+    Map/                         # マップ画面・古地図オーバーレイ・古地図選択/詳細/編集/検索・みんなの古地図
+    Shared/                      # 共通部品（カメラ、写真詳細のボタン行など）
     SavedPlaces/                 # 保存済み地点・時間旅の一覧・詳細
     MyTimeTrip/                  # 「My Trips」タブ（時間旅・御朱印・写真・物語）
     Settings/                    # APIキー設定・Googleサインイン
@@ -667,7 +739,11 @@ Komap Watch App/
 - 古地図の位置合わせはサンプル用の仮座標です（上記「古地図データについて」を参照）。
 - Google MapsのAPIキーはアプリ内からは変更できません（ビルド時のxcconfigのみ）。
   実運用では課金設定・APIキーの制限（Bundle ID制限など）も併せて設定してください。
-- AIの物語生成・旅日記生成はOpenAI APIキーが必要で、通信環境とAPI利用料が発生します。
+- AIの物語生成・旅日記生成・古地図検索は、選んだプロバイダーのAPIキーが必要で、通信環境とAPI利用料が発生します。
+- 管理者による同梱の古地図の変更は、その端末内の「上書き」で、他のユーザーには配られません
+  （全員に反映するには、クラウドから配る仕組みが別途必要）。
+- 「みんなの古地図」「旅の動画のリンク」を使うにはFirebaseの設定とサインインが必要で、
+  `sharedOverlayMaps`のルールはデプロイが必要です。
 - Firebase未設定のままでもiOSアプリは起動できますが、クラウド同期・Web連携・
   Googleサインインは利用できません（設定タブにその旨のメッセージが表示されます）。
 - Sign in with Appleは未対応です（無料のApple IDでは使えないため。上記1-4の注記を参照）。
