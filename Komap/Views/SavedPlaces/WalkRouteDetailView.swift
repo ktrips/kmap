@@ -454,6 +454,18 @@ struct WalkRouteDetailView: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(isGeneratingVideo)
+                    .contextMenu {
+                        if videoURL != nil {
+                            Button {
+                                TripVideoStore.delete(for: route.id)
+                                videoURL = nil
+                                route.tripVideoURL = nil
+                                Task { await generateAndPlayVideo() }
+                            } label: {
+                                Label("動画を作り直す", systemImage: "arrow.clockwise")
+                            }
+                        }
+                    }
 
                     // 動画ができたら、再生ボタンの右横に共有ボタンを出す
                     // （共有シートの「ビデオを保存」で写真ライブラリにも保存できる）。
@@ -473,14 +485,37 @@ struct WalkRouteDetailView: View {
                         .foregroundStyle(.red)
                 }
             }
+            .onAppear { loadSavedVideo() }
+        }
+    }
+
+    /// この時空旅の動画が端末に保存済みなら、共有ボタンをすぐ出せるよう読み込んでおく。
+    private func loadSavedVideo() {
+        videoURL = TripVideoStore.existingURL(for: route.id)
+    }
+
+    /// 動画をクラウドへ上げ、旅日記に載せる共有リンクにする（サインイン中のみ）。
+    /// 失敗しても動画自体は端末に保存済みで、再生・共有できる。
+    private func uploadVideoInBackground(_ fileURL: URL) {
+        guard authService.userID != nil else { return }
+        Task {
+            do {
+                try await syncService.uploadTripVideo(route, fileURL: fileURL, userID: authService.userID)
+                try? modelContext.save()
+                // 旅日記にリンクが載るので、公開中なら公開データも作り直す。
+                await resyncSharedTripIfNeeded()
+            } catch {
+                videoErrorMessage = "動画のリンクを旅日記に載せられませんでした: \(error.localizedDescription)"
+            }
         }
     }
 
     /// 歩いた軌跡と写真の地点から動画を書き出し、再生シートを開く。
     /// 背景には、画面に表示中の地図（古地図・チェックポイント入り）のスナップショットを使う。
     private func generateAndPlayVideo() async {
-        // 作成済みなら、作り直さずそのまま再生する。
-        if let videoURL, FileManager.default.fileExists(atPath: videoURL.path) {
+        // 作成済み（端末に保存済み）なら、作り直さずそのまま再生する。
+        if let saved = TripVideoStore.existingURL(for: route.id) {
+            videoURL = saved
             isShowingVideo = true
             return
         }
@@ -520,8 +555,11 @@ struct WalkRouteDetailView: View {
         }
 
         do {
-            videoURL = try await TripVideoRenderer.render(base: base, points: points, stops: stops)
+            let rendered = try await TripVideoRenderer.render(base: base, points: points, stops: stops)
+            let saved = TripVideoStore.save(rendered, for: route.id)
+            videoURL = saved
             isShowingVideo = true
+            uploadVideoInBackground(saved)
         } catch {
             videoErrorMessage = error.localizedDescription
         }

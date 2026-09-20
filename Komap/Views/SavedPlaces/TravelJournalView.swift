@@ -25,6 +25,9 @@ struct TravelJournalView: View {
     @State private var likeCount = 0
     /// タップされた投稿写真。大きく・前後にスワイプできる詳細（`PhotoPostPreviewSheet`）を開く。
     @State private var selectedPhotoPost: WalkPhotoPost?
+    /// 端末に保存済みの旅の動画（クラウドのリンクが無い時に、ここから再生できるようにする）。
+    @State private var localVideoURL: URL?
+    @State private var isShowingVideo = false
 
     private let syncService = SyncService()
 
@@ -44,9 +47,9 @@ struct TravelJournalView: View {
 
     private var bodyText: AttributedString {
         (try? AttributedString(
-            markdown: route.travelJournalMarkdown ?? "",
+            markdown: route.travelJournalMarkdownWithVideoLink ?? "",
             options: .init(interpretedSyntax: .full)
-        )) ?? AttributedString(route.travelJournalMarkdown ?? "")
+        )) ?? AttributedString(route.travelJournalMarkdownWithVideoLink ?? "")
     }
 
     var body: some View {
@@ -60,6 +63,8 @@ struct TravelJournalView: View {
                     }
 
                     summarySection
+
+                    videoLinkSection
 
                     WalkRouteMapView(
                         overlayMap: route.overlayMap,
@@ -96,6 +101,31 @@ struct TravelJournalView: View {
             .sheet(item: $selectedPhotoPost) { post in
                 PhotoPostPreviewSheet(post: post)
             }
+            .sheet(isPresented: $isShowingVideo) {
+                if let localVideoURL {
+                    TripVideoPlayerSheet(videoURL: localVideoURL)
+                }
+            }
+            .onAppear { localVideoURL = TripVideoStore.existingURL(for: route.id) }
+        }
+    }
+
+    /// 旅の動画へのリンク。クラウドの共有リンクがあればそれを開き（本文末尾にも同じリンクを載せている）、
+    /// リンクが無くても端末に動画があればここから再生できる。
+    @ViewBuilder
+    private var videoLinkSection: some View {
+        if let urlString = route.tripVideoURL, let url = URL(string: urlString) {
+            Link(destination: url) {
+                Label("旅の動画を見る", systemImage: "play.rectangle.fill")
+            }
+            .font(.subheadline.bold())
+        } else if localVideoURL != nil {
+            Button {
+                isShowingVideo = true
+            } label: {
+                Label("旅の動画を見る", systemImage: "play.rectangle.fill")
+            }
+            .font(.subheadline.bold())
         }
     }
 

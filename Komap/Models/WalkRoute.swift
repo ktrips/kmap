@@ -39,6 +39,8 @@ final class WalkRoute {
     var travelJournalMarkdown: String?
     /// 旅日記を生成した日時。未生成なら`nil`。
     var travelJournalGeneratedAt: Date?
+    /// 旅の動画（`TripVideoRenderer`で作ったMP4）をクラウドに上げた時の共有用リンク。未作成・未アップロードなら`nil`。
+    var tripVideoURL: String?
 
     init(
         id: UUID = UUID(),
@@ -71,6 +73,14 @@ final class WalkRoute {
         self.travelJournalTitle = travelJournalTitle
         self.travelJournalMarkdown = travelJournalMarkdown
         self.travelJournalGeneratedAt = travelJournalGeneratedAt
+    }
+
+    /// 旅日記の本文。旅の動画のリンクがあれば、末尾に「旅の動画を見る」のリンクを添える
+    /// （旅日記の表示・クラウドへの同期（Webの旅日記）の両方で、この内容を使う）。
+    var travelJournalMarkdownWithVideoLink: String? {
+        guard let markdown = travelJournalMarkdown else { return nil }
+        guard let tripVideoURL, !tripVideoURL.isEmpty else { return markdown }
+        return markdown + "\n\n[▶ 旅の動画を見る](\(tripVideoURL))"
     }
 
     /// 歩いた時間（秒）。`endedAt`が無い（この項目を追加する前の）記録では`nil`。

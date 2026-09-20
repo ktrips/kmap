@@ -110,6 +110,20 @@ struct SyncService {
         }
     }
 
+    /// 旅の動画をクラウドへ上げ、共有用リンクを`route.tripVideoURL`に保存して時空旅も同期する。
+    /// 旅日記（Webの旅日記も含む）にこのリンクが載る。
+    @discardableResult
+    func uploadTripVideo(_ route: WalkRoute, fileURL: URL, userID: String?) async throws -> URL {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        guard let userID else { throw SyncError.notSignedIn }
+        let url = try await photoStorage.uploadVideo(
+            fileURL: fileURL, path: "users/\(userID)/tripVideos/\(route.id.uuidString).mp4"
+        )
+        route.tripVideoURL = url.absoluteString
+        try await upload(route, userID: userID)
+        return url
+    }
+
     /// 削除をクラウド側にも反映する。
     func delete(placeID: UUID, userID: String?) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
@@ -249,7 +263,8 @@ struct SyncService {
             "totalDistanceMeters": route.totalDistanceMeters,
             "isSharedPublicly": route.isSharedPublicly,
             "travelJournalTitle": route.travelJournalTitle as Any? ?? NSNull(),
-            "travelJournalMarkdown": route.travelJournalMarkdown as Any? ?? NSNull(),
+            "travelJournalMarkdown": route.travelJournalMarkdownWithVideoLink as Any? ?? NSNull(),
+            "tripVideoURL": route.tripVideoURL as Any? ?? NSNull(),
             "travelJournalGeneratedAt": route.travelJournalGeneratedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
         ]
 
@@ -328,7 +343,8 @@ struct SyncService {
                 "stampPhotos": stampPhotos,
                 "postPhotos": postPhotos,
                 "travelJournalTitle": route.travelJournalTitle as Any? ?? NSNull(),
-                "travelJournalMarkdown": route.travelJournalMarkdown as Any? ?? NSNull(),
+                "travelJournalMarkdown": route.travelJournalMarkdownWithVideoLink as Any? ?? NSNull(),
+                "tripVideoURL": route.tripVideoURL as Any? ?? NSNull(),
                 "travelJournalGeneratedAt": route.travelJournalGeneratedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
             ]
             try await sharedTripsCollection.document(route.id.uuidString).setData(data, merge: true)

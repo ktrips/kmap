@@ -51,6 +51,16 @@ struct PhotoStorageService {
         return try await ref.downloadURL()
     }
 
+    /// 動画ファイル（MP4）をアップロードし、共有できるダウンロードURLを返す。
+    func uploadVideo(fileURL: URL, path: String) async throws -> URL {
+        guard let storage else { throw StorageServiceError.firebaseNotConfigured }
+        let metadata = StorageMetadata()
+        metadata.contentType = "video/mp4"
+        let ref = storage.reference().child(path)
+        _ = try await ref.putFileAsync(from: fileURL, metadata: metadata)
+        return try await ref.downloadURL()
+    }
+
     /// アップロード済みの画像を削除する（写真の差し替え・削除、共有解除時に使う）。
     func delete(path: String) async {
         guard let storage else { return }

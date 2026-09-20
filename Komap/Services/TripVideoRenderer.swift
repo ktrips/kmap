@@ -248,18 +248,18 @@ enum TripVideoRenderer {
         UIColor.black.withAlphaComponent(0.25 * alpha).setFill()
         UIBezierPath(rect: CGRect(origin: .zero, size: canvas)).fill()
 
-        let margin: CGFloat = 24
-        let gapFromIcon: CGFloat = 48
+        let margin: CGFloat = 12
+        let gapFromIcon: CGFloat = 44
         let spaceAbove = icon.y - gapFromIcon - margin
         let spaceBelow = canvas.height - icon.y - gapFromIcon - margin
         let placeBelow = spaceBelow >= spaceAbove
         let availableHeight = max(placeBelow ? spaceBelow : spaceAbove, canvas.height * 0.3)
 
-        let border: CGFloat = 12
+        let border: CGFloat = 8
         let captionHeight: CGFloat = stop.caption == nil ? 0 : 44
         let maxPhoto = CGSize(
-            width: canvas.width * 0.92 - border * 2,
-            height: min(availableHeight, canvas.height * 0.6) - border * 2 - captionHeight
+            width: canvas.width * 0.98 - border * 2,
+            height: min(availableHeight, canvas.height * 0.72) - border * 2 - captionHeight
         )
         let fit = min(maxPhoto.width / stop.photo.size.width, maxPhoto.height / stop.photo.size.height)
         let photoSize = CGSize(width: stop.photo.size.width * fit, height: stop.photo.size.height * fit)
