@@ -46,6 +46,11 @@ final class CollectedStamp {
         photoFileName.flatMap(StampPhotoStore.load)
     }
 
+    /// 一覧用の小さなサムネイル（キャッシュされ、フルサイズをデコードしない）。
+    var thumbnail: UIImage? {
+        photoFileName.flatMap { StampPhotoStore.thumbnail($0) }
+    }
+
     /// 写真を差し替える。古いファイルは削除してから新しいものを保存する。
     /// クラウドへのアップロードは呼び出し側（`StampCheckInSheet`）が別途行う。
     func updatePhoto(_ image: UIImage?) {

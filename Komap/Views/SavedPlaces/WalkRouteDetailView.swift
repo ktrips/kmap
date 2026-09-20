@@ -840,7 +840,7 @@ private struct PhotoPostRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            if let photo = post.photo {
+            if let photo = post.thumbnail {
                 Image(uiImage: photo)
                     .resizable()
                     .scaledToFill()
@@ -878,7 +878,7 @@ private struct CheckpointRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            if let photo = stamp.photo {
+            if let photo = stamp.thumbnail {
                 Image(uiImage: photo)
                     .resizable()
                     .scaledToFill()

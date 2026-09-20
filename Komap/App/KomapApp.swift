@@ -18,6 +18,11 @@ struct KomapApp: App {
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
             FirebaseApp.configure()
         }
+
+        // 以前の版で巨大なまま保存された写真を、一度だけバックグラウンドで縮小し直す。
+        Task.detached(priority: .utility) {
+            StampPhotoStore.migrateOversizedPhotosIfNeeded()
+        }
     }
 
     var body: some Scene {

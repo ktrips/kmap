@@ -282,7 +282,7 @@ struct MyTimeTripView: View {
                 if !stampsWithPhoto.isEmpty {
                     photoSubsection(title: "御朱印チェックポイント") {
                         ForEach(visibleStampsWithPhoto) { stamp in
-                            if let site = stamp.site, let photo = stamp.photo {
+                            if let site = stamp.site, let photo = stamp.thumbnail {
                                 PhotoThumbnail(image: photo, name: site.name)
                                     .onTapGesture {
                                         selectedStamp = StampSelection(site: site, stamp: stamp)
@@ -299,7 +299,7 @@ struct MyTimeTripView: View {
                 if !photoPosts.isEmpty {
                     photoSubsection(title: "投稿した写真") {
                         ForEach(visiblePhotoPosts) { post in
-                            if let photo = post.photo {
+                            if let photo = post.thumbnail {
                                 PhotoThumbnail(image: photo, name: post.displayTitle)
                                     .onTapGesture {
                                         selectedPhotoPost = post
@@ -916,7 +916,7 @@ struct StampCell: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if let photo = stamp?.photo {
+            if let photo = stamp?.thumbnail {
                 Image(uiImage: photo)
                     .resizable()
                     .scaledToFill()

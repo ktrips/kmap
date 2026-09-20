@@ -996,7 +996,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
                 let filename = post.photoFileName
                 DispatchQueue.global(qos: .userInitiated).async { [weak marker] in
-                    guard let photo = StampPhotoStore.load(filename) else { return }
+                    guard let photo = StampPhotoStore.thumbnail(filename, maxDimension: 160) else { return }
                     let thumbnail = Self.circularThumbnail(photo)
                     DispatchQueue.main.async {
                         marker?.icon = thumbnail

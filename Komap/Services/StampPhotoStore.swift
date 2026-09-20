@@ -1,3 +1,4 @@
+import ImageIO
 import UIKit
 
 /// 御朱印チェックインに添える写真を、端末のApplication Supportディレクトリへ
@@ -28,6 +29,57 @@ enum StampPhotoStore {
         cache.countLimit = 80
         return cache
     }()
+
+    /// 一覧・サムネイル用の縮小画像のキャッシュ（`thumbnail(_:)`）。
+    private static let thumbnailCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 300
+        return cache
+    }()
+
+    /// 一覧の小さなサムネイル用に、ファイルから直接縮小して読み込む。
+    /// 1600px級の写真を丸ごとデコードして小さく表示するのは無駄が大きいため、
+    /// ImageIOで必要なサイズ（長辺`maxDimension`px）だけをデコードし、結果はキャッシュする。
+    static func thumbnail(_ filename: String, maxDimension: CGFloat = 320) -> UIImage? {
+        let key = "\(filename)#\(Int(maxDimension))" as NSString
+        if let cached = thumbnailCache.object(forKey: key) { return cached }
+        let url = directoryURL.appendingPathComponent(filename)
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxDimension,
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        let image = UIImage(cgImage: cgImage)
+        thumbnailCache.setObject(image, forKey: key)
+        return image
+    }
+
+    private static let migrationKey = "stampPhotosResizedV1"
+
+    /// 以前のバージョンでは、縮小した写真が端末の画面スケール分（3倍機なら最大4800px）の
+    /// 巨大な画像として保存されていた。保存済みの大きな写真を、一度だけ長辺1600pxに
+    /// 縮小し直して上書きする（読み込み・表示・メモリが軽くなる）。バックグラウンドで実行する。
+    static func migrateOversizedPhotosIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+        let fileManager = FileManager.default
+        let files = (try? fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.pathExtension.lowercased() == "jpg" {
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                  let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+                  let height = properties[kCGImagePropertyPixelHeight] as? CGFloat,
+                  max(width, height) > maxDimension * 1.05,
+                  let image = UIImage(contentsOfFile: url.path),
+                  let data = compress(image)
+            else { continue }
+            try? data.write(to: url)
+            cache.removeObject(forKey: url.lastPathComponent as NSString)
+        }
+        UserDefaults.standard.set(true, forKey: migrationKey)
+    }
 
     /// 画像を縮小・圧縮して保存し、保存先のファイル名を返す（失敗時は`nil`）。
     static func save(_ image: UIImage) -> String? {
