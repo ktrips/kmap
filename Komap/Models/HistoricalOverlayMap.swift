@@ -342,6 +342,52 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.678, longitude: 139.724)
     )
 
+    // 「Komap Global」向けの古地図。東京の実測図・古地図風画像とは異なり、
+    // 各都市の旧市街の地形（運河環・島々・城壁など）を象った完全オリジナルイラストで、
+    // 「御朱印」の代わりに紋章（クレスト）風のチェックポイントを集める体験にしている
+    // （紋章の意匠は`HistoricSiteCatalog`各エントリの`crestSymbolName`/`crestTintHex`、
+    // 実際の描画は`CrestBadgeCatalog`を参照）。
+
+    static let amsterdam = HistoricalOverlayMap(
+        id: "amsterdam-medieval",
+        title: "アムステルダム旧市街（中世〜黄金時代）",
+        era: "中世〜17世紀（オランダ黄金時代）",
+        summary: "ダム広場を中心に扇状に広がる運河環（グラフテンゴルデル）と、IJ湾から世界へ漕ぎ出したVOC（東インド会社）の記憶をたどる、オランダ黄金時代の古地図です。",
+        imageAssetName: "OldMap_Amsterdam",
+        southWest: CLLocationCoordinate2D(latitude: 52.360, longitude: 4.883),
+        northEast: CLLocationCoordinate2D(latitude: 52.380, longitude: 4.916)
+    )
+
+    static let helsinki = HistoricalOverlayMap(
+        id: "helsinki-old-town",
+        title: "ヘルシンキ旧市街（帝政期）",
+        era: "18〜19世紀（スウェーデン統治末期〜ロシア帝政期）",
+        summary: "ヴァンター川河口の開拓地から、元老院広場を中心とした新古典様式の街並みへ。海上要塞スオメンリンナと港の市場までをめぐります。",
+        imageAssetName: "OldMap_Helsinki",
+        southWest: CLLocationCoordinate2D(latitude: 60.141, longitude: 24.886),
+        northEast: CLLocationCoordinate2D(latitude: 60.224, longitude: 25.053)
+    )
+
+    static let stockholm = HistoricalOverlayMap(
+        id: "stockholm-old-town",
+        title: "ストックホルム旧市街（ガムラスタン）",
+        era: "13世紀〜近世（ガムラスタン成立期）",
+        summary: "メーラレン湖とバルト海が出会う島々に築かれた都。旧市街ガムラスタン・王家の眠るリッダーホルメン・王宮・造船の島をめぐります。",
+        imageAssetName: "OldMap_Stockholm",
+        southWest: CLLocationCoordinate2D(latitude: 59.317, longitude: 18.063),
+        northEast: CLLocationCoordinate2D(latitude: 59.329, longitude: 18.089)
+    )
+
+    static let tallinn = HistoricalOverlayMap(
+        id: "tallinn-old-town",
+        title: "タリン旧市街（ハンザ同盟）",
+        era: "13〜16世紀（ハンザ同盟の時代）",
+        summary: "城壁と見張り塔に守られたハンザ同盟の商都。トームペアの丘・ヴィル門・聖オレフ教会・港を守る太っちょマルガレータ塔をめぐります。",
+        imageAssetName: "OldMap_Tallinn",
+        southWest: CLLocationCoordinate2D(latitude: 59.436, longitude: 24.736),
+        northEast: CLLocationCoordinate2D(latitude: 59.444, longitude: 24.752)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, nihonbashi,
@@ -349,6 +395,7 @@ enum OldMapCatalog {
         tokaido, nakasendo, ginzaKabukiza,
         oyamaKaido,
         kiminonaSeichi, ghibliSeichi, tokyoToilet,
+        amsterdam, helsinki, stockholm, tallinn,
     ]
 
     /// アプリ起動時・記録開始時などにデフォルトで選ぶ古地図。「設定」の
@@ -363,6 +410,11 @@ enum OldMapCatalog {
         case historicSites = "旧跡・名所巡り"
         case kaido = "街道巡り"
         case animePilgrimage = "アニメ・映画聖地巡礼"
+        /// 「Komap Global」向けの古地図（東京版とは別の、海外都市の旧市街コース）。
+        /// 東京の分類（旧跡・街道・聖地巡礼）とは別枠になるよう、あえて末尾の独立した
+        /// セクションにしている（`OldMapPickerSheet`は`Category.allCases`の順に
+        /// セクションを並べるだけなので、他の分類と混ざらない）。
+        case global = "🌍 Komap Global（海外の旧市街）"
     }
 
     private static let categoryByID: [String: Category] = [
@@ -380,6 +432,10 @@ enum OldMapCatalog {
         kiminonaSeichi.id: .animePilgrimage,
         ghibliSeichi.id: .animePilgrimage,
         tokyoToilet.id: .animePilgrimage,
+        amsterdam.id: .global,
+        helsinki.id: .global,
+        stockholm.id: .global,
+        tallinn.id: .global,
     ]
 
     /// この古地図が属する分類。同梱リストにない（ユーザーが検索して追加した）古地図は`nil`。

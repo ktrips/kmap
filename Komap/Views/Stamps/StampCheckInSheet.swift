@@ -45,9 +45,15 @@ struct StampCheckInSheet: View {
             ScrollView {
                 VStack(spacing: 20) {
                     VStack(spacing: 6) {
-                        Image(systemName: "seal.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                        if let crest = CrestBadgeCatalog.badge(for: site.id) {
+                            Image(systemName: crest.symbolName)
+                                .font(.system(size: 40))
+                                .foregroundStyle(crest.tint)
+                        } else {
+                            Image(systemName: "seal.fill")
+                                .font(.system(size: 44))
+                                .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                        }
                         Text(site.name)
                             .font(.title2.bold())
                         Text(site.summary)

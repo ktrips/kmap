@@ -113,6 +113,34 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "tokyo-toilet-sasazuka-greenway", name: "まちのあかりのトイレ（笹塚緑道）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6733720, lng: 139.6667556 } },
   { id: "tokyo-toilet-hatagaya", name: "ウィズ・トイレット（幡ヶ谷）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6798841, lng: 139.6735301 } },
   { id: "tokyo-toilet-hiroo-higashi-park", name: "モニュメンタム（広尾東公園）", overlayMapID: "tokyo-toilet-perfect-days", coordinate: { lat: 35.6516, lng: 139.7213 } },
+
+  // Komap Global — アムステルダム旧市街
+  { id: "amsterdam-dam", name: "ダム広場・新教会", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3731, lng: 4.8926 } },
+  { id: "amsterdam-waag", name: "ヴァーグ（ニューマルクト旧計量所）", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3724, lng: 4.9010 } },
+  { id: "amsterdam-begijnhof", name: "ベイナホフ", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3699, lng: 4.8907 } },
+  { id: "amsterdam-montelbaanstoren", name: "モンテルバーンス塔", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3713, lng: 4.9037 } },
+  { id: "amsterdam-voc-harbor", name: "IJ港・VOC造船所", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3735, lng: 4.9127 } },
+
+  // Komap Global — ヘルシンキ旧市街
+  { id: "helsinki-senate-square", name: "元老院広場・トゥオミオ教会", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.1699, lng: 24.9522 } },
+  { id: "helsinki-suomenlinna", name: "スオメンリンナ（海上要塞）", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.1454, lng: 24.9880 } },
+  { id: "helsinki-kauppatori", name: "カウッパトリ（港の市場広場）", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.1677, lng: 24.9535 } },
+  { id: "helsinki-uspenski", name: "ウスペンスキー大聖堂", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.1699, lng: 24.9563 } },
+  { id: "helsinki-vanhakaupunki", name: "ヴァンハカウプンキ（最初の入植地）", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.2197, lng: 24.9646 } },
+
+  // Komap Global — ストックホルム旧市街
+  { id: "stockholm-storkyrkan", name: "ストールシルカン（大聖堂）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3258, lng: 18.0717 } },
+  { id: "stockholm-riddarholmen", name: "リッダーホルメン（王家墓所の島）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3251, lng: 18.0672 } },
+  { id: "stockholm-royal-palace", name: "クングリガ・スロッテット（王宮）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3268, lng: 18.0717 } },
+  { id: "stockholm-skeppsholmen", name: "シェップスホルメン（造船の島）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3258, lng: 18.0847 } },
+  { id: "stockholm-slussen", name: "スルッセン（メーラレン湖への水門）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3197, lng: 18.0717 } },
+
+  // Komap Global — タリン旧市街
+  { id: "tallinn-raekoja-plats", name: "ラエコヤ広場（旧市庁舎広場）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4370, lng: 24.7454 } },
+  { id: "tallinn-toompea", name: "トームペア（城の丘）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4370, lng: 24.7402 } },
+  { id: "tallinn-viru-gate", name: "ヴィル門", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4376, lng: 24.7484 } },
+  { id: "tallinn-oleviste", name: "オレヴィステ教会（聖オレフ教会）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4393, lng: 24.7439 } },
+  { id: "tallinn-paks-margareeta", name: "太っちょマルガレータ（港の円塔）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4425, lng: 24.7456 } },
 ];
 
 export function findHistoricSite(id: string | null): HistoricSiteEntry | undefined {

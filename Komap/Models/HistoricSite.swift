@@ -819,6 +819,156 @@ enum HistoricSiteCatalog {
             summary: "マーク・ニューソンデザイン。公園に置かれた彫刻のようなモニュメントが、近づくとトイレだとわかる仕掛け。",
             coordinate: CLLocationCoordinate2D(latitude: 35.6516, longitude: 139.7213)
         ),
+
+        // Komap Global — アムステルダム旧市街（中世〜黄金時代）
+        // 御朱印の代わりに、紋章（地・彩色・図形の紋章学ルールに沿ったクレスト）を集める。
+        // 実際のバッジ描画は`CrestBadgeCatalog.badge(for:)`（IDで引く）を参照。
+        HistoricSite(
+            id: "amsterdam-dam",
+            overlayMapID: OldMapCatalog.amsterdam.id,
+            name: "ダム広場・新教会",
+            summary: "街の全ての道と運河がここから始まる、アムステルダムの心臓部。紋章は金の王冠。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.3731, longitude: 4.8926)
+        ),
+        HistoricSite(
+            id: "amsterdam-waag",
+            overlayMapID: OldMapCatalog.amsterdam.id,
+            name: "ヴァーグ（ニューマルクト旧計量所）",
+            summary: "かつて商人が品を計った旧市門。紋章は公正な取引を見守る天秤。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.3724, longitude: 4.9010)
+        ),
+        HistoricSite(
+            id: "amsterdam-begijnhof",
+            overlayMapID: OldMapCatalog.amsterdam.id,
+            name: "ベイナホフ",
+            summary: "喧騒の街にひっそり佇む、祈りと静けさの中庭。紋章は銀の百合。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.3699, longitude: 4.8907)
+        ),
+        HistoricSite(
+            id: "amsterdam-montelbaanstoren",
+            overlayMapID: OldMapCatalog.amsterdam.id,
+            name: "モンテルバーンス塔",
+            summary: "ウーデスハンス運河を見張り続けてきた塔。紋章は銀の塔。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.3713, longitude: 4.9037)
+        ),
+        HistoricSite(
+            id: "amsterdam-voc-harbor",
+            overlayMapID: OldMapCatalog.amsterdam.id,
+            name: "IJ港・VOC造船所",
+            summary: "世界へ漕ぎ出した船団の記憶が残る港。紋章は波間に浮かぶ金の帆船。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.3735, longitude: 4.9127)
+        ),
+
+        // Komap Global — ヘルシンキ旧市街（帝政期）
+        HistoricSite(
+            id: "helsinki-senate-square",
+            overlayMapID: OldMapCatalog.helsinki.id,
+            name: "元老院広場・トゥオミオ教会",
+            summary: "白亜のドームが街を見下ろす新古典様式の中心広場。紋章は白い聖堂。",
+            coordinate: CLLocationCoordinate2D(latitude: 60.1699, longitude: 24.9522)
+        ),
+        HistoricSite(
+            id: "helsinki-suomenlinna",
+            overlayMapID: OldMapCatalog.helsinki.id,
+            name: "スオメンリンナ（海上要塞）",
+            summary: "群島に築かれた星形要塞。紋章は金の星形要塞。",
+            coordinate: CLLocationCoordinate2D(latitude: 60.1454, longitude: 24.9880)
+        ),
+        HistoricSite(
+            id: "helsinki-kauppatori",
+            overlayMapID: OldMapCatalog.helsinki.id,
+            name: "カウッパトリ（港の市場広場）",
+            summary: "漁船とニシンの匂いが漂う港町の胃袋。紋章は銀地に青い魚。",
+            coordinate: CLLocationCoordinate2D(latitude: 60.1677, longitude: 24.9535)
+        ),
+        HistoricSite(
+            id: "helsinki-uspenski",
+            overlayMapID: OldMapCatalog.helsinki.id,
+            name: "ウスペンスキー大聖堂",
+            summary: "赤レンガの丘に輝く金のタマネギ屋根の正教会。紋章は金の円屋根と十字架。",
+            coordinate: CLLocationCoordinate2D(latitude: 60.1699, longitude: 24.9563)
+        ),
+        HistoricSite(
+            id: "helsinki-vanhakaupunki",
+            overlayMapID: OldMapCatalog.helsinki.id,
+            name: "ヴァンハカウプンキ（最初の入植地）",
+            summary: "1550年、川の畔に街が生まれた場所。紋章は緑地に金の麦束。",
+            coordinate: CLLocationCoordinate2D(latitude: 60.2197, longitude: 24.9646)
+        ),
+
+        // Komap Global — ストックホルム旧市街（ガムラスタン）
+        HistoricSite(
+            id: "stockholm-storkyrkan",
+            overlayMapID: OldMapCatalog.stockholm.id,
+            name: "ストールシルカン（大聖堂）",
+            summary: "ガムラスタンの中心に鐘の音を響かせる、島の心臓。紋章は金の鐘楼。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3258, longitude: 18.0717)
+        ),
+        HistoricSite(
+            id: "stockholm-riddarholmen",
+            overlayMapID: OldMapCatalog.stockholm.id,
+            name: "リッダーホルメン（王家墓所の島）",
+            summary: "幾多の尖塔がそびえる、歴代の王が眠る島。紋章は銀の尖塔群。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3251, longitude: 18.0672)
+        ),
+        HistoricSite(
+            id: "stockholm-royal-palace",
+            overlayMapID: OldMapCatalog.stockholm.id,
+            name: "クングリガ・スロッテット（王宮）",
+            summary: "北の王国を象徴する王宮。紋章は青地に三つの金の王冠（トレ・クロノール）。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3268, longitude: 18.0717)
+        ),
+        HistoricSite(
+            id: "stockholm-skeppsholmen",
+            overlayMapID: OldMapCatalog.stockholm.id,
+            name: "シェップスホルメン（造船の島）",
+            summary: "王立艦隊が帆を休めた停泊地。紋章は銀地に青い帆船。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3258, longitude: 18.0847)
+        ),
+        HistoricSite(
+            id: "stockholm-slussen",
+            overlayMapID: OldMapCatalog.stockholm.id,
+            name: "スルッセン（メーラレン湖への水門）",
+            summary: "海と湖を隔てる水門。紋章は金地に黒い鍵。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3197, longitude: 18.0717)
+        ),
+
+        // Komap Global — タリン旧市街（ハンザ同盟）
+        HistoricSite(
+            id: "tallinn-raekoja-plats",
+            overlayMapID: OldMapCatalog.tallinn.id,
+            name: "ラエコヤ広場（旧市庁舎広場）",
+            summary: "風見鶏の下、商人たちが取引を交わした都の広場。紋章は銀地に黒い市庁舎塔。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.4370, longitude: 24.7454)
+        ),
+        HistoricSite(
+            id: "tallinn-toompea",
+            overlayMapID: OldMapCatalog.tallinn.id,
+            name: "トームペア（城の丘）",
+            summary: "旗のはためく丘の上から旧市街を見張る、長いヘルマン塔。紋章は青地に金の旗塔。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.4370, longitude: 24.7402)
+        ),
+        HistoricSite(
+            id: "tallinn-viru-gate",
+            overlayMapID: OldMapCatalog.tallinn.id,
+            name: "ヴィル門",
+            summary: "東からの旅人を迎える、双子の尖塔をもつ城門。紋章は黒地に銀の双塔。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.4376, longitude: 24.7484)
+        ),
+        HistoricSite(
+            id: "tallinn-oleviste",
+            overlayMapID: OldMapCatalog.tallinn.id,
+            name: "オレヴィステ教会（聖オレフ教会）",
+            summary: "かつて世界一高かったとされる尖塔。紋章は赤地に金の尖塔。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.4393, longitude: 24.7439)
+        ),
+        HistoricSite(
+            id: "tallinn-paks-margareeta",
+            overlayMapID: OldMapCatalog.tallinn.id,
+            name: "太っちょマルガレータ（港の円塔）",
+            summary: "大砲を構え、港へ入る船を見張ってきた丸々とした塔。紋章はティール地に銀の円塔。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.4425, longitude: 24.7456)
+        ),
     ]
 
     /// 同梱のチェックポイントのID・古地図IDによる索引。`site(withID:)`や

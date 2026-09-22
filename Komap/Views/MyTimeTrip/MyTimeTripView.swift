@@ -922,6 +922,10 @@ struct StampCell: View {
                     .scaledToFill()
                     .frame(height: 80)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            } else if let crest = CrestBadgeCatalog.badge(for: site.id) {
+                Image(systemName: isCollected ? crest.symbolName : "shield")
+                    .font(.system(size: 36))
+                    .foregroundStyle(isCollected ? crest.tint : .secondary.opacity(0.4))
             } else {
                 Image(systemName: isCollected ? "seal.fill" : "seal")
                     .font(.system(size: 36))

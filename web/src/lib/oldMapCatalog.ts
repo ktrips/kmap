@@ -127,6 +127,40 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     southWest: { lat: 35.645, lng: 139.663 },
     northEast: { lat: 35.678, lng: 139.724 },
   },
+
+  // Komap Global（東京版とは別の、海外都市の旧市街コース）
+  {
+    id: "amsterdam-medieval",
+    title: "アムステルダム旧市街（中世〜黄金時代）",
+    era: "中世〜17世紀（オランダ黄金時代）",
+    imageUrl: "/old-maps/old_map_amsterdam.jpg",
+    southWest: { lat: 52.36, lng: 4.883 },
+    northEast: { lat: 52.38, lng: 4.916 },
+  },
+  {
+    id: "helsinki-old-town",
+    title: "ヘルシンキ旧市街（帝政期）",
+    era: "18〜19世紀（スウェーデン統治末期〜ロシア帝政期）",
+    imageUrl: "/old-maps/old_map_helsinki.jpg",
+    southWest: { lat: 60.141, lng: 24.886 },
+    northEast: { lat: 60.224, lng: 25.053 },
+  },
+  {
+    id: "stockholm-old-town",
+    title: "ストックホルム旧市街（ガムラスタン）",
+    era: "13世紀〜近世（ガムラスタン成立期）",
+    imageUrl: "/old-maps/old_map_stockholm.jpg",
+    southWest: { lat: 59.317, lng: 18.063 },
+    northEast: { lat: 59.329, lng: 18.089 },
+  },
+  {
+    id: "tallinn-old-town",
+    title: "タリン旧市街（ハンザ同盟）",
+    era: "13〜16世紀（ハンザ同盟の時代）",
+    imageUrl: "/old-maps/old_map_tallinn.jpg",
+    southWest: { lat: 59.436, lng: 24.736 },
+    northEast: { lat: 59.444, lng: 24.752 },
+  },
 ];
 
 /**
