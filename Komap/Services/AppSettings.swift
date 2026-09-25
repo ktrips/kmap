@@ -10,6 +10,7 @@ enum AppSettings {
     private static let allowAddingNewMapContentKey = "allowAddingNewMapContent"
     private static let aiProviderKey = "aiProvider"
     private static let defaultOverlayMapIDKey = "defaultOverlayMapID"
+    static let showGlobalMapsKey = "showGlobalMaps"
     private static let cameraLinkHostKey = "cameraLinkHost"
     private static let printerLinkHostKey = "printerLinkHost"
     private static let printerSyncStampsKey = "printerSyncStamps"
@@ -65,6 +66,15 @@ enum AppSettings {
     static var allowAddingNewMapContent: Bool {
         get { UserDefaults.standard.bool(forKey: allowAddingNewMapContentKey) }
         set { UserDefaults.standard.set(newValue, forKey: allowAddingNewMapContentKey) }
+    }
+
+    /// 「設定」の「Komap Global（海外の旧市街）を表示」。オフの間は、アムステルダム・
+    /// ヘルシンキなど海外の古地図とそのチェックポイントを、古地図の選択肢・全地図表示・
+    /// 現在地からの古地図選択・御朱印一覧から外す（`OldMapCatalog.isHiddenBySettings`）。
+    /// 未設定時は`false`（表示しない）。
+    static var showGlobalMaps: Bool {
+        get { UserDefaults.standard.bool(forKey: showGlobalMapsKey) }
+        set { UserDefaults.standard.set(newValue, forKey: showGlobalMapsKey) }
     }
 
     /// 「設定」の「AI設定」で選ぶ、物語生成に使うデフォルトのAIプロバイダー。未設定時はOpenAI。

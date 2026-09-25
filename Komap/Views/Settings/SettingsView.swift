@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var syncMessage: String?
     @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
     @State private var defaultOverlayMapID: String = AppSettings.defaultOverlayMapID ?? AppSettings.defaultOverlayCurrentLocationToken
+    @State private var showGlobalMaps: Bool = AppSettings.showGlobalMaps
     @State private var photoFilterStyle: PhotoFilterStyle = AppSettings.photoFilterStyle
     @State private var currentLocationIconStyle: CurrentLocationIconStyle = AppSettings.currentLocationIconStyle
     @State private var autoPauseWhenStationary: Bool = AppSettings.autoPauseWhenStationary
@@ -153,13 +154,27 @@ struct SettingsView: View {
             Picker("最初に表示する古地図", selection: $defaultOverlayMapID) {
                 Text("現在地").tag(AppSettings.defaultOverlayCurrentLocationToken)
                 Text("全地図").tag(AppSettings.defaultOverlayAllToken)
-                ForEach(OldMapCatalog.allIncludingCustom) { overlay in
+                ForEach(OldMapCatalog.visibleIncludingCustom) { overlay in
                     Text(overlay.title).tag(overlay.id)
                 }
             }
             .onChange(of: defaultOverlayMapID) { _, newValue in
                 AppSettings.defaultOverlayMapID = newValue
             }
+
+            Toggle("Komap Global（海外の旧市街）を表示", isOn: $showGlobalMaps)
+                .onChange(of: showGlobalMaps) { _, newValue in
+                    AppSettings.showGlobalMaps = newValue
+                    guard !newValue else { return }
+                    // 非表示にした古地図が「最初に表示する古地図」や表示中の古地図だった場合は、
+                    // 選択肢から消えたまま残らないよう、既定の古地図に戻す。
+                    if OldMapCatalog.isHiddenBySettings(overlayID: defaultOverlayMapID) {
+                        defaultOverlayMapID = AppSettings.defaultOverlayCurrentLocationToken
+                    }
+                    if let selected = mapSession.selectedOverlay, OldMapCatalog.isHiddenBySettings(selected) {
+                        mapSession.selectedOverlay = OldMapCatalog.defaultOverlay
+                    }
+                }
 
             HStack(spacing: 10) {
                 Slider(
@@ -179,7 +194,7 @@ struct SettingsView: View {
         } header: {
             Text("古地図のデフォルト")
         } footer: {
-            Text("「現在地」は、現在地を含む古地図を自動で選びます。「全地図」は全ての古地図を重ねて表示します。マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。")
+            Text("「現在地」は、現在地を含む古地図を自動で選びます。「全地図」は全ての古地図を重ねて表示します。マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。「Komap Global」をオンにすると、アムステルダム・ヘルシンキ・ストックホルム・タリンの古地図とチェックポイントも表示します。")
         }
     }
 

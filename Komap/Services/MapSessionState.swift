@@ -108,7 +108,7 @@ final class MapSessionState: ObservableObject {
             isShowingAllOverlays = true
             isCurrentLocationMode = false
         case let id? where id != AppSettings.defaultOverlayCurrentLocationToken:
-            if let overlay = OldMapCatalog.resolve(id: id) {
+            if let overlay = OldMapCatalog.resolve(id: id), !OldMapCatalog.isHiddenBySettings(overlay) {
                 selectedOverlay = overlay
                 isCurrentLocationMode = false
             }

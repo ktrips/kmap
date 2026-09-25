@@ -17,6 +17,9 @@ struct MapScreen: View {
     /// 「設定」画面で見た目を変えたらこのマップ画面（常時マウントされたまま）の
     /// 現在地マークにもすぐ反映されるようにする（`cameraLinkHostRaw`と同じ理由）。
     @AppStorage("currentLocationIconStyle") private var currentLocationIconStyleRaw: String = CurrentLocationIconStyle.blueDot.rawValue
+    /// `AppSettings.showGlobalMaps`と同じキー。設定で切り替えた時に、全地図表示の古地図・
+    /// チェックポイントとWatchへ送る古地図の一覧を作り直すために監視する。
+    @AppStorage(AppSettings.showGlobalMapsKey) private var showGlobalMaps = false
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
@@ -159,7 +162,7 @@ struct MapScreen: View {
     private func recomputeActiveCheckpoints() {
         if mapSession.isShowingAllOverlays {
             var seenCoordinateKeys = Set<String>()
-            cachedActiveCheckpoints = HistoricSiteCatalog.allIncludingCustom.filter { site in
+            cachedActiveCheckpoints = HistoricSiteCatalog.visibleIncludingCustom.filter { site in
                 let key = "\((site.coordinate.latitude * 100_000).rounded()),\((site.coordinate.longitude * 100_000).rounded())"
                 return seenCoordinateKeys.insert(key).inserted
             }
@@ -193,7 +196,7 @@ struct MapScreen: View {
     /// 現在地を含む古地図があれば、それを選択して`true`を返す（複数ある時は中心が最も近いもの）。
     @discardableResult
     private func selectOverlayContaining(_ location: CLLocationCoordinate2D) -> Bool {
-        let matches = OldMapCatalog.allIncludingCustom.filter { $0.contains(location) }
+        let matches = OldMapCatalog.visibleIncludingCustom.filter { $0.contains(location) }
         guard let nearest = matches.min(by: {
             distanceToCenter($0, from: location) < distanceToCenter($1, from: location)
         }) else { return false }
@@ -471,6 +474,10 @@ struct MapScreen: View {
         .onChange(of: mapSession.isShowingAllOverlays) { _, _ in
             recomputeActiveCheckpoints()
             showOldMapForWalkingIfNeeded()
+        }
+        .onChange(of: showGlobalMaps) { _, _ in
+            recomputeActiveCheckpoints()
+            syncWatchState()
         }
         .onChange(of: locationManager.walkPath.count) { _, _ in
             guard let latest = locationManager.walkPath.last else { return }
@@ -755,7 +762,7 @@ struct MapScreen: View {
     /// 無ければ何もしない（ポイントの追加は、追加した古地図の編集画面でだけ行う）。
     private func handleMapTap(at coordinate: CLLocationCoordinate2D) {
         if mapSession.isShowingAllOverlays,
-           let overlay = OldMapCatalog.allIncludingCustom.first(where: { $0.contains(coordinate) }) {
+           let overlay = OldMapCatalog.visibleIncludingCustom.first(where: { $0.contains(coordinate) }) {
             mapSession.isShowingAllOverlays = false
             mapSession.selectedOverlay = overlay
             mapSession.moveCamera(to: overlay.center)
@@ -996,7 +1003,7 @@ struct MapScreen: View {
         watchConnectivity.updateState(
             isRecording: locationManager.isRecordingWalk,
             isPaused: locationManager.isWalkPaused,
-            availableMaps: OldMapCatalog.allIncludingCustom,
+            availableMaps: OldMapCatalog.visibleIncludingCustom,
             selectedMapID: mapSession.selectedOverlay?.id,
             activeSessionID: locationManager.isRecordingWalk ? activeWalkSessionID : nil
         )

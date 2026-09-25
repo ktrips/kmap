@@ -147,7 +147,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         // 定期的に回復できるよう、カメラ操作にもGPS更新にも頼らない貼り直しタイマーを動かす。
         context.coordinator.setWalkingHealingTimerActive(isRecordingWalk)
         if showAllOverlays {
-            context.coordinator.applyAllOverlays(OldMapCatalog.allIncludingCustom, checkpoints: checkpoints, to: mapView)
+            context.coordinator.applyAllOverlays(OldMapCatalog.visibleIncludingCustom, checkpoints: checkpoints, to: mapView)
         } else {
             context.coordinator.removeAllOverlays()
             context.coordinator.applyOverlay(

@@ -24,7 +24,9 @@ struct GPXImportSheet: View {
             Form {
                 Section {
                     Picker("古地図", selection: $selectedOverlayID) {
-                        ForEach(OldMapCatalog.all) { overlay in
+                        ForEach(OldMapCatalog.all.filter {
+                            !OldMapCatalog.isHiddenBySettings($0) || $0.id == selectedOverlayID
+                        }) { overlay in
                             Text(overlay.title).tag(overlay.id)
                         }
                     }

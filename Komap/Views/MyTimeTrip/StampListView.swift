@@ -23,13 +23,13 @@ struct StampListView: View {
         if let overlayMapID {
             return HistoricSiteCatalog.sites(forOverlayID: overlayMapID)
         }
-        return HistoricSiteCatalog.allIncludingCustom
+        return HistoricSiteCatalog.visibleIncludingCustom
     }
 
     /// 「すべての御朱印」表示時（`overlayMapID`が`nil`）に、チェックポイントを持つ古地図ごとに
     /// カタログの並び順のままグルーピングしたもの。
     private var sitesByMap: [(map: HistoricalOverlayMap, sites: [HistoricSite])] {
-        OldMapCatalog.allIncludingCustom.compactMap { map in
+        OldMapCatalog.visibleIncludingCustom.compactMap { map in
             let mapSites = HistoricSiteCatalog.sites(forOverlayID: map.id)
             return mapSites.isEmpty ? nil : (map, mapSites)
         }

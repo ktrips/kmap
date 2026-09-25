@@ -402,7 +402,9 @@ enum OldMapCatalog {
     /// 「古地図のデフォルト」で選んだものを`AppSettings.defaultOverlayMapID`から読み、
     /// 未設定・削除済みなら同梱の「江戸城周辺」にフォールバックする。
     static var defaultOverlay: HistoricalOverlayMap {
-        resolve(id: AppSettings.defaultOverlayMapID) ?? edoCastle
+        guard let overlay = resolve(id: AppSettings.defaultOverlayMapID),
+              !isHiddenBySettings(overlay) else { return edoCastle }
+        return overlay
     }
 
     /// 古地図選択シートでの分類（`OldMapPickerSheet`のセクション分けに使う）。
@@ -441,6 +443,28 @@ enum OldMapCatalog {
     /// この古地図が属する分類。同梱リストにない（ユーザーが検索して追加した）古地図は`nil`。
     static func category(of overlay: HistoricalOverlayMap) -> Category? {
         categoryByID[overlay.id]
+    }
+
+    /// 「設定」の「Komap Global（海外の旧市街）を表示」がオフのため、選択肢・全地図表示などから
+    /// 外す古地図か。過去の記録や御朱印からIDで引く（`resolve`・`overlay(withID:)`）分には影響しない。
+    static func isHiddenBySettings(_ overlay: HistoricalOverlayMap) -> Bool {
+        isHiddenBySettings(overlayID: overlay.id)
+    }
+
+    static func isHiddenBySettings(overlayID: String) -> Bool {
+        !AppSettings.showGlobalMaps && categoryByID[overlayID] == .global
+    }
+
+    /// 古地図選択シートに並べる分類（設定で非表示にしている分類を除く）。
+    static var visibleCategories: [Category] {
+        Category.allCases.filter { $0 != .global || AppSettings.showGlobalMaps }
+    }
+
+    /// `allIncludingCustom`から、設定で非表示にしている古地図を除いたもの。
+    /// 古地図の選択肢・全地図表示・現在地からの古地図選択に使う。
+    static var visibleIncludingCustom: [HistoricalOverlayMap] {
+        let overlays = allIncludingCustom
+        return AppSettings.showGlobalMaps ? overlays : overlays.filter { !isHiddenBySettings($0) }
     }
 
     /// `allIncludingCustom`の結果のキャッシュ。「全ての古地図を表示」中は歩行のGPS更新の

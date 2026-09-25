@@ -523,11 +523,14 @@ struct MyTimeTripView: View {
 
     private func prepareAndShowShareSheet() {
         isPreparingShare = true
+        // 設定で非表示にしている古地図（Komap Global）の御朱印は、件数・名前とも数えない。
+        let sites = HistoricSiteCatalog.visibleIncludingCustom
+        let hiddenSiteIDs = Set(HistoricSiteCatalog.allIncludingCustom.map(\.id)).subtracting(sites.map(\.id))
         let renderer = ImageRenderer(
             content: StampShareCardView(
-                collectedCount: collectedStamps.count,
-                totalCount: HistoricSiteCatalog.allIncludingCustom.count,
-                collectedSiteNames: HistoricSiteCatalog.allIncludingCustom
+                collectedCount: collectedStamps.filter { !hiddenSiteIDs.contains($0.siteID) }.count,
+                totalCount: sites.count,
+                collectedSiteNames: sites
                     .filter { collectedSiteIDs.contains($0.id) }
                     .map(\.name)
             )

@@ -1000,6 +1000,13 @@ enum HistoricSiteCatalog {
         return combined
     }
 
+    /// `allIncludingCustom`から、「設定」で非表示にしている古地図（Komap Global）の
+    /// チェックポイントを除いたもの。全地図表示・御朱印一覧に使う。
+    static var visibleIncludingCustom: [HistoricSite] {
+        let sites = allIncludingCustom
+        return AppSettings.showGlobalMaps ? sites : sites.filter { !OldMapCatalog.isHiddenBySettings(overlayID: $0.overlayMapID) }
+    }
+
     /// 同梱のポイントかどうか（削除の仕方が、追加したポイントと異なる）。
     static func isBundledSite(_ id: String) -> Bool {
         bundledByID[id] != nil

@@ -132,7 +132,7 @@ struct OldMapPickerSheet: View {
                     .listRowBackground(Color.clear)
                 }
 
-                ForEach(OldMapCatalog.Category.allCases, id: \.self) { category in
+                ForEach(OldMapCatalog.visibleCategories, id: \.self) { category in
                     Section(category.rawValue) {
                         ForEach(overlays(in: category)) { overlay in
                             overlayRow(for: overlay)
