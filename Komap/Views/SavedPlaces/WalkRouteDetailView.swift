@@ -125,17 +125,7 @@ struct WalkRouteDetailView: View {
     }
 
     private func checkpointDetailTexts() -> [String: String] {
-        guard !stampsForRoute.isEmpty else { return [:] }
-        let siteIDs = Set(stampsForRoute.map(\.siteID))
-        let descriptor = FetchDescriptor<CheckpointStory>(
-            predicate: #Predicate { siteIDs.contains($0.siteID) }
-        )
-        let stories = (try? modelContext.fetch(descriptor)) ?? []
-        var details = Dictionary(uniqueKeysWithValues: stories.map { ($0.siteID, $0.body) })
-        for siteID in siteIDs where details[siteID] == nil {
-            details[siteID] = HistoricSiteCatalog.site(withID: siteID)?.summary
-        }
-        return details
+        SyncService.checkpointDetailTexts(for: stampsForRoute, in: modelContext)
     }
 
     var body: some View {
@@ -462,14 +452,24 @@ struct WalkRouteDetailView: View {
                     .contextMenu {
                         if videoURL != nil {
                             Button {
-                                TripVideoStore.delete(for: route.id)
-                                videoURL = nil
-                                route.tripVideoURL = nil
-                                Task { await generateAndPlayVideo() }
+                                recreateVideo()
                             } label: {
                                 Label("動画を作り直す", systemImage: "arrow.clockwise")
                             }
                         }
+                    }
+
+                    // 動画ができていれば、写真を追加した後などに作り直せるボタンを出す。
+                    if videoURL != nil {
+                        Button {
+                            recreateVideo()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .frame(width: 20)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isGeneratingVideo)
+                        .accessibilityLabel("動画を作り直す")
                     }
 
                     // 動画ができたら、再生ボタンの右横に共有ボタンを出す
@@ -494,9 +494,22 @@ struct WalkRouteDetailView: View {
         }
     }
 
+    /// 今の写真・地図の表示で動画を作り直す（端末の動画を消して作り、クラウドのリンクも差し替える）。
+    private func recreateVideo() {
+        TripVideoStore.delete(for: route.id)
+        videoURL = nil
+        route.tripVideoURL = nil
+        Task { await generateAndPlayVideo() }
+    }
+
     /// この時空旅の動画が端末に保存済みなら、共有ボタンをすぐ出せるよう読み込んでおく。
+    /// 端末には動画があるのにクラウドのリンクが無い（サインイン前に作った・アップロードに
+    /// 失敗した）時は、ここで上げ直して旅日記・Webにも載るようにする。
     private func loadSavedVideo() {
         videoURL = TripVideoStore.existingURL(for: route.id)
+        if let videoURL, route.tripVideoURL == nil {
+            uploadVideoInBackground(videoURL)
+        }
     }
 
     /// 動画をクラウドへ上げ、旅日記に載せる共有リンクにする（サインイン中のみ）。

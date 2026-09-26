@@ -1,6 +1,7 @@
 import FirebaseCore
 import FirebaseFirestore
 import Foundation
+import SwiftData
 import UIKit
 
 /// 保存した地点（`SavedPlace`）を、Firestore上の
@@ -368,6 +369,11 @@ struct SyncService {
             for stamp in stamps where stamp.photo != nil && !stamp.isHiddenFromSharing {
                 let sourcePath = stampPhotoStoragePath(userID: userID, stampID: stamp.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: stamp.id)
+                // 写真をまだクラウドへ上げていなかった（サインイン前に撮った・通信に失敗した）
+                // 御朱印は、コピー元が無くて公開データから抜け落ちていた。先に上げてからコピーする。
+                if stamp.cloudPhotoURL == nil {
+                    _ = try? await uploadStampPhoto(stamp, userID: userID)
+                }
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
                     let siteName = HistoricSiteCatalog.site(withID: stamp.siteID)?.name ?? "御朱印"
                     stampPhotos.append([
@@ -381,6 +387,9 @@ struct SyncService {
             for post in photoPosts where post.photo != nil && !post.isHiddenFromSharing {
                 let sourcePath = photoPostStoragePath(userID: userID, postID: post.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: post.id)
+                if post.cloudPhotoURL == nil {
+                    _ = try? await uploadPhotoPostImage(post, userID: userID)
+                }
                 if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
                     postPhotos.append([
                         "url": url.absoluteString,
@@ -425,6 +434,56 @@ struct SyncService {
         // Storageルールの書き込み判定（sharedTripsのownerUserID照合）が失敗するため。
         await photoStorage.deleteFolder("sharedPhotos/\(tripID.uuidString)")
         try await sharedTripsCollection.document(tripID.uuidString).delete()
+    }
+
+    /// 巡った御朱印スポットの説明文（既にAIで生成済みの`CheckpointStory`があればその本文、
+    /// 無ければ史跡カタログの`summary`）を`siteID`ごとにまとめる。旅日記と同じ内容を
+    /// 公開データ（`sharedTrips`）の御朱印にも添えるために使う。新しいAI生成は行わない。
+    @MainActor
+    static func checkpointDetailTexts(for stamps: [CollectedStamp], in context: ModelContext) -> [String: String] {
+        guard !stamps.isEmpty else { return [:] }
+        let siteIDs = Set(stamps.map(\.siteID))
+        let descriptor = FetchDescriptor<CheckpointStory>(
+            predicate: #Predicate { siteIDs.contains($0.siteID) }
+        )
+        let stories = (try? context.fetch(descriptor)) ?? []
+        var details = Dictionary(stories.map { ($0.siteID, $0.body) }, uniquingKeysWith: { first, _ in first })
+        for siteID in siteIDs where details[siteID] == nil {
+            details[siteID] = HistoricSiteCatalog.site(withID: siteID)?.summary
+        }
+        return details
+    }
+
+    /// 公開中の時空旅すべての公開データ（`sharedTrips`）を、端末の最新の内容で作り直す。
+    /// 公開データは公開した時点のコピーのため、その後に作った動画・生成した説明・追加した写真は、
+    /// 作り直すまでWebに出ない。「設定」のクラウド同期から呼ぶ。
+    /// - Returns: 作り直した時空旅の件数。
+    @MainActor
+    func refreshAllSharedTrips(in context: ModelContext, userID: String, ownerDisplayName: String?) async -> Int {
+        let routes = ((try? context.fetch(FetchDescriptor<WalkRoute>())) ?? []).filter(\.isSharedPublicly)
+        guard !routes.isEmpty else { return 0 }
+        let allStamps = (try? context.fetch(FetchDescriptor<CollectedStamp>())) ?? []
+        let allPosts = (try? context.fetch(FetchDescriptor<WalkPhotoPost>())) ?? []
+        var count = 0
+        for route in routes {
+            let stamps = allStamps.filter { $0.walkRouteID == route.id }.sorted { $0.collectedAt < $1.collectedAt }
+            let posts = allPosts.filter { $0.walkRouteID == route.id }.sorted { $0.postedAt < $1.postedAt }
+            do {
+                try await setPubliclyShared(
+                    route,
+                    isShared: true,
+                    userID: userID,
+                    ownerDisplayName: ownerDisplayName,
+                    stamps: stamps,
+                    photoPosts: posts,
+                    checkpointDetails: Self.checkpointDetailTexts(for: stamps, in: context)
+                )
+                count += 1
+            } catch {
+                continue
+            }
+        }
+        return count
     }
 
     /// 既に「みんなの時空旅」に公開済みの時空旅であれば、後から追加・変更した写真などの

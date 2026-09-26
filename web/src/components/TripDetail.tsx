@@ -37,6 +37,33 @@ function durationLabel(trip: UnifiedTrip): string | null {
   return `${Math.max(totalMinutes, 1)}分`;
 }
 
+/** 旅の動画を、画面いっぱいのオーバーレイで大きく再生する。Escか背景・✕で閉じる。 */
+function VideoOverlay({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="modal-overlay trip-video-overlay" onClick={onClose}>
+      <button type="button" className="photo-lightbox-close" onClick={onClose} aria-label="閉じる">
+        ✕
+      </button>
+      <video
+        className="trip-video-overlay-player"
+        src={url}
+        controls
+        autoPlay
+        playsInline
+        onClick={(event) => event.stopPropagation()}
+      />
+    </div>
+  );
+}
+
 /** 選んだ時空旅の、使った古地図・歩いたルート・写真・御朱印をまとめて見せる詳細パネル。 */
 export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props) {
   const [commentText, setCommentText] = useState("");
@@ -49,11 +76,14 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   const [isSaving, setIsSaving] = useState(false);
   /** 開いているポイントの、`lightboxItems`内の位置（閉じている間は`null`）。 */
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  /** 旅の動画を、画面いっぱいの別ウィンドウ（オーバーレイ）で大きく見ている間は`true`。 */
+  const [isVideoExpanded, setIsVideoExpanded] = useState(false);
 
   // 選ぶ時空旅を切り替えたら、編集中だった内容は破棄する。
   useEffect(() => {
     setIsEditing(false);
     setLightboxIndex(null);
+    setIsVideoExpanded(false);
   }, [trip?.id]);
 
   // 旅日記に並べている順（御朱印・チェックポイント → 投稿した写真）に、左右で送れるようにする。
@@ -229,18 +259,26 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
       {/* 旅の動画（iOSアプリで作った、軌跡の上を進んで写真を見せる動画） */}
       {trip.tripVideoURL && (
         <div className="trip-video">
-          <p className="trip-journal-gallery-title">旅の動画</p>
-          <video
-            className="trip-video-player"
-            src={trip.tripVideoURL}
-            controls
-            playsInline
-            preload="metadata"
-          />
-          <a className="trip-video-link" href={trip.tripVideoURL} target="_blank" rel="noreferrer">
-            ▶ 別のタブで開く
-          </a>
+          <div className="trip-video-header">
+            <p className="trip-journal-gallery-title">旅の動画</p>
+            <button type="button" className="trip-video-expand" onClick={() => setIsVideoExpanded(true)}>
+              ⤢ 別ウィンドウで開く
+            </button>
+          </div>
+          {!isVideoExpanded && (
+            <video
+              className="trip-video-player"
+              src={trip.tripVideoURL}
+              controls
+              playsInline
+              preload="metadata"
+            />
+          )}
         </div>
+      )}
+
+      {trip.tripVideoURL && isVideoExpanded && (
+        <VideoOverlay url={trip.tripVideoURL} onClose={() => setIsVideoExpanded(false)} />
       )}
 
       {/* 地図 */}

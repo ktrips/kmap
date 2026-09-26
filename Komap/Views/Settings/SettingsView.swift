@@ -309,7 +309,12 @@ struct SettingsView: View {
             for route in walkRoutes {
                 try await syncService.upload(route, userID: userID)
             }
-            syncMessage = "地点\(places.count)件・時空旅\(walkRoutes.count)件を同期しました"
+            // 公開中の時空旅は、Webの公開データも最新の内容（動画・説明・写真）で作り直す。
+            let sharedCount = await syncService.refreshAllSharedTrips(
+                in: modelContext, userID: userID, ownerDisplayName: authService.displayName
+            )
+            try? modelContext.save()
+            syncMessage = "地点\(places.count)件・時空旅\(walkRoutes.count)件（うち公開中\(sharedCount)件のWeb表示も更新）を同期しました"
         } catch {
             syncMessage = "同期に失敗しました: \(error.localizedDescription)"
         }

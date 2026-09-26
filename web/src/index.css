@@ -915,19 +915,47 @@ code {
   gap: 8px;
 }
 
-/* 旅の動画は縦長（720px幅）のため、高さを抑えて画面からはみ出さないようにする。 */
+.trip-video-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.trip-video-header .trip-journal-gallery-title {
+  margin: 0;
+}
+
+.trip-video-expand {
+  padding: 2px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-card);
+  color: var(--color-brown-deep);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.trip-video-expand:hover {
+  background: var(--color-bg);
+}
+
+/* 旅の動画は縦長（720px幅）。ページ内では小さめに表示し、大きく見たい時は別ウィンドウで開く。 */
 .trip-video-player {
   display: block;
   width: auto;
-  max-width: 100%;
-  max-height: 70vh;
+  max-width: min(240px, 100%);
+  max-height: 40vh;
   border-radius: 12px;
   background: #000;
 }
 
-.trip-video-link {
-  font-size: 0.85rem;
-  color: var(--color-brown-deep);
+.trip-video-overlay-player {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+  background: #000;
+  cursor: default;
 }
 
 .trip-journal-gallery-title {
