@@ -53,6 +53,15 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
     northEast: { lat: 35.7166, lng: 139.7929 },
   },
   {
+    // iOS版と同じく、日本橋と同じ画像・位置合わせのまま範囲を南へ広げている。
+    id: "ginza-kabukiza",
+    title: "銀座・歌舞伎座",
+    era: "明治時代（1891年・明治24年頃）",
+    imageUrl: "/old-maps/old_map_nihonbashi.jpg",
+    southWest: { lat: 35.652, lng: 139.7505 },
+    northEast: { lat: 35.7166, lng: 139.7929 },
+  },
+  {
     id: "goshiki-fudo-meiji",
     title: "五色不動めぐり（目黒・目白・目赤・目青・目黄）",
     era: "明治時代（1891年・明治24年頃）",
@@ -180,8 +189,11 @@ const MERGED_INTO: Record<string, string> = {
   "kagurazaka-waseda-shinjuku-meiji": "kiminona-seichi",
 };
 
+// 一覧の各行から呼ばれるため、毎回全件を順に探さないよう索引を一度だけ作る。
+const OLD_MAP_BY_ID = new Map(OLD_MAP_CATALOG.map((entry) => [entry.id, entry]));
+
 export function findOldMap(id: string | null): OldMapEntry | undefined {
   if (!id) return undefined;
   const resolvedId = MERGED_INTO[id] ?? id;
-  return OLD_MAP_CATALOG.find((entry) => entry.id === resolvedId);
+  return OLD_MAP_BY_ID.get(resolvedId);
 }

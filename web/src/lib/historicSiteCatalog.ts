@@ -141,15 +141,35 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "tallinn-viru-gate", name: "ヴィル門", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4376, lng: 24.7484 } },
   { id: "tallinn-oleviste", name: "オレヴィステ教会（聖オレフ教会）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4393, lng: 24.7439 } },
   { id: "tallinn-paks-margareeta", name: "太っちょマルガレータ（港の円塔）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4425, lng: 24.7456 } },
+  { id: "ginza-brick-town", name: "銀座煉瓦街跡", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6741, lng: 139.7712 } },
+  { id: "ginza-kabukiza-theater", name: "歌舞伎座", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6693, lng: 139.7663 } },
+  { id: "ginza-4chome-crossing", name: "銀座四丁目交差点", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6717, lng: 139.766 } },
+  { id: "ginza-willow-monument", name: "銀座柳の碑", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6693, lng: 139.7607 } },
+  { id: "ginza-old-shimbashi-station", name: "旧新橋停車場跡", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6658, lng: 139.7616 } },
+  { id: "ginza-hamarikyu-gardens", name: "浜離宮恩賜庭園", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6597, lng: 139.7636 } },
+  { id: "ginza-daimon", name: "大門", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6564, lng: 139.7566 } },
 ];
+
+// 一覧の行・御朱印ごとに呼ばれるため、毎回全件を順に探さないよう索引を一度だけ作る。
+const SITE_BY_ID = new Map(HISTORIC_SITE_CATALOG.map((entry) => [entry.id, entry]));
+const SITES_BY_OVERLAY = new Map<string, HistoricSiteEntry[]>();
+for (const entry of HISTORIC_SITE_CATALOG) {
+  const group = SITES_BY_OVERLAY.get(entry.overlayMapID);
+  if (group) group.push(entry);
+  else SITES_BY_OVERLAY.set(entry.overlayMapID, [entry]);
+}
+const EMPTY_SITES: HistoricSiteEntry[] = [];
 
 export function findHistoricSite(id: string | null): HistoricSiteEntry | undefined {
   if (!id) return undefined;
-  return HISTORIC_SITE_CATALOG.find((entry) => entry.id === id);
+  return SITE_BY_ID.get(id);
 }
 
-/** 指定した古地図に属するチェックポイントだけを返す（`overlayMapID`が`null`なら空配列）。 */
+/**
+ * 指定した古地図に属するチェックポイントだけを返す（`overlayMapID`が`null`なら空配列）。
+ * 同じ古地図には常に同じ配列を返すため、呼び出し側で`useMemo`しなくても参照が安定する。
+ */
 export function sitesForOverlay(overlayMapID: string | null): HistoricSiteEntry[] {
-  if (!overlayMapID) return [];
-  return HISTORIC_SITE_CATALOG.filter((entry) => entry.overlayMapID === overlayMapID);
+  if (!overlayMapID) return EMPTY_SITES;
+  return SITES_BY_OVERLAY.get(overlayMapID) ?? EMPTY_SITES;
 }

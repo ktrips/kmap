@@ -44,18 +44,32 @@ enum TripVisibility: String, CaseIterable, Identifiable {
 struct WalkRouteDetailView: View {
     let route: WalkRoute
 
+    /// この時空旅の御朱印・投稿写真だけを、古い順にデータベース側で絞り込んで取得する
+    /// （以前は全件を取得し、画面の十数か所で参照されるたびに絞り込み・並べ替えをしていた）。
+    init(route: WalkRoute) {
+        self.route = route
+        let routeID: UUID? = route.id
+        _collectedStamps = Query(
+            filter: #Predicate<CollectedStamp> { $0.walkRouteID == routeID },
+            sort: \.collectedAt
+        )
+        _photoPosts = Query(
+            filter: #Predicate<WalkPhotoPost> { $0.walkRouteID == routeID },
+            sort: \.postedAt
+        )
+    }
+
     /// 「YYYY/M/D HH:MI」形式の日時表記。
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/M/d HH:mm"
-        return formatter
-    }()
+    private static let dateFormatter: DateFormatter = TripFormat.dateTimeFormatter
 
     @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query private var collectedStamps: [CollectedStamp]
     @Query private var photoPosts: [WalkPhotoPost]
+    /// AIで生成済みの御朱印スポットの説明。描き直しのたびにデータベースへ問い合わせないよう、
+    /// SwiftDataの監視つき一覧として持つ（件数は巡った史跡の数程度で小さい）。
+    @Query private var checkpointStories: [CheckpointStory]
 
     @State private var isRenaming = false
     @State private var editedTitle = ""
@@ -86,17 +100,9 @@ struct WalkRouteDetailView: View {
     private let syncService = SyncService()
     private let journalService = TravelJournalService()
 
-    private var stampsForRoute: [CollectedStamp] {
-        collectedStamps
-            .filter { $0.walkRouteID == route.id }
-            .sorted { $0.collectedAt < $1.collectedAt }
-    }
+    private var stampsForRoute: [CollectedStamp] { collectedStamps }
 
-    private var photoPostsForRoute: [WalkPhotoPost] {
-        photoPosts
-            .filter { $0.walkRouteID == route.id }
-            .sorted { $0.postedAt < $1.postedAt }
-    }
+    private var photoPostsForRoute: [WalkPhotoPost] { photoPosts }
 
     private var checkpointsForOverlay: [HistoricSite] {
         HistoricSiteCatalog.sites(forOverlayID: route.overlayMap?.id)
@@ -117,11 +123,7 @@ struct WalkRouteDetailView: View {
         }
         guard !stampsForRoute.isEmpty else { return false }
         let siteIDs = Set(stampsForRoute.map(\.siteID))
-        let descriptor = FetchDescriptor<CheckpointStory>(
-            predicate: #Predicate { siteIDs.contains($0.siteID) }
-        )
-        let stories = (try? modelContext.fetch(descriptor)) ?? []
-        return stories.contains { $0.updatedAt > generatedAt }
+        return checkpointStories.contains { siteIDs.contains($0.siteID) && $0.updatedAt > generatedAt }
     }
 
     private func checkpointDetailTexts() -> [String: String] {
@@ -839,20 +841,11 @@ struct WalkRouteDetailView: View {
     }
 
     private var distanceText: String {
-        let meters = route.totalDistanceMeters
-        if meters >= 1000 {
-            return String(format: "%.1f km", meters / 1000)
-        }
-        return String(format: "%.0f m", meters)
+        TripFormat.distance(route.totalDistanceMeters)
     }
 
     private var durationText: String? {
-        guard let durationSeconds = route.durationSeconds else { return nil }
-        let totalMinutes = Int(durationSeconds / 60)
-        if totalMinutes >= 60 {
-            return "\(totalMinutes / 60)時間\(totalMinutes % 60)分"
-        }
-        return "\(max(totalMinutes, 1))分"
+        TripFormat.duration(route.durationSeconds)
     }
 }
 

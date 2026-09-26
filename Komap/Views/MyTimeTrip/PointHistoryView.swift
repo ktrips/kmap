@@ -85,11 +85,7 @@ private struct TripPoints: Identifiable {
 
     private var distanceText: String? {
         guard let route, route.totalDistanceMeters > 0 else { return nil }
-        let meters = route.totalDistanceMeters
-        if meters >= 1000 {
-            return String(format: "%.1f km", meters / 1000)
-        }
-        return String(format: "%.0f m", meters)
+        return TripFormat.distance(route.totalDistanceMeters)
     }
 
     var title: String {

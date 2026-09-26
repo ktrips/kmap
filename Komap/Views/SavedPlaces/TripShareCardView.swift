@@ -220,20 +220,11 @@ struct TripShareCardView: View {
     }
 
     private var distanceText: String {
-        let meters = route.totalDistanceMeters
-        if meters >= 1000 {
-            return String(format: "%.1f km", meters / 1000)
-        }
-        return String(format: "%.0f m", meters)
+        TripFormat.distance(route.totalDistanceMeters)
     }
 
     private var durationText: String? {
-        guard let durationSeconds = route.durationSeconds else { return nil }
-        let totalMinutes = Int(durationSeconds / 60)
-        if totalMinutes >= 60 {
-            return "\(totalMinutes / 60)時間\(totalMinutes % 60)分"
-        }
-        return "\(max(totalMinutes, 1))分"
+        TripFormat.duration(route.durationSeconds)
     }
 }
 

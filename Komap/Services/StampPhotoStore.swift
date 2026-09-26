@@ -93,6 +93,12 @@ enum StampPhotoStore {
         }
     }
 
+    /// 写真のファイルが端末にあるか。画像を読み込まずに確かめたい時（公開する写真の選別など）に使う。
+    static func exists(_ filename: String) -> Bool {
+        if cache.object(forKey: filename as NSString) != nil { return true }
+        return FileManager.default.fileExists(atPath: directoryURL.appendingPathComponent(filename).path)
+    }
+
     static func load(_ filename: String) -> UIImage? {
         let key = filename as NSString
         if let cached = cache.object(forKey: key) {

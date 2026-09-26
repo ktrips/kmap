@@ -701,11 +701,7 @@ private struct TripRow: View {
     let stampCount: Int
 
     /// 「YYYY/M/D HH:MI」形式の日時表記（時間旅の記録画面と統一）。
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/M/d HH:mm"
-        return formatter
-    }()
+    private static let dateFormatter: DateFormatter = TripFormat.dateTimeFormatter
 
     var body: some View {
         HStack(spacing: 12) {
@@ -773,20 +769,11 @@ private struct TripRow: View {
     }
 
     private var distanceText: String {
-        let meters = route.totalDistanceMeters
-        if meters >= 1000 {
-            return String(format: "%.1f km", meters / 1000)
-        }
-        return String(format: "%.0f m", meters)
+        TripFormat.distance(route.totalDistanceMeters)
     }
 
     private var durationText: String? {
-        guard let durationSeconds = route.durationSeconds else { return nil }
-        let totalMinutes = Int(durationSeconds / 60)
-        if totalMinutes >= 60 {
-            return "\(totalMinutes / 60)時間\(totalMinutes % 60)分"
-        }
-        return "\(max(totalMinutes, 1))分"
+        TripFormat.duration(route.durationSeconds)
     }
 }
 

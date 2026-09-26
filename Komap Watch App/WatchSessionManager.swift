@@ -499,6 +499,19 @@ extension WatchSessionManager: WCSessionDelegate {
         replyHandler(["ok": true])
     }
 
+    /// 返信を求めない`sendMessage`（iPhoneからの御朱印獲得・写真投稿の通知）を受け取る。
+    /// この受け口が無いと届かず失敗し、`transferUserInfo`での再送になって通知が遅れていた。
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        switch message["command"] as? String {
+        case "stampCollected":
+            Task { @MainActor in self.applyStampCollected(message) }
+        case "photoPosted":
+            Task { @MainActor in self.applyPhotoPosted(message) }
+        default:
+            break
+        }
+    }
+
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         switch userInfo["command"] as? String {
         case "stampCollected":

@@ -6,14 +6,7 @@ interface Props {
   onSelect: (place: SavedPlace) => void;
 }
 
-const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
-  year: "numeric",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
+import { tripDateFormatter as dateFormatter } from "../lib/format";
 
 export function PlaceList({ places, selectedId, onSelect }: Props) {
   if (places.length === 0) {

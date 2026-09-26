@@ -13,17 +13,16 @@ struct TravelJournalView: View {
     let checkpoints: [HistoricSite]
 
     /// 「YYYY/M/D HH:MI」形式の日時表記（時間旅の記録画面と統一）。
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/M/d HH:mm"
-        return formatter
-    }()
+    private static let dateFormatter: DateFormatter = TripFormat.dateTimeFormatter
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.modelContext) private var modelContext
 
     @State private var likeCount = 0
+    /// 御朱印スポットの説明（`siteID`ごと）。描き直しのたびに御朱印ごとにデータベースを
+    /// 読み直さないよう、画面を開いた時に一度だけまとめて読む。
+    @State private var checkpointDetails: [String: String] = [:]
     /// タップされたポイント（御朱印・チェックポイント、投稿写真）。写真を大きく説明と一緒に見せ、
     /// 左右のスワイプで前後のポイントへ移れる詳細（`JournalPointPagerSheet`）を開く。
     @State private var selectedPoint: JournalPointSelection?
@@ -109,7 +108,10 @@ struct TravelJournalView: View {
                     TripVideoPlayerSheet(videoURL: localVideoURL)
                 }
             }
-            .onAppear { localVideoURL = TripVideoStore.existingURL(for: route.id) }
+            .onAppear {
+                localVideoURL = TripVideoStore.existingURL(for: route.id)
+                checkpointDetails = SyncService.checkpointDetailTexts(for: stamps, in: modelContext)
+            }
         }
     }
 
@@ -199,20 +201,11 @@ struct TravelJournalView: View {
     }
 
     private var distanceText: String {
-        let meters = route.totalDistanceMeters
-        if meters >= 1000 {
-            return String(format: "%.1f km", meters / 1000)
-        }
-        return String(format: "%.0f m", meters)
+        TripFormat.distance(route.totalDistanceMeters)
     }
 
     private var durationText: String? {
-        guard let durationSeconds = route.durationSeconds else { return nil }
-        let totalMinutes = Int(durationSeconds / 60)
-        if totalMinutes >= 60 {
-            return "\(totalMinutes / 60)時間\(totalMinutes % 60)分"
-        }
-        return "\(max(totalMinutes, 1))分"
+        TripFormat.duration(route.durationSeconds)
     }
 
     /// 旅日記に並べている順（御朱印・チェックポイント → 投稿した写真）のポイント一覧。
@@ -228,7 +221,7 @@ struct TravelJournalView: View {
                 placeholderColor: Self.stampColor,
                 title: site.name,
                 subtitle: nil,
-                detail: checkpointDetail(siteID: site.id) ?? site.summary
+                detail: checkpointDetails[site.id] ?? site.summary
             )
         }
         let photoPoints: [JournalPoint] = sortedPhotoPosts.map { post in
@@ -257,11 +250,11 @@ struct TravelJournalView: View {
             ForEach(sortedStamps) { stamp in
                 if let site = stamp.site {
                     JournalGalleryRow(
-                        image: stamp.photo,
+                        image: stamp.thumbnail,
                         placeholderSystemImage: "seal.fill",
                         placeholderColor: Self.stampColor,
                         title: site.name,
-                        detail: checkpointDetail(siteID: site.id) ?? site.summary,
+                        detail: checkpointDetails[site.id] ?? site.summary,
                         onTap: { selectedPoint = JournalPointSelection(id: "stamp-\(stamp.id.uuidString)") }
                     )
                 }
@@ -276,7 +269,7 @@ struct TravelJournalView: View {
 
             ForEach(sortedPhotoPosts) { post in
                 JournalGalleryRow(
-                    image: post.photo,
+                    image: post.thumbnail,
                     placeholderSystemImage: "camera.fill",
                     placeholderColor: Self.photoColor,
                     title: post.displayTitle ?? post.postedAt.formatted(date: .omitted, time: .shortened),
@@ -297,13 +290,6 @@ struct TravelJournalView: View {
         return placeName
     }
 
-    /// 既にAIで生成済みの、その御朱印スポットの詳細（`CheckpointStory`）があればその本文を返す。
-    private func checkpointDetail(siteID: String) -> String? {
-        let descriptor = FetchDescriptor<CheckpointStory>(
-            predicate: #Predicate { $0.siteID == siteID }
-        )
-        return try? modelContext.fetch(descriptor).first?.body
-    }
 }
 
 /// 旅日記のギャラリー（御朱印・投稿写真）1件分の行。写真とその説明を横並びで見せる。

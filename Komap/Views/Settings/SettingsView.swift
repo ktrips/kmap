@@ -307,7 +307,7 @@ struct SettingsView: View {
             // 先にWebでの名前・感想の変更を取り込み、端末の古い値で上書きしないようにする。
             try? await syncService.pullWalkRouteDetails(into: walkRoutes, userID: userID)
             for route in walkRoutes {
-                try await syncService.upload(route, userID: userID)
+                try await syncService.upload(route, userID: userID, checkRemoteDetails: false)
             }
             // 公開中の時空旅は、Webの公開データも最新の内容（動画・説明・写真）で作り直す。
             let sharedCount = await syncService.refreshAllSharedTrips(

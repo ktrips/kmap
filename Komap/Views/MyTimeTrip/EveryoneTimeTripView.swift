@@ -151,18 +151,10 @@ private struct LeaderboardRow: View {
 private struct SharedTripRow: View {
     let trip: RemoteSharedTrip
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/M/d HH:mm"
-        return formatter
-    }()
+    private static let dateFormatter: DateFormatter = TripFormat.dateTimeFormatter
 
     private var distanceText: String {
-        let meters = trip.totalDistanceMeters
-        if meters >= 1000 {
-            return String(format: "%.1f km", meters / 1000)
-        }
-        return String(format: "%.0f m", meters)
+        TripFormat.distance(trip.totalDistanceMeters)
     }
 
     var body: some View {
@@ -214,11 +206,7 @@ private struct SharedTripDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var enlargedPhoto: RemoteSharedPhoto?
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/M/d HH:mm"
-        return formatter
-    }()
+    private static let dateFormatter: DateFormatter = TripFormat.dateTimeFormatter
 
     private var journalBodyText: AttributedString {
         (try? AttributedString(
@@ -228,11 +216,7 @@ private struct SharedTripDetailSheet: View {
     }
 
     private var distanceText: String {
-        let meters = trip.totalDistanceMeters
-        if meters >= 1000 {
-            return String(format: "%.1f km", meters / 1000)
-        }
-        return String(format: "%.0f m", meters)
+        TripFormat.distance(trip.totalDistanceMeters)
     }
 
     var body: some View {

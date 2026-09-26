@@ -282,6 +282,16 @@ extension WatchConnectivityManager: WCSessionDelegate {
         replyHandler(["ok": true])
     }
 
+    /// 返信を求めない`sendMessage`（Watchの現在地の更新・伴走の現在地・各種コマンド）を受け取る。
+    /// この受け口が無いと、Watchが送るたびに届かず失敗し（現在地は捨てられ、コマンドは
+    /// `transferUserInfo`での再送になって遅れる）、Watchの電池と通信を無駄に使っていた。
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        guard let command = Self.parseCommand(from: message) else { return }
+        Task { @MainActor in
+            self.lastCommand = command
+        }
+    }
+
     /// Watch側が到達不能な時に使う`transferUserInfo`経由のコマンドも、
     /// `sendMessage`と同じように処理する。
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {

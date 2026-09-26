@@ -1,0 +1,33 @@
+name: Catalog sync check
+
+# iOSとWebに二重に持っている古地図・史跡チェックポイントの一覧が一致しているかを確かめる。
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Komap/Models/HistoricalOverlayMap.swift"
+      - "Komap/Models/HistoricSite.swift"
+      - "web/src/lib/oldMapCatalog.ts"
+      - "web/src/lib/historicSiteCatalog.ts"
+      - "scripts/check-catalog-sync.mjs"
+      - ".github/workflows/catalog-sync.yml"
+  pull_request:
+    paths:
+      - "Komap/Models/HistoricalOverlayMap.swift"
+      - "Komap/Models/HistoricSite.swift"
+      - "web/src/lib/oldMapCatalog.ts"
+      - "web/src/lib/historicSiteCatalog.ts"
+      - "scripts/check-catalog-sync.mjs"
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/check-catalog-sync.mjs

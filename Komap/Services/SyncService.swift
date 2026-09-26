@@ -248,7 +248,9 @@ struct SyncService {
 
     /// 保存した時間旅（`WalkRoute`）を `users/{uid}/walkRoutes/{id}` へアップロードする。
     /// Webアプリの「My Trips」で、同じGoogleアカウントの記録を見られるようにするために使う。
-    func upload(_ route: WalkRoute, userID: String?) async throws {
+    /// - Parameter checkRemoteDetails: クラウド側の名前・感想の方が新しいかを確かめてから書くか。
+    ///   直前に`pullWalkRouteDetails`で取り込み済みの時は`false`にして、1件ごとの読み込みを省く。
+    func upload(_ route: WalkRoute, userID: String?, checkRemoteDetails: Bool = true) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         guard let userID else { throw SyncError.notSignedIn }
 
@@ -275,7 +277,8 @@ struct SyncService {
 
         let document = walkRoutesCollection(for: userID).document(route.id.uuidString)
         // Webで名前・感想を変えた方が新しければ、端末の古い名前・感想で上書きしない。
-        if let remote = try? await document.getDocument(),
+        if checkRemoteDetails,
+           let remote = try? await document.getDocument(),
            let remoteUpdatedAt = (remote.data()?["detailsUpdatedAt"] as? Timestamp)?.dateValue(),
            remoteUpdatedAt > (route.detailsUpdatedAt ?? .distantPast) {
             payload.removeValue(forKey: "title")
@@ -329,7 +332,7 @@ struct SyncService {
             }
         }
         for route in routesToUpload {
-            try? await upload(route, userID: userID)
+            try? await upload(route, userID: userID, checkRemoteDetails: false)
         }
         return updatedCount
     }
@@ -365,8 +368,13 @@ struct SyncService {
             // 御朱印（史跡チェックポイント）の写真と、自由投稿の写真は、Web側でも
             // 分けて表示できるよう、それぞれ紐づく史跡名・地点名と、あれば説明文
             // （旅日記と同じ内容の`detail`）も添えて公開する。
+            // 前回公開した時にコピー済みの写真は、元の写真が変わっていなければコピーし直さない
+            // （以前は名前の変更などで公開データを作り直すたびに、全写真をダウンロードして
+            // アップロードし直していた）。
+            let previousCopies = await existingSharedPhotoCopies(tripID: route.id)
+
             var stampPhotos: [[String: Any]] = []
-            for stamp in stamps where stamp.photo != nil && !stamp.isHiddenFromSharing {
+            for stamp in stamps where stamp.photoFileName.map(StampPhotoStore.exists) == true && !stamp.isHiddenFromSharing {
                 let sourcePath = stampPhotoStoragePath(userID: userID, stampID: stamp.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: stamp.id)
                 // 写真をまだクラウドへ上げていなかった（サインイン前に撮った・通信に失敗した）
@@ -374,25 +382,35 @@ struct SyncService {
                 if stamp.cloudPhotoURL == nil {
                     _ = try? await uploadStampPhoto(stamp, userID: userID)
                 }
-                if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
+                if let url = await sharedCopyURL(
+                    photoID: stamp.id, sourceURL: stamp.cloudPhotoURL,
+                    sourcePath: sourcePath, destinationPath: destPath, previousCopies: previousCopies
+                ) {
                     let siteName = HistoricSiteCatalog.site(withID: stamp.siteID)?.name ?? "御朱印"
                     stampPhotos.append([
-                        "url": url.absoluteString,
+                        "url": url,
+                        "photoID": stamp.id.uuidString,
+                        "sourceURL": stamp.cloudPhotoURL ?? "",
                         "siteName": siteName,
                         "detail": checkpointDetails[stamp.siteID] ?? "",
                     ])
                 }
             }
             var postPhotos: [[String: Any]] = []
-            for post in photoPosts where post.photo != nil && !post.isHiddenFromSharing {
+            for post in photoPosts where StampPhotoStore.exists(post.photoFileName) && !post.isHiddenFromSharing {
                 let sourcePath = photoPostStoragePath(userID: userID, postID: post.id)
                 let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: post.id)
                 if post.cloudPhotoURL == nil {
                     _ = try? await uploadPhotoPostImage(post, userID: userID)
                 }
-                if let url = try? await photoStorage.copyToShared(from: sourcePath, to: destPath) {
+                if let url = await sharedCopyURL(
+                    photoID: post.id, sourceURL: post.cloudPhotoURL,
+                    sourcePath: sourcePath, destinationPath: destPath, previousCopies: previousCopies
+                ) {
                     postPhotos.append([
-                        "url": url.absoluteString,
+                        "url": url,
+                        "photoID": post.id.uuidString,
+                        "sourceURL": post.cloudPhotoURL ?? "",
                         "placeName": post.displayTitle ?? "",
                         "detail": post.storyBody ?? "",
                     ])
@@ -434,6 +452,40 @@ struct SyncService {
         // Storageルールの書き込み判定（sharedTripsのownerUserID照合）が失敗するため。
         await photoStorage.deleteFolder("sharedPhotos/\(tripID.uuidString)")
         try await sharedTripsCollection.document(tripID.uuidString).delete()
+    }
+
+    /// 前回公開した時のコピー（`sharedTrips/{id}`の`stampPhotos`・`postPhotos`）を、写真IDごとに
+    /// 「コピー先のURL」と「コピーした時の元写真のURL」でまとめる。まだ公開していなければ空。
+    private func existingSharedPhotoCopies(tripID: UUID) async -> [String: (url: String, sourceURL: String)] {
+        guard let data = try? await sharedTripsCollection.document(tripID.uuidString).getDocument().data() else {
+            return [:]
+        }
+        var copies: [String: (url: String, sourceURL: String)] = [:]
+        for key in ["stampPhotos", "postPhotos"] {
+            for entry in data[key] as? [[String: Any]] ?? [] {
+                guard let photoID = entry["photoID"] as? String,
+                      let url = entry["url"] as? String,
+                      let sourceURL = entry["sourceURL"] as? String, !sourceURL.isEmpty
+                else { continue }
+                copies[photoID] = (url, sourceURL)
+            }
+        }
+        return copies
+    }
+
+    /// 公開用のコピーのURLを返す。前回コピーした時から元の写真（`sourceURL`）が変わっていなければ
+    /// そのコピーを使い回し、変わっていた・まだ無い時だけコピーし直す。
+    private func sharedCopyURL(
+        photoID: UUID,
+        sourceURL: String?,
+        sourcePath: String,
+        destinationPath: String,
+        previousCopies: [String: (url: String, sourceURL: String)]
+    ) async -> String? {
+        if let sourceURL, let previous = previousCopies[photoID.uuidString], previous.sourceURL == sourceURL {
+            return previous.url
+        }
+        return try? await photoStorage.copyToShared(from: sourcePath, to: destinationPath).absoluteString
     }
 
     /// 巡った御朱印スポットの説明文（既にAIで生成済みの`CheckpointStory`があればその本文、

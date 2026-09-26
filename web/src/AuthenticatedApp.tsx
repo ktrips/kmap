@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { AdminFunnelReport } from "./components/AdminFunnelReport";
 import { Header } from "./components/Header";
@@ -7,12 +7,10 @@ import { PlaceDetail } from "./components/PlaceDetail";
 import { PlaceList } from "./components/PlaceList";
 import { TripDetail } from "./components/TripDetail";
 import { TripList } from "./components/TripList";
-import { useIsMobile } from "./lib/useIsMobile";
 import { usePhotoPosts } from "./lib/usePhotoPosts";
 import { usePlaces } from "./lib/usePlaces";
-import { useSelectedTripId } from "./lib/useSelectedTripId";
-import { useSharedTripById } from "./lib/useSharedTripById";
 import { useStamps } from "./lib/useStamps";
+import { useTripBrowser } from "./lib/useTripBrowser";
 import { useWalkRoutes } from "./lib/useWalkRoutes";
 import type { SharedTrip } from "./types/sharedTrip";
 import { fromSharedTrip, fromWalkTrip, groupByWalkRoute, type UnifiedTrip } from "./types/unifiedTrip";
@@ -41,17 +39,8 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const { stamps } = useStamps(user.uid);
   const { photoPosts } = usePhotoPosts(user.uid);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedTripId, setSelectedTripId] = useSelectedTripId();
   const [tab, setTab] = useState<SidebarTab>("trips");
   const isAdmin = user.email === ADMIN_EMAIL;
-  const isMobile = useIsMobile();
-  // スマホ幅では、旅の詳細を表示すると左のメニュー（一覧）は収納し、画面を
-  // 広く使えるようにする（メニューボタンを押すか、タブを切り替えると再び開く。
-  // URL（`?t=`）付きで開いた場合は、最初から詳細を表示した状態にする）。
-  // モバイルでない（PC・タブレット幅の）場合は、右側に旅の詳細を開いても
-  // 左のメニューはそのまま常に表示したままにする。
-  const [isSidebarOpen, setIsSidebarOpen] = useState(isMobile ? selectedTripId === null : true);
-
   // 「時空旅」タブは、自分の記録と他ユーザーが公開した時空旅（sharedTrips）の
   // 両方を並べる。自分の記録のうち公開中のものは、同じidが`sharedTrips`にも
   // 存在するため、重複して2件表示されないよう自分のID分は`sharedTrips`側から
@@ -70,46 +59,24 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   }, [ownTrips, sharedTrips, sharedTripIDs, stamps, photoPosts]);
 
   const selectedPlace = places.find((place) => place.id === selectedId) ?? null;
-  const isSelectedTripInList = selectedTripId !== null && unifiedTrips.some((trip) => trip.id === selectedTripId);
-  // 「みんなの時空旅」一覧（直近50件）に無い、他ユーザーの旅を共有リンクで直接開いた
-  // 時のための、個別取得フォールバック（自分の旅は`ownTrips`側で全件取得済みのため無関係）。
-  const fallbackSharedTrip = useSharedTripById(selectedTripId, isSelectedTripInList);
-  const selectedTrip =
-    unifiedTrips.find((trip) => trip.id === selectedTripId) ??
-    (fallbackSharedTrip ? fromSharedTrip(fallbackSharedTrip) : null);
+  // 一覧の開閉・旅の選択・共有リンクで開いた旅の個別取得は、公開ページと共通（`useTripBrowser`）。
+  const { selectedTripId, selectedTrip, isSidebarOpen, openSidebar, selectTrip, goHome } =
+    useTripBrowser(unifiedTrips);
 
   const handleSelect = (place: SavedPlace) => {
     setSelectedId(place.id);
   };
 
-  const handleSelectTrip = (trip: UnifiedTrip) => {
-    setSelectedTripId(trip.id);
-    // モバイル幅の時だけ、詳細を広く見せるために左メニューを収納する。
-    // それ以外（PC・タブレット幅）では左メニューを表示したままにする。
-    if (isMobile) {
-      setIsSidebarOpen(false);
-    }
-  };
-
-  // モバイル幅からPC・タブレット幅へリサイズ（画面回転含む）された時も、
-  // 左メニューが収納されたままにならないよう、常に表示された状態に戻す。
-  useEffect(() => {
-    if (!isMobile) {
-      setIsSidebarOpen(true);
-    }
-  }, [isMobile]);
-
   const handleTabChange = (nextTab: SidebarTab) => {
     setTab(nextTab);
-    setIsSidebarOpen(true);
+    openSidebar();
   };
 
   // 左上のアイコンを押した時、選んでいた時空旅・地点を解除してホーム（一覧のみの
   // 状態）に戻す。モバイル・PCどちらでも同じ挙動にする。
   const handleGoHome = () => {
-    setSelectedTripId(null);
+    goHome();
     setSelectedId(null);
-    setIsSidebarOpen(true);
   };
 
   return (
@@ -119,7 +86,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
         tripCount={ownTrips.length}
         onSignOut={onSignOut}
         showListButton={!isSidebarOpen}
-        onShowList={() => setIsSidebarOpen(true)}
+        onShowList={openSidebar}
         onGoHome={handleGoHome}
       />
       <div className="app-body">
@@ -149,7 +116,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
             </div>
             {tab === "places" && <PlaceList places={places} selectedId={selectedId} onSelect={handleSelect} />}
             {tab === "trips" && (
-              <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
+              <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={selectTrip} />
             )}
             {tab === "admin" && (
               <p className="admin-report-sidebar-hint">

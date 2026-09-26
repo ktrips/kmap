@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { TripDetail } from "./TripDetail";
 import { TripList } from "./TripList";
 import { HowToUseModal } from "./HowToUseModal";
 import { KindleBookModal } from "./KindleBookModal";
-import { useIsMobile } from "../lib/useIsMobile";
 import { usePresence } from "../lib/usePresence";
-import { useSelectedTripId } from "../lib/useSelectedTripId";
-import { useSharedTripById } from "../lib/useSharedTripById";
+import { useTripBrowser } from "../lib/useTripBrowser";
 import { fromSharedTrip, type UnifiedTrip } from "../types/unifiedTrip";
 import type { SharedTrip } from "../types/sharedTrip";
 
@@ -30,21 +28,6 @@ export function PublicSharedTripsView({
   isFirebaseConfigured,
   onSignInWithGoogle,
 }: Props) {
-  const [selectedTripId, setSelectedTripId] = useSelectedTripId();
-  const isMobile = useIsMobile();
-  // スマホ幅では、時空旅を選ぶと一覧と案内文（サインインの案内など）を収納して
-  // 地図・写真の表示スペースを広げる（「一覧」ボタンで再び開く。URL（`?t=`）付きで
-  // 開いた場合は、最初から詳細を表示した状態にする）。モバイルでない
-  // （PC・タブレット幅の）場合は、旅を選んでも左の一覧はそのまま表示したままにする。
-  const [isSidebarOpen, setIsSidebarOpen] = useState(isMobile ? selectedTripId === null : true);
-
-  // モバイル幅からPC・タブレット幅へリサイズ（画面回転含む）された時も、
-  // 一覧が収納されたままにならないよう、常に表示された状態に戻す。
-  useEffect(() => {
-    if (!isMobile) {
-      setIsSidebarOpen(true);
-    }
-  }, [isMobile]);
   const [isHowToOpen, setIsHowToOpen] = useState(false);
   const [isKindleOpen, setIsKindleOpen] = useState(false);
 
@@ -52,33 +35,22 @@ export function PublicSharedTripsView({
     () => sharedTrips.map(fromSharedTrip).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime()),
     [sharedTrips],
   );
-  const isSelectedTripInList = selectedTripId !== null && trips.some((trip) => trip.id === selectedTripId);
-  // 一覧（直近50件）に無い旅を共有リンクで直接開いた時のための、個別取得フォールバック。
-  const fallbackSharedTrip = useSharedTripById(selectedTripId, isSelectedTripInList);
-  const selectedTrip =
-    trips.find((trip) => trip.id === selectedTripId) ??
-    (fallbackSharedTrip ? fromSharedTrip(fallbackSharedTrip) : null);
+  // スマホ幅では、時空旅を選ぶと一覧と案内文（サインインの案内など）を収納して
+  // 地図・写真の表示スペースを広げる（`useTripBrowser`）。
+  const {
+    isMobile,
+    selectedTripId,
+    selectedTrip,
+    isSidebarOpen,
+    openSidebar,
+    selectTrip: handleSelectTrip,
+    goHome: handleGoHome,
+  } = useTripBrowser(trips);
   const activeVisitorCount = usePresence();
   // ヘッダーの「ログイン」ボタンを出す条件。モバイルでは従来通り一覧を閉じている時
   // （＝詳細を全画面表示している時）。モバイルでない時は一覧を閉じることが無くなった
   // ため、代わりに「旅を選んでいる時」に出す。
   const showLoginHeaderButton = isMobile ? !isSidebarOpen : selectedTrip !== null;
-
-  const handleSelectTrip = (trip: UnifiedTrip) => {
-    setSelectedTripId(trip.id);
-    // モバイル幅の時だけ、詳細を広く見せるために一覧を収納する。
-    // それ以外（PC・タブレット幅）では一覧を表示したままにする。
-    if (isMobile) {
-      setIsSidebarOpen(false);
-    }
-  };
-
-  // 左上のアイコンを押した時、選んでいた時空旅を解除してホーム（一覧＋案内のみの
-  // 状態）に戻す。モバイル・PCどちらでも同じ挙動にする。
-  const handleGoHome = () => {
-    setSelectedTripId(null);
-    setIsSidebarOpen(true);
-  };
 
   // 見出し・Googleサインインの案内。モバイルではこれまで通りヘッダーの下（一覧の上）に
   // 表示するが、モバイルでない時はヘッダー直下には出さず、代わりに右側の表示ペインの
@@ -131,7 +103,7 @@ export function PublicSharedTripsView({
             <button
               type="button"
               className="sidebar-menu-button"
-              onClick={() => setIsSidebarOpen(true)}
+              onClick={openSidebar}
               aria-label="一覧を表示"
             >
               <span aria-hidden="true">☰</span> 一覧
