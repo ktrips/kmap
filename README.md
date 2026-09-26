@@ -355,8 +355,9 @@ flowchart LR
   モバイルでない時は「旅を選んでいるかどうか」を基準に表示する
 - iOSアプリで旅の動画を作ってクラウドに上げた時空旅は、Web版の時空旅詳細にも「旅の動画」を
   表示し、その場で再生できる（`tripVideoURL`）
-- Web版の時空旅詳細で御朱印・投稿写真のサムネイルをクリックすると、写真を大きく
-  モーダル表示する（`PhotoLightbox`）
+- 旅日記（iOS・Webとも）で御朱印・チェックポイントや投稿写真を押すと、写真を大きく・説明を全文で
+  表示し、左右のスワイプ（Webは矢印ボタン・矢印キーも）で前後のポイントへ移れる
+  （iOS: `JournalPointPagerSheet`、Web: `PhotoLightbox`）
 - サイドバー下部に「Komapの作り方 Kindle（一部無料）」ボタンがあり、Kindle原稿
   （`docs/GeoGameAppWithGoogleMap.md`）の冒頭部分だけを切り出したプレビュー
   （`web/public/kindle-preview.md`）をその場で読める。プレビュー内・サイドバー最下部

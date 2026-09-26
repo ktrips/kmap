@@ -1284,13 +1284,91 @@ code {
   padding: 24px;
 }
 
-.photo-lightbox-image {
-  max-width: 100%;
+.photo-lightbox-card {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
   max-height: 100%;
-  border-radius: 12px;
+  background: var(--color-card);
+  border-radius: 16px;
   box-shadow: var(--shadow-soft);
-  object-fit: contain;
+  overflow: hidden;
   cursor: default;
+}
+
+.photo-lightbox-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1a15;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.photo-lightbox-image {
+  display: block;
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+}
+
+.photo-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.photo-lightbox-nav.is-prev {
+  left: 10px;
+}
+
+.photo-lightbox-nav.is-next {
+  right: 10px;
+}
+
+.photo-lightbox-text {
+  padding: 14px 18px 18px;
+  overflow-y: auto;
+}
+
+.photo-lightbox-meta {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  color: var(--color-brown);
+}
+
+.photo-lightbox-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-lightbox-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.photo-lightbox-detail {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--color-ink);
+  white-space: pre-wrap;
+}
+
+.trip-journal-gallery-item.is-clickable {
+  cursor: pointer;
 }
 
 .photo-lightbox-close {

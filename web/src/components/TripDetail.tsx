@@ -6,7 +6,7 @@ import { sitesForOverlay } from "../lib/historicSiteCatalog";
 import { saveTripDetails } from "../lib/tripEditing";
 import { useTripComments } from "../lib/useTripComments";
 import { useTripLikes } from "../lib/useTripLikes";
-import { PhotoLightbox } from "./PhotoLightbox";
+import { PhotoLightbox, type LightboxItem } from "./PhotoLightbox";
 import { TripMapView } from "./TripMapView";
 import type { UnifiedTrip } from "../types/unifiedTrip";
 
@@ -47,12 +47,24 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [lightboxPhoto, setLightboxPhoto] = useState<{ url: string; alt: string } | null>(null);
+  /** 開いているポイントの、`lightboxItems`内の位置（閉じている間は`null`）。 */
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // 選ぶ時空旅を切り替えたら、編集中だった内容は破棄する。
   useEffect(() => {
     setIsEditing(false);
+    setLightboxIndex(null);
   }, [trip?.id]);
+
+  // 旅日記に並べている順（御朱印・チェックポイント → 投稿した写真）に、左右で送れるようにする。
+  const lightboxItems = useMemo<LightboxItem[]>(
+    () => [
+      ...(trip?.stampPhotos ?? []).map((photo) => ({ ...photo, section: "御朱印・チェックポイント" })),
+      ...(trip?.postPhotos ?? []).map((photo) => ({ ...photo, section: "投稿した写真" })),
+    ],
+    [trip?.stampPhotos, trip?.postPhotos],
+  );
+  const stampCountForLightbox = trip?.stampPhotos.length ?? 0;
 
   const oldMap = trip ? findOldMap(trip.overlayMapID) : undefined;
   // `sitesForOverlay`は呼ぶたびに新しい配列を返すため、useMemoなしだと
@@ -245,15 +257,18 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
       {trip.stampPhotos.length > 0 && (
         <div className="trip-journal-gallery">
           <p className="trip-journal-gallery-title">御朱印・チェックポイント</p>
-          {trip.stampPhotos.map((photo) => (
-            <div key={photo.url} className="trip-journal-gallery-item">
-              <img
-                src={photo.url}
-                alt={photo.label}
-                className="trip-journal-gallery-photo"
-                loading="lazy"
-                onClick={() => setLightboxPhoto({ url: photo.url, alt: photo.label })}
-              />
+          {trip.stampPhotos.map((photo, index) => (
+            <div
+              key={photo.url}
+              className="trip-journal-gallery-item is-clickable"
+              role="button"
+              tabIndex={0}
+              onClick={() => setLightboxIndex(index)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") setLightboxIndex(index);
+              }}
+            >
+              <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
               <div className="trip-journal-gallery-text">
                 <p className="trip-journal-gallery-name">{photo.label}</p>
                 {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
@@ -267,15 +282,18 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
       {trip.postPhotos.length > 0 && (
         <div className="trip-journal-gallery">
           <p className="trip-journal-gallery-title">投稿した写真</p>
-          {trip.postPhotos.map((photo) => (
-            <div key={photo.url} className="trip-journal-gallery-item">
-              <img
-                src={photo.url}
-                alt={photo.label}
-                className="trip-journal-gallery-photo"
-                loading="lazy"
-                onClick={() => setLightboxPhoto({ url: photo.url, alt: photo.label })}
-              />
+          {trip.postPhotos.map((photo, index) => (
+            <div
+              key={photo.url}
+              className="trip-journal-gallery-item is-clickable"
+              role="button"
+              tabIndex={0}
+              onClick={() => setLightboxIndex(stampCountForLightbox + index)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") setLightboxIndex(stampCountForLightbox + index);
+              }}
+            >
+              <img src={photo.url} alt={photo.label} className="trip-journal-gallery-photo" loading="lazy" />
               <div className="trip-journal-gallery-text">
                 {photo.label && <p className="trip-journal-gallery-name">{photo.label}</p>}
                 {photo.detail && <p className="trip-journal-gallery-detail">{photo.detail}</p>}
@@ -323,8 +341,8 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         </form>
       </div>
 
-      {lightboxPhoto && (
-        <PhotoLightbox url={lightboxPhoto.url} alt={lightboxPhoto.alt} onClose={() => setLightboxPhoto(null)} />
+      {lightboxIndex !== null && (
+        <PhotoLightbox items={lightboxItems} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
     </div>
   );

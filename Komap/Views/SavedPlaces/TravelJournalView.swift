@@ -24,8 +24,9 @@ struct TravelJournalView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var likeCount = 0
-    /// タップされた投稿写真。大きく・前後にスワイプできる詳細（`PhotoPostPreviewSheet`）を開く。
-    @State private var selectedPhotoPost: WalkPhotoPost?
+    /// タップされたポイント（御朱印・チェックポイント、投稿写真）。写真を大きく説明と一緒に見せ、
+    /// 左右のスワイプで前後のポイントへ移れる詳細（`JournalPointPagerSheet`）を開く。
+    @State private var selectedPoint: JournalPointSelection?
     /// 端末に保存済みの旅の動画（クラウドのリンクが無い時に、ここから再生できるようにする）。
     @State private var localVideoURL: URL?
     @State private var isShowingVideo = false
@@ -100,8 +101,8 @@ struct TravelJournalView: View {
                 guard let counts = try? await syncService.fetchEngagementCounts(tripID: route.id.uuidString) else { return }
                 likeCount = counts.likeCount
             }
-            .sheet(item: $selectedPhotoPost) { post in
-                PhotoPostPreviewSheet(post: post)
+            .sheet(item: $selectedPoint) { selection in
+                JournalPointPagerSheet(points: journalPoints, initialID: selection.id)
             }
             .sheet(isPresented: $isShowingVideo) {
                 if let localVideoURL {
@@ -214,6 +215,40 @@ struct TravelJournalView: View {
         return "\(max(totalMinutes, 1))分"
     }
 
+    /// 旅日記に並べている順（御朱印・チェックポイント → 投稿した写真）のポイント一覧。
+    /// 詳細シートでは、この順に左右のスワイプで前後へ移る。
+    private var journalPoints: [JournalPoint] {
+        let stampPoints: [JournalPoint] = sortedStamps.compactMap { stamp in
+            guard let site = stamp.site else { return nil }
+            return JournalPoint(
+                id: "stamp-\(stamp.id.uuidString)",
+                section: "御朱印・チェックポイント",
+                image: { stamp.photo },
+                placeholderSystemImage: "seal.fill",
+                placeholderColor: Self.stampColor,
+                title: site.name,
+                subtitle: nil,
+                detail: checkpointDetail(siteID: site.id) ?? site.summary
+            )
+        }
+        let photoPoints: [JournalPoint] = sortedPhotoPosts.map { post in
+            JournalPoint(
+                id: "post-\(post.id.uuidString)",
+                section: "投稿した写真",
+                image: { post.photo },
+                placeholderSystemImage: "camera.fill",
+                placeholderColor: Self.photoColor,
+                title: post.displayTitle ?? post.postedAt.formatted(date: .omitted, time: .shortened),
+                subtitle: photoSubtitle(for: post),
+                detail: post.storyBody
+            )
+        }
+        return stampPoints + photoPoints
+    }
+
+    private static let stampColor = Color(red: 0.72, green: 0.53, blue: 0.15)
+    private static let photoColor = Color(red: 0.86, green: 0.63, blue: 0.24)
+
     private var goshuinGallery: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("御朱印・チェックポイント")
@@ -224,9 +259,10 @@ struct TravelJournalView: View {
                     JournalGalleryRow(
                         image: stamp.photo,
                         placeholderSystemImage: "seal.fill",
-                        placeholderColor: Color(red: 0.72, green: 0.53, blue: 0.15),
+                        placeholderColor: Self.stampColor,
                         title: site.name,
-                        detail: checkpointDetail(siteID: site.id) ?? site.summary
+                        detail: checkpointDetail(siteID: site.id) ?? site.summary,
+                        onTap: { selectedPoint = JournalPointSelection(id: "stamp-\(stamp.id.uuidString)") }
                     )
                 }
             }
@@ -242,11 +278,11 @@ struct TravelJournalView: View {
                 JournalGalleryRow(
                     image: post.photo,
                     placeholderSystemImage: "camera.fill",
-                    placeholderColor: Color(red: 0.86, green: 0.63, blue: 0.24),
+                    placeholderColor: Self.photoColor,
                     title: post.displayTitle ?? post.postedAt.formatted(date: .omitted, time: .shortened),
                     subtitle: photoSubtitle(for: post),
                     detail: post.storyBody,
-                    onTapImage: post.photo != nil ? { selectedPhotoPost = post } : nil
+                    onTap: { selectedPoint = JournalPointSelection(id: "post-\(post.id.uuidString)") }
                 )
             }
         }
@@ -280,9 +316,8 @@ private struct JournalGalleryRow: View {
     /// 取得した場所名）。無ければ何も出さない。
     var subtitle: String? = nil
     let detail: String?
-    /// 写真をタップした時に呼ばれる。`nil`ならタップしても何も起きない
-    /// （写真が無い＝プレースホルダー表示の時など）。
-    var onTapImage: (() -> Void)? = nil
+    /// 行（写真・説明）をタップした時に呼ばれる。
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -300,10 +335,6 @@ private struct JournalGalleryRow: View {
             }
             .frame(width: 84, height: 84)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .onTapGesture {
-                onTapImage?()
-            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -321,6 +352,115 @@ private struct JournalGalleryRow: View {
                 }
             }
             Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
+    }
+}
+
+/// 旅日記のポイント（御朱印・チェックポイント、投稿写真）1件分。詳細シートの1ページになる。
+struct JournalPoint: Identifiable {
+    let id: String
+    /// 「御朱印・チェックポイント」「投稿した写真」のどちらか。
+    let section: String
+    /// 写真は大きいため、ページを表示する時に初めて読み込む。
+    let image: () -> UIImage?
+    let placeholderSystemImage: String
+    let placeholderColor: Color
+    let title: String
+    let subtitle: String?
+    let detail: String?
+}
+
+/// `.sheet(item:)`に渡す、最初に開くポイントのID。
+struct JournalPointSelection: Identifiable {
+    let id: String
+}
+
+/// 旅日記のポイントを、写真を大きく・説明を全文で見せるシート。左右のスワイプで前後のポイントへ移る。
+struct JournalPointPagerSheet: View {
+    let points: [JournalPoint]
+    @State private var currentID: String
+    @Environment(\.dismiss) private var dismiss
+
+    init(points: [JournalPoint], initialID: String) {
+        self.points = points
+        _currentID = State(initialValue: initialID)
+    }
+
+    private var currentIndex: Int {
+        points.firstIndex { $0.id == currentID } ?? 0
+    }
+
+    var body: some View {
+        NavigationStack {
+            TabView(selection: $currentID) {
+                ForEach(points) { point in
+                    JournalPointPage(point: point)
+                        .tag(point.id)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .navigationTitle(points.isEmpty ? "" : "\(currentIndex + 1) / \(points.count)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("閉じる") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+private struct JournalPointPage: View {
+    let point: JournalPoint
+    @State private var image: UIImage?
+    @State private var didLoad = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Group {
+                    if let image {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        Image(systemName: point.placeholderSystemImage)
+                            .font(.system(size: 64))
+                            .foregroundStyle(point.placeholderColor)
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                            .background(.regularMaterial)
+                            .opacity(didLoad ? 1 : 0)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                Text(point.section)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(point.title)
+                    .font(.title3.bold())
+                if let subtitle = point.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                if let detail = point.detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.body)
+                        .textSelection(.enabled)
+                }
+            }
+            .padding()
+        }
+        .task {
+            guard !didLoad else { return }
+            image = point.image()
+            didLoad = true
         }
     }
 }
