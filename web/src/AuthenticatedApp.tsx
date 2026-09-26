@@ -15,7 +15,7 @@ import { useSharedTripById } from "./lib/useSharedTripById";
 import { useStamps } from "./lib/useStamps";
 import { useWalkRoutes } from "./lib/useWalkRoutes";
 import type { SharedTrip } from "./types/sharedTrip";
-import { fromSharedTrip, fromWalkTrip, type UnifiedTrip } from "./types/unifiedTrip";
+import { fromSharedTrip, fromWalkTrip, groupByWalkRoute, type UnifiedTrip } from "./types/unifiedTrip";
 import type { SavedPlace } from "./types/place";
 
 type SidebarTab = "places" | "trips" | "admin";
@@ -59,8 +59,10 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   // 他ユーザーの記録）ことは、一覧側で🌐アイコンとして示す。
   const sharedTripIDs = useMemo(() => new Set(sharedTrips.map((trip) => trip.id)), [sharedTrips]);
   const unifiedTrips = useMemo<UnifiedTrip[]>(() => {
+    const stampsByTrip = groupByWalkRoute(stamps);
+    const photoPostsByTrip = groupByWalkRoute(photoPosts);
     const ownUnified = ownTrips.map((trip) =>
-      fromWalkTrip(trip, stamps, photoPosts, sharedTripIDs.has(trip.id)),
+      fromWalkTrip(trip, stampsByTrip.get(trip.id) ?? [], photoPostsByTrip.get(trip.id) ?? [], sharedTripIDs.has(trip.id)),
     );
     const ownIDs = new Set(ownUnified.map((trip) => trip.id));
     const othersShared = sharedTrips.filter((trip) => !ownIDs.has(trip.id)).map(fromSharedTrip);

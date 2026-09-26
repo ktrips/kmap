@@ -1,6 +1,5 @@
-import { FunctionsError, httpsCallable } from "firebase/functions";
 import { useCallback, useState } from "react";
-import { functions } from "./firebase";
+import { isFirebaseConfigured, loadFunctions } from "./firebase";
 
 export type TestFlightInviteStatus = "idle" | "sending" | "sent" | "already-invited" | "error";
 
@@ -28,7 +27,7 @@ export function useTestFlightInvite() {
   const [adminReport, setAdminReport] = useState<string | null>(null);
 
   const requestInvite = useCallback(async () => {
-    if (!functions) {
+    if (!isFirebaseConfigured) {
       setStatus("error");
       setErrorMessage("Firebaseが設定されていません。");
       setAdminReport(null);
@@ -37,7 +36,11 @@ export function useTestFlightInvite() {
     setStatus("sending");
     setErrorMessage(null);
     setAdminReport(null);
+    let FunctionsErrorClass: (typeof import("firebase/functions"))["FunctionsError"] | null = null;
     try {
+      const { functions, httpsCallable, FunctionsError } = await loadFunctions();
+      FunctionsErrorClass = FunctionsError;
+      if (!functions) throw new Error("Firebaseが設定されていません。");
       const call = httpsCallable<Record<string, never>, RequestTestFlightInviteResult>(
         functions,
         "requestTestFlightInvite",
@@ -48,7 +51,7 @@ export function useTestFlightInvite() {
       console.warn("TestFlight招待の送信に失敗しました", err);
       setStatus("error");
       setErrorMessage(err instanceof Error ? err.message : "招待の送信に失敗しました。");
-      if (err instanceof FunctionsError) {
+      if (FunctionsErrorClass && err instanceof FunctionsErrorClass) {
         const details = err.details as AdminReportDetails | undefined;
         setAdminReport(typeof details?.adminReport === "string" ? details.adminReport : null);
       }

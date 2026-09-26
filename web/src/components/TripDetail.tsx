@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
+import { distanceLabel, tripDateFormatter as dateFormatter } from "../lib/format";
 import { findOldMap } from "../lib/oldMapCatalog";
 import { sitesForOverlay } from "../lib/historicSiteCatalog";
 import { saveTripDetails } from "../lib/tripEditing";
@@ -22,26 +23,12 @@ interface Props {
   onRequestSignIn?: () => void;
 }
 
-const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
-  year: "numeric",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
-
 const commentDateFormatter = new Intl.DateTimeFormat("ja-JP", {
   month: "numeric",
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
 });
-
-function distanceLabel(meters: number): string {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
-  return `${Math.round(meters)} m`;
-}
 
 function durationLabel(trip: UnifiedTrip): string | null {
   if (!trip.endedAt) return null;
@@ -73,10 +60,15 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   // 新しい配列参照になり、変わっていないTripMapView側の重い再描画
   // （古地図オーバーレイの再取得・マーカーの作り直し）を毎回引き起こしていた。
   const checkpoints = useMemo(() => sitesForOverlay(oldMap?.id ?? null), [oldMap]);
-  const journalHtml = useMemo(
-    () => (trip?.journalMarkdown ? (marked.parse(trip.journalMarkdown, { async: false }) as string) : null),
-    [trip?.journalMarkdown],
-  );
+  // 動画は下の「旅の動画」でその場で再生できるため、iOSアプリが旅日記の末尾に
+  // 付けている動画リンクの行は本文から外す（同じリンクが2か所に出ないように）。
+  const journalHtml = useMemo(() => {
+    if (!trip?.journalMarkdown) return null;
+    const markdown = trip.tripVideoURL
+      ? trip.journalMarkdown.replace(/\n*\[▶ 旅の動画を見る\]\([^)]*\)\s*$/, "")
+      : trip.journalMarkdown;
+    return marked.parse(markdown, { async: false }) as string;
+  }, [trip?.journalMarkdown, trip?.tripVideoURL]);
   // いいね・コメントのリアルタイム更新のたびに、`trip`を渡している親（一覧全体を
   // Firestoreスナップショットのたびに丸ごと作り直している）経由で`trip.latitudes`/
   // `longitudes`も新しい配列参照になりがちで、内容は変わっていないのに
@@ -219,6 +211,23 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         <div className="trip-journal-summary">
           <p className="trip-journal-summary-title">{oldMap ? `${oldMap.title}の時空旅` : "時空旅"}</p>
           <div className="trip-journal-body" dangerouslySetInnerHTML={{ __html: journalHtml }} />
+        </div>
+      )}
+
+      {/* 旅の動画（iOSアプリで作った、軌跡の上を進んで写真を見せる動画） */}
+      {trip.tripVideoURL && (
+        <div className="trip-video">
+          <p className="trip-journal-gallery-title">旅の動画</p>
+          <video
+            className="trip-video-player"
+            src={trip.tripVideoURL}
+            controls
+            playsInline
+            preload="metadata"
+          />
+          <a className="trip-video-link" href={trip.tripVideoURL} target="_blank" rel="noreferrer">
+            ▶ 別のタブで開く
+          </a>
         </div>
       )}
 

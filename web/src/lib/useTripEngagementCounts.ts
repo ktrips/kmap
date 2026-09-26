@@ -1,36 +1,69 @@
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, getCountFromServer } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 
+interface Counts {
+  likeCount: number;
+  commentCount: number;
+}
+
+/** 一覧の件数は多少古くても困らないため、同じ旅は一定時間このキャッシュを使う。 */
+const CACHE_TTL_MS = 60_000;
+const cache = new Map<string, { counts: Counts; fetchedAt: number }>();
+const inFlight = new Map<string, Promise<Counts>>();
+
+function fetchCounts(tripId: string): Promise<Counts> {
+  const cached = cache.get(tripId);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return Promise.resolve(cached.counts);
+  const pending = inFlight.get(tripId);
+  if (pending) return pending;
+  const firestore = db;
+  if (!firestore) return Promise.resolve({ likeCount: 0, commentCount: 0 });
+  const request = Promise.all([
+    getCountFromServer(collection(firestore, "sharedTrips", tripId, "likes")),
+    getCountFromServer(collection(firestore, "sharedTrips", tripId, "comments")),
+  ])
+    .then(([likes, comments]) => {
+      const counts = { likeCount: likes.data().count, commentCount: comments.data().count };
+      cache.set(tripId, { counts, fetchedAt: Date.now() });
+      return counts;
+    })
+    .finally(() => inFlight.delete(tripId));
+  inFlight.set(tripId, request);
+  return request;
+}
+
 /**
- * 一覧の1行に添える、いいね・コメントの件数だけの軽量な購読。
- * iOSアプリで付けた分もこの同じ`sharedTrips/{tripId}`を見るため、そのまま反映される。
+ * 一覧の1行に添える、いいね・コメントの件数。
+ *
+ * 以前は行ごとに`likes`・`comments`をリアルタイム購読していたため、一覧（最大50件）を
+ * 開くだけで100本の購読が張られ、いいね・コメントのドキュメントを全件読み込んでいた。
+ * 件数だけ分かればよいので、集計クエリ（`getCountFromServer`）で1回だけ数え、
+ * 短時間キャッシュする（iOSアプリの`fetchEngagementCounts`と同じ方式）。
+ * 詳細画面では`useTripLikes`・`useTripComments`がリアルタイムに最新の件数を出す。
  */
-export function useTripEngagementCounts(tripId: string | null) {
-  const [likeCount, setLikeCount] = useState(0);
-  const [commentCount, setCommentCount] = useState(0);
+export function useTripEngagementCounts(tripId: string | null): Counts {
+  const [counts, setCounts] = useState<Counts>(
+    () => (tripId ? cache.get(tripId)?.counts : undefined) ?? { likeCount: 0, commentCount: 0 },
+  );
 
   useEffect(() => {
-    if (!db || !tripId) {
-      setLikeCount(0);
-      setCommentCount(0);
+    if (!tripId) {
+      setCounts({ likeCount: 0, commentCount: 0 });
       return;
     }
-    const unsubscribeLikes = onSnapshot(
-      collection(db, "sharedTrips", tripId, "likes"),
-      (snapshot) => setLikeCount(snapshot.size),
-      () => setLikeCount(0),
-    );
-    const unsubscribeComments = onSnapshot(
-      collection(db, "sharedTrips", tripId, "comments"),
-      (snapshot) => setCommentCount(snapshot.size),
-      () => setCommentCount(0),
-    );
+    let cancelled = false;
+    fetchCounts(tripId)
+      .then((next) => {
+        if (!cancelled) setCounts(next);
+      })
+      .catch(() => {
+        // 件数は添え物なので、取れなければ表示しないだけにする。
+      });
     return () => {
-      unsubscribeLikes();
-      unsubscribeComments();
+      cancelled = true;
     };
   }, [tripId]);
 
-  return { likeCount, commentCount };
+  return counts;
 }

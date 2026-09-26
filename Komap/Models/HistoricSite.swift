@@ -983,10 +983,14 @@ enum HistoricSiteCatalog {
     /// キャッシュし、いずれかのストアが変わった時（`invalidateCache`）だけ破棄する。
     private static var cachedAll: [HistoricSite]?
     private static var cachedByOverlayID: [String: [HistoricSite]]?
+    private static var cachedByID: [String: HistoricSite]?
+    private static var visibleCache: (showGlobal: Bool, sites: [HistoricSite])?
 
     static func invalidateCache() {
         cachedAll = nil
         cachedByOverlayID = nil
+        cachedByID = nil
+        visibleCache = nil
     }
 
     /// 同梱のチェックポイント + 管理者による変更 + ユーザーが追加した古地図のチェックポイント。
@@ -997,14 +1001,21 @@ enum HistoricSiteCatalog {
         let combined = bundled + OverlayOverrideStore.allExtraSites() + CustomOverlayMapStore.sites()
         cachedAll = combined
         cachedByOverlayID = Dictionary(grouping: combined, by: \.overlayMapID)
+        cachedByID = Dictionary(combined.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return combined
     }
 
     /// `allIncludingCustom`から、「設定」で非表示にしている古地図（Komap Global）の
     /// チェックポイントを除いたもの。全地図表示・御朱印一覧に使う。
     static var visibleIncludingCustom: [HistoricSite] {
+        let showGlobal = AppSettings.showGlobalMaps
+        if let visibleCache, visibleCache.showGlobal == showGlobal {
+            return visibleCache.sites
+        }
         let sites = allIncludingCustom
-        return AppSettings.showGlobalMaps ? sites : sites.filter { !OldMapCatalog.isHiddenBySettings(overlayID: $0.overlayMapID) }
+        let visible = showGlobal ? sites : sites.filter { !OldMapCatalog.isHiddenBySettings(overlayID: $0.overlayMapID) }
+        visibleCache = (showGlobal, visible)
+        return visible
     }
 
     /// 同梱のポイントかどうか（削除の仕方が、追加したポイントと異なる）。
@@ -1014,7 +1025,9 @@ enum HistoricSiteCatalog {
 
     /// 削除（非表示）した同梱ポイントも含めて探す（獲得済みの御朱印から辿れるようにするため）。
     static func site(withID id: String) -> HistoricSite? {
-        bundledByID[id] ?? allIncludingCustom.first { $0.id == id }
+        if let site = bundledByID[id] { return site }
+        _ = allIncludingCustom
+        return cachedByID?[id]
     }
 
     /// 指定した古地図に属するチェックポイントだけを返す。

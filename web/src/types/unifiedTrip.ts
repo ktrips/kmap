@@ -31,16 +31,28 @@ export interface UnifiedTrip {
   journalTitle: string | null;
   /** AIが生成した旅日記の本文（Markdown形式）。未生成なら`null`。 */
   journalMarkdown: string | null;
+  /** 旅の動画（MP4）のURL。未作成なら`null`。 */
+  tripVideoURL: string | null;
+}
+
+/** 御朱印・投稿写真を時空旅ごとにまとめる（旅ごとに全件を絞り込み直さないため）。 */
+export function groupByWalkRoute<T extends { walkRouteID: string | null }>(items: T[]): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    if (!item.walkRouteID) continue;
+    const group = groups.get(item.walkRouteID);
+    if (group) group.push(item);
+    else groups.set(item.walkRouteID, [item]);
+  }
+  return groups;
 }
 
 export function fromWalkTrip(
   trip: WalkTrip,
-  stamps: Stamp[],
-  photoPosts: PhotoPost[],
+  tripStamps: Stamp[],
+  tripPhotoPosts: PhotoPost[],
   isShared: boolean,
 ): UnifiedTrip {
-  const tripStamps = stamps.filter((stamp) => stamp.walkRouteID === trip.id);
-  const tripPhotoPosts = photoPosts.filter((post) => post.walkRouteID === trip.id);
   const stampPhotos: SharedPhoto[] = tripStamps
     .filter((stamp) => Boolean(stamp.photoURL))
     .map((stamp) => {
@@ -81,6 +93,7 @@ export function fromWalkTrip(
     isShared,
     journalTitle: trip.journalTitle,
     journalMarkdown: trip.journalMarkdown,
+    tripVideoURL: trip.tripVideoURL,
   };
 }
 
@@ -105,5 +118,6 @@ export function fromSharedTrip(trip: SharedTrip): UnifiedTrip {
     isShared: true,
     journalTitle: trip.journalTitle,
     journalMarkdown: trip.journalMarkdown,
+    tripVideoURL: trip.tripVideoURL,
   };
 }

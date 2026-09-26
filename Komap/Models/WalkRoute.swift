@@ -102,15 +102,26 @@ final class WalkRoute {
     }
 
     /// 記録した軌跡のおおよその総距離（メートル）。
+    ///
+    /// 「My Trips」のポイント集計・一覧の各行・同期などから何度も参照されるため、
+    /// 軌跡全体をたどる計算は点の数が変わった時だけ行い、結果を`DistanceCache`に覚えておく
+    /// （以前は参照のたびに全区間を計算し、1区間ごとに`CLLocation`を2つ作っていた）。
     var totalDistanceMeters: CLLocationDistance {
-        let points = coordinates
-        guard points.count >= 2 else { return 0 }
-        var total: CLLocationDistance = 0
-        for i in 1..<points.count {
-            let a = CLLocation(latitude: points[i - 1].latitude, longitude: points[i - 1].longitude)
-            let b = CLLocation(latitude: points[i].latitude, longitude: points[i].longitude)
-            total += a.distance(from: b)
+        let lats = latitudes
+        let lons = longitudes
+        let count = min(lats.count, lons.count)
+        guard count >= 2 else { return 0 }
+        if let cached = DistanceCache.shared.value(for: id, pointCount: count) {
+            return cached
         }
+        var total: CLLocationDistance = 0
+        var previous = CLLocation(latitude: lats[0], longitude: lons[0])
+        for i in 1..<count {
+            let current = CLLocation(latitude: lats[i], longitude: lons[i])
+            total += previous.distance(from: current)
+            previous = current
+        }
+        DistanceCache.shared.store(total, for: id, pointCount: count)
         return total
     }
 
@@ -121,5 +132,27 @@ final class WalkRoute {
     /// 端数の距離分も比例して加算し、四捨五入する。
     var distancePoints: Int {
         Int((totalDistanceMeters / 1000 * WalkRoute.pointsPerKilometer).rounded())
+    }
+}
+
+/// `WalkRoute.totalDistanceMeters`の計算結果を、時空旅ごとに点の数と一緒に覚えておく。
+/// 記録を保存した後の軌跡は変わらないため、点の数が同じなら前回の結果をそのまま使う。
+private final class DistanceCache: @unchecked Sendable {
+    static let shared = DistanceCache()
+
+    private var entries: [UUID: (pointCount: Int, meters: CLLocationDistance)] = [:]
+    private let lock = NSLock()
+
+    func value(for id: UUID, pointCount: Int) -> CLLocationDistance? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let entry = entries[id], entry.pointCount == pointCount else { return nil }
+        return entry.meters
+    }
+
+    func store(_ meters: CLLocationDistance, for id: UUID, pointCount: Int) {
+        lock.lock()
+        entries[id] = (pointCount, meters)
+        lock.unlock()
     }
 }

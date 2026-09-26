@@ -29,4 +29,6 @@ export interface SharedTrip {
   journalTitle: string | null;
   /** AIが生成した旅日記の本文（Markdown形式）。未生成なら`null`。 */
   journalMarkdown: string | null;
+  /** iOSアプリで作った旅の動画（MP4）のクラウド上のURL。未作成なら`null`。 */
+  tripVideoURL: string | null;
 }

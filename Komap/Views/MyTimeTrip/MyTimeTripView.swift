@@ -267,12 +267,14 @@ struct MyTimeTripView: View {
     // MARK: - 自分がスタート〜終了した地図
 
     private var walkRoutesSection: some View {
-        TimeTripSection {
+        // 行ごとに御朱印全件を数え直さないよう、時空旅ごとの件数を一度だけ数えておく。
+        let stampCounts = stampCountsByRouteID
+        return TimeTripSection {
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(walkRouteGroups) { group in
                     WalkRouteGroupCard(
                         group: group,
-                        stampCount: stampCount(for:),
+                        stampCount: { stampCounts[$0.id] ?? 0 },
                         onResume: resume,
                         onDelete: delete
                     )
@@ -485,8 +487,10 @@ struct MyTimeTripView: View {
         .buttonStyle(.bordered)
     }
 
-    private func stampCount(for route: WalkRoute) -> Int {
-        collectedStamps.filter { $0.walkRouteID == route.id }.count
+    private var stampCountsByRouteID: [UUID: Int] {
+        collectedStamps.reduce(into: [:]) { counts, stamp in
+            if let routeID = stamp.walkRouteID { counts[routeID, default: 0] += 1 }
+        }
     }
 
     /// その時に使っていた古地図・不透明度・位置を復元してマップタブへ切り替える。

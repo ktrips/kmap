@@ -1,6 +1,7 @@
-import { collection, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
+import { parseTripFields } from "./tripDocument";
 import type { WalkTrip } from "../types/walkRoute";
 
 /**
@@ -26,25 +27,7 @@ export function useWalkRoutes(userID: string | null) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const next: WalkTrip[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          const startedAt = data.startedAt instanceof Timestamp ? data.startedAt.toDate() : new Date();
-          const endedAt = data.endedAt instanceof Timestamp ? data.endedAt.toDate() : null;
-          return {
-            id: doc.id,
-            title: data.title ?? null,
-            description: data.notes ?? null,
-            latitudes: Array.isArray(data.latitudes) ? data.latitudes : [],
-            longitudes: Array.isArray(data.longitudes) ? data.longitudes : [],
-            startedAt,
-            endedAt,
-            stepCount: typeof data.stepCount === "number" ? data.stepCount : null,
-            overlayMapID: data.overlayMapID ?? null,
-            totalDistanceMeters: typeof data.totalDistanceMeters === "number" ? data.totalDistanceMeters : 0,
-            journalTitle: data.travelJournalTitle ?? null,
-            journalMarkdown: data.travelJournalMarkdown ?? null,
-          };
-        });
+        const next: WalkTrip[] = snapshot.docs.map((doc) => parseTripFields(doc.id, doc.data()));
         setTrips(next);
         setIsLoading(false);
       },

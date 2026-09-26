@@ -14,6 +14,11 @@ export default defineConfig({
           if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) {
             return 'react'
           }
+          // Analytics・Cloud Functionsは動的importで必要になった時だけ読み込むため、
+          // 共通のfirebaseチャンクに入れない（入れると初回表示で一緒に読み込まれてしまう）。
+          if (/node_modules\/(@firebase\/(analytics|functions|installations)|firebase\/(analytics|functions))/.test(id)) {
+            return undefined
+          }
           if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
             return 'firebase'
           }

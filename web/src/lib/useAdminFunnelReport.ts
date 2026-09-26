@@ -1,6 +1,5 @@
-import { httpsCallable } from "firebase/functions";
 import { useCallback, useState } from "react";
-import { functions } from "./firebase";
+import { isFirebaseConfigured, loadFunctions } from "./firebase";
 
 export interface FunnelPhase {
   key: "signedInOnly" | "startedTrip" | "collectedStamp" | "shared";
@@ -26,13 +25,15 @@ export function useAdminFunnelReport() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!functions) {
+    if (!isFirebaseConfigured) {
       setErrorMessage("Firebaseが設定されていません。");
       return;
     }
     setIsLoading(true);
     setErrorMessage(null);
     try {
+      const { functions, httpsCallable } = await loadFunctions();
+      if (!functions) throw new Error("Firebaseが設定されていません。");
       const call = httpsCallable<Record<string, never>, AdminFunnelReport>(functions, "getAdminFunnelReport");
       const result = await call();
       setReport(result.data);

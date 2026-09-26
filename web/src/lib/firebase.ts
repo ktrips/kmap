@@ -1,7 +1,7 @@
 import { type FirebaseApp, initializeApp } from "firebase/app";
 import { type Auth, getAuth } from "firebase/auth";
 import { type Firestore, getFirestore } from "firebase/firestore";
-import { type Functions, getFunctions } from "firebase/functions";
+import type { Functions } from "firebase/functions";
 import type { Analytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -29,9 +29,6 @@ if (isFirebaseConfigured) {
   app = initializeApp(firebaseConfig);
   authInstance = getAuth(app);
   dbInstance = getFirestore(app);
-  // Cloud Functionsは `functions/src/index.ts` の `setGlobalOptions` と
-  // 同じリージョン（asia-northeast1）を指定する必要がある。
-  functionsInstance = getFunctions(app, "asia-northeast1");
 
   // Analyticsは初期表示には不要な上、Safariのプライベートモードなど一部環境で
   // 未サポートのため、動的importで遅延読み込みし、対応している場合のみ初期化する
@@ -52,7 +49,20 @@ if (isFirebaseConfigured) {
 
 export const auth = authInstance;
 export const db = dbInstance;
-export const functions = functionsInstance;
+
+/**
+ * Cloud Functions（管理者レポート・TestFlight招待）はサインインした人しか使わないため、
+ * SDKを初期バンドルに含めず、初めて呼ぶ時に読み込む（未サインインの訪問者の読み込み量を減らす）。
+ * Cloud Functionsは `functions/src/index.ts` の `setGlobalOptions` と同じリージョン
+ * （asia-northeast1）を指定する必要がある。
+ */
+export async function loadFunctions() {
+  const module = await import("firebase/functions");
+  if (!functionsInstance && app) {
+    functionsInstance = module.getFunctions(app, "asia-northeast1");
+  }
+  return { functions: functionsInstance, httpsCallable: module.httpsCallable, FunctionsError: module.FunctionsError };
+}
 export function getAnalyticsInstance(): Analytics | undefined {
   return analyticsInstance;
 }

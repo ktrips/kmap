@@ -44,8 +44,6 @@ export function usePresence(): number | null {
         // 訪問者向けの演出用の数字なので、失敗しても画面には影響させない。
       });
     };
-    sendHeartbeat();
-    const heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
 
     const refreshCount = () => {
       const cutoff = Timestamp.fromMillis(Date.now() - STALE_AFTER_MS);
@@ -54,8 +52,34 @@ export function usePresence(): number | null {
         .then((snapshot) => setCount(snapshot.data().count))
         .catch(() => {});
     };
-    refreshCount();
-    const pollTimer = setInterval(refreshCount, POLL_INTERVAL_MS);
+
+    // タブが裏に回っている間（見ていない間）は、生存確認の書き込みも人数の数え直しも
+    // 止める。開きっぱなしのタブが、見られていないのにFirestoreの読み書きを続けないように。
+    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (heartbeatTimer !== null) return;
+      sendHeartbeat();
+      refreshCount();
+      heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+      pollTimer = setInterval(refreshCount, POLL_INTERVAL_MS);
+    };
+    const stop = () => {
+      if (heartbeatTimer !== null) clearInterval(heartbeatTimer);
+      if (pollTimer !== null) clearInterval(pollTimer);
+      heartbeatTimer = null;
+      pollTimer = null;
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        start();
+      } else {
+        stop();
+        deleteDoc(presenceRef).catch(() => {});
+      }
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const handleUnload = () => {
       void deleteDoc(presenceRef);
@@ -63,8 +87,8 @@ export function usePresence(): number | null {
     window.addEventListener("beforeunload", handleUnload);
 
     return () => {
-      clearInterval(heartbeatTimer);
-      clearInterval(pollTimer);
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleUnload);
       deleteDoc(presenceRef).catch(() => {});
     };

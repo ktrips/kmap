@@ -1,4 +1,5 @@
 import type { UnifiedTrip } from "../types/unifiedTrip";
+import { distanceLabel, tripDateFormatter as dateFormatter } from "../lib/format";
 import { findOldMap } from "../lib/oldMapCatalog";
 import { useTripEngagementCounts } from "../lib/useTripEngagementCounts";
 
@@ -6,20 +7,6 @@ interface Props {
   trips: UnifiedTrip[];
   selectedId: string | null;
   onSelect: (trip: UnifiedTrip) => void;
-}
-
-const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
-  year: "numeric",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
-
-function distanceLabel(meters: number): string {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
-  return `${Math.round(meters)} m`;
 }
 
 /** 一覧の1行に添える、いいね・コメント件数（0件の間は表示しない）。 */

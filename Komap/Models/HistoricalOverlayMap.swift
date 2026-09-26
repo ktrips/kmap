@@ -462,10 +462,25 @@ enum OldMapCatalog {
 
     /// `allIncludingCustom`から、設定で非表示にしている古地図を除いたもの。
     /// 古地図の選択肢・全地図表示・現在地からの古地図選択に使う。
+    ///
+    /// 「全ての古地図を表示」中は歩行のGPS更新のたびに参照されるため、設定の値ごとに
+    /// 絞り込んだ結果を覚えておく（`allIncludingCustom`が作り直される時に一緒に捨てる）。
     static var visibleIncludingCustom: [HistoricalOverlayMap] {
+        let showGlobal = AppSettings.showGlobalMaps
+        if let visibleCache, visibleCache.showGlobal == showGlobal {
+            return visibleCache.overlays
+        }
         let overlays = allIncludingCustom
-        return AppSettings.showGlobalMaps ? overlays : overlays.filter { !isHiddenBySettings($0) }
+        let visible = showGlobal ? overlays : overlays.filter { !isHiddenBySettings($0) }
+        visibleCache = (showGlobal, visible)
+        return visible
     }
+
+    private static var visibleCache: (showGlobal: Bool, overlays: [HistoricalOverlayMap])?
+
+    /// 古地図の一覧（同梱＋追加＋管理者の上書き）が変わるたびに増える番号。地図画面は、
+    /// この番号と設定の値が前回と同じなら、全地図の重ね直しの判定自体を省く。
+    private(set) static var revision = 0
 
     /// `allIncludingCustom`の結果のキャッシュ。「全ての古地図を表示」中は歩行のGPS更新の
     /// たびに参照されるため、変化がない間は配列の再構築（同梱リストとカスタム古地図の
@@ -509,6 +524,8 @@ enum OldMapCatalog {
     static func invalidateAllIncludingCustomCache() {
         allIncludingCustomCache = nil
         allIncludingCustomByID = [:]
+        visibleCache = nil
+        revision += 1
     }
 
     /// 統合によって廃止されたID → 統合先IDの対応表。
