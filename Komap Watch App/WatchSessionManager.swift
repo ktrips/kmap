@@ -73,6 +73,16 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// トラッカーを作り直さない）。
     private var companionSessionID: UUID?
     private var lastCompanionSnapshotSentAt: Date?
+    /// 生存確認が途絶えて伴走を打ち切ったセッションID。同じ記録で伴走をやり直さない。
+    private var abandonedCompanionSessionID: UUID?
+    /// iPhoneから最後に「記録中」の新しい状態が届いた時刻。iPhoneは記録中、1分ごとに
+    /// 状態を送り直す（`stateUpdatedAt`）ので、これが途絶えたらiPhoneのアプリが
+    /// 落ちた・強制終了されたとみなす。
+    private var lastFreshRecordingStateAt: Date?
+    /// iPhoneの状態をこの時間より古ければ信用しない（記録中とみなさない）。
+    private static let iPhoneStateMaxAge: TimeInterval = 3 * 60
+    /// iPhoneの記録に連動している間、生存確認が途絶えていないかを見回るタイマー。
+    private var iPhoneLivenessTimer: Timer?
 
     override init() {
         session = WCSession.isSupported() ? WCSession.default : nil
@@ -103,6 +113,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
             self.send(["command": "watchTrackingPaused"])
         }
         tracker.onMaxDurationExceeded = { [weak self] in
+            self?.stop(shouldSave: true)
+        }
+        // 一時停止したまま長時間たった・ワークアウトが外から終わった時も、止め忘れとみなして
+        // それまでの軌跡を保存して終える（GPSとワークアウトを回し続けないため）。
+        tracker.onPausedTooLong = { [weak self] in
+            self?.stop(shouldSave: true)
+        }
+        tracker.onWorkoutEndedUnexpectedly = { [weak self] in
             self?.stop(shouldSave: true)
         }
         tracker.start()
@@ -181,6 +199,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
         } else {
             state = .idle
             isSelfTracking = false
+            // iPhoneに終了が届くのを待たず、伴走のGPSもこの場で止める。
+            stopCompanionTracking()
+            stopIPhoneLivenessTimer()
+            lastFreshRecordingStateAt = nil
             send(["command": shouldSave ? "stop" : "discard"])
         }
     }
@@ -268,12 +290,23 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// という情報で上書きしてしまわないよう、記録の状態だけは無視する。
     private func applyContext(_ context: [String: Any]) {
         if !isSelfTracking {
-            let isRecording = context["isRecording"] as? Bool ?? false
+            // iPhoneのアプリが記録中に落ちると「記録中」の古い状態が残り続け、Watchを開くたびに
+            // 伴走のGPSが動き出してしまう。新しい状態（生存確認つき）だけを記録中として扱う。
+            let stateUpdatedAt = context["stateUpdatedAt"] as? TimeInterval
+            let isFresh = stateUpdatedAt.map {
+                Date().timeIntervalSince1970 - $0 <= Self.iPhoneStateMaxAge
+            } ?? false
+            let isRecording = isFresh && (context["isRecording"] as? Bool ?? false)
             let isPaused = context["isPaused"] as? Bool ?? false
             let incomingSessionID = (context["activeSessionID"] as? String).flatMap(UUID.init(uuidString:))
+            if isRecording, let stateUpdatedAt {
+                lastFreshRecordingStateAt = Date(timeIntervalSince1970: stateUpdatedAt)
+                startIPhoneLivenessTimer()
+            }
             if !isRecording {
                 state = .idle
                 stopCompanionTracking()
+                stopIPhoneLivenessTimer()
             } else if isPaused {
                 state = .paused
                 if companionSessionID != nil, companionSessionID == incomingSessionID {
@@ -281,7 +314,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
                 }
             } else {
                 state = .recording
-                if let incomingSessionID {
+                if let incomingSessionID, incomingSessionID != abandonedCompanionSessionID {
                     if companionSessionID != incomingSessionID {
                         startCompanionTracking(sessionID: incomingSessionID)
                     } else {
@@ -321,9 +354,54 @@ final class WatchSessionManager: NSObject, ObservableObject {
         // 伴走中の最長時間超過は、iPhone側にも独立した保険があるため、ここではWatch側の
         // GPSアシストだけ静かに止める（iPhoneには特に伝えない）。
         tracker.onMaxDurationExceeded = { [weak self] in
-            self?.stopCompanionTracking()
+            self?.abandonCompanionTracking()
+        }
+        tracker.onPausedTooLong = { [weak self] in
+            self?.abandonCompanionTracking()
+        }
+        tracker.onWorkoutEndedUnexpectedly = { [weak self] in
+            self?.abandonCompanionTracking()
         }
         tracker.start()
+    }
+
+    /// この記録ではもう伴走しないと決めて止める（最長時間・長い一時停止・生存確認の途絶など）。
+    private func abandonCompanionTracking() {
+        abandonedCompanionSessionID = companionSessionID
+        stopCompanionTracking()
+    }
+
+    private func startIPhoneLivenessTimer() {
+        guard iPhoneLivenessTimer == nil else { return }
+        let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkIPhoneLiveness() }
+        }
+        timer.tolerance = 10
+        RunLoop.main.add(timer, forMode: .common)
+        iPhoneLivenessTimer = timer
+    }
+
+    private func stopIPhoneLivenessTimer() {
+        iPhoneLivenessTimer?.invalidate()
+        iPhoneLivenessTimer = nil
+    }
+
+    /// iPhoneの記録に連動中、iPhoneからの生存確認が途絶えていたら、iPhoneのアプリが
+    /// 落ちたとみなして伴走のGPSを止め、画面も「記録していない」状態に戻す。
+    private func checkIPhoneLiveness() {
+        guard !isSelfTracking else {
+            stopIPhoneLivenessTimer()
+            return
+        }
+        guard let lastFreshRecordingStateAt,
+              Date().timeIntervalSince(lastFreshRecordingStateAt) > Self.iPhoneStateMaxAge
+        else { return }
+        self.lastFreshRecordingStateAt = nil
+        stopIPhoneLivenessTimer()
+        if companionTracker != nil {
+            abandonCompanionTracking()
+        }
+        state = .idle
     }
 
     /// 伴走トラッキングを終える（iPhoneの記録が終わった時、またはWatch自身の

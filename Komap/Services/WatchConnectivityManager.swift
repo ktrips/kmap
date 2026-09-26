@@ -99,7 +99,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         activeSessionID: UUID? = nil
     ) {
         guard let session, session.activationState == .activated else { return }
-        try? session.updateApplicationContext([
+        lastStateContext = [
             "isRecording": isRecording,
             "isPaused": isPaused,
             "mapIDs": availableMaps.map(\.id),
@@ -108,7 +108,34 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "activeSessionID": activeSessionID?.uuidString as Any,
             "autoPauseWhenStationary": AppSettings.autoPauseWhenStationary,
             "stationaryAutoPauseMinutes": AppSettings.stationaryAutoPauseMinutes,
-        ])
+        ]
+        sendStateContext()
+        updateHeartbeat(isRecording: isRecording)
+    }
+
+    /// 最後に`updateState`で送った状態。記録中は`stateUpdatedAt`だけ新しくして定期的に送り直す。
+    private var lastStateContext: [String: Any]?
+    private var heartbeatTimer: Timer?
+    /// 記録中、この間隔で状態を送り直す。Watchはこの「生存確認」が途絶えると、iPhoneのアプリが
+    /// 落ちた・強制終了されたとみなして伴走のGPSを止める（Watchの電池を守るため）。
+    private static let heartbeatInterval: TimeInterval = 60
+
+    private func sendStateContext() {
+        guard let session, session.activationState == .activated, var context = lastStateContext else { return }
+        context["stateUpdatedAt"] = Date().timeIntervalSince1970
+        try? session.updateApplicationContext(context)
+    }
+
+    private func updateHeartbeat(isRecording: Bool) {
+        guard isRecording else {
+            heartbeatTimer?.invalidate()
+            heartbeatTimer = nil
+            return
+        }
+        guard heartbeatTimer == nil else { return }
+        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: Self.heartbeatInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.sendStateContext() }
+        }
     }
 
     /// 御朱印を新しく獲得した時、Watch側にも通知してその場で確認・チェックインできるようにする。
