@@ -304,6 +304,8 @@ struct SettingsView: View {
                 try await syncService.upload(place, userID: userID)
             }
             let walkRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>())
+            // 先にWebでの名前・感想の変更を取り込み、端末の古い値で上書きしないようにする。
+            try? await syncService.pullWalkRouteDetails(into: walkRoutes, userID: userID)
             for route in walkRoutes {
                 try await syncService.upload(route, userID: userID)
             }
@@ -345,6 +347,10 @@ struct SettingsView: View {
                 guard let remoteUUID = UUID(uuidString: remote.id), !localStampIDs.contains(remoteUUID) else { continue }
                 modelContext.insert(CollectedStamp(id: remoteUUID, siteID: remote.siteID, collectedAt: remote.collectedAt))
             }
+
+            let localRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>())
+            try await syncService.pullWalkRouteDetails(into: localRoutes, userID: userID)
+            try? modelContext.save()
         } catch {
             syncMessage = "クラウドからの取得に失敗しました: \(error.localizedDescription)"
         }

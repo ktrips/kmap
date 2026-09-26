@@ -75,6 +75,9 @@ struct TravelJournalView: View {
                     )
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .playsTripVideoOnTap(localVideoURL: localVideoURL, cloudVideoURL: route.tripVideoURL) {
+                        isShowingVideo = true
+                    }
 
                     if !sortedStamps.isEmpty {
                         goshuinGallery

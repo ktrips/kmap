@@ -26,6 +26,10 @@ final class WalkRoute {
     var title: String?
     /// ユーザーが後から書ける、この時間旅の感想・メモ。未設定なら`nil`。
     var notes: String?
+    /// 名前（`title`）・感想（`notes`）を最後に変更した日時。iOSとWebのどちらで変えたものが
+    /// 新しいかを比べ、新しい方を残すために使う（`SyncService.pullWalkRouteDetails`）。
+    /// この項目を追加する前の記録や、一度も変更していない記録では`nil`。
+    var detailsUpdatedAt: Date?
     /// `true`の間、この時間旅は自分だけの「My Trips」ではなく、
     /// 全ユーザー共通の「みんなの時空旅」にも公開される。
     var isSharedPublicly: Bool = false

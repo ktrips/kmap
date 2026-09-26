@@ -205,6 +205,13 @@ struct MyTimeTripView: View {
             .sheet(isPresented: $isPresentingGPXImport) {
                 GPXImportSheet()
             }
+            // Webで変えた時空旅の名前・感想を、開くたびに取り込む。
+            .task(id: authService.userID) {
+                guard let userID = authService.userID else { return }
+                if (try? await syncService.pullWalkRouteDetails(into: walkRoutes, userID: userID)) ?? 0 > 0 {
+                    try? modelContext.save()
+                }
+            }
             .task(id: pointsSnapshot) {
                 guard let userID = authService.userID else { return }
                 let displayName = authService.displayName ?? "ユーザー"

@@ -159,6 +159,9 @@ struct WalkRouteDetailView: View {
                 )
                 .frame(height: 240)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .playsTripVideoOnTap(localVideoURL: videoURL, cloudVideoURL: route.tripVideoURL) {
+                    isShowingVideo = true
+                }
 
                 nameSection
 
@@ -247,8 +250,9 @@ struct WalkRouteDetailView: View {
             Button("保存する") {
                 let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                 route.title = trimmed.isEmpty ? nil : trimmed
+                route.detailsUpdatedAt = Date()
                 try? modelContext.save()
-                Task { await resyncSharedTripIfNeeded() }
+                Task { await syncEditedDetails() }
             }
             Button("キャンセル", role: .cancel) {}
         }
@@ -300,9 +304,10 @@ struct WalkRouteDetailView: View {
                             Button("保存する") {
                                 let trimmed = editedNotes.trimmingCharacters(in: .whitespacesAndNewlines)
                                 route.notes = trimmed.isEmpty ? nil : trimmed
+                                route.detailsUpdatedAt = Date()
                                 try? modelContext.save()
                                 isEditingNotes = false
-                                Task { await resyncSharedTripIfNeeded() }
+                                Task { await syncEditedDetails() }
                             }
                         }
                     }
@@ -748,6 +753,13 @@ struct WalkRouteDetailView: View {
     }
 
     /// 既に「みんなの時空旅」に公開済みなら、名前・感想の変更を公開データにも反映する。
+    /// 名前・感想を変えた時、自分用の記録（`users/{uid}/walkRoutes`）と、公開中なら
+    /// 公開データの両方に反映する（Webの「My Trips」にも同じ内容が出るように）。
+    private func syncEditedDetails() async {
+        try? await syncService.upload(route, userID: authService.userID)
+        await resyncSharedTripIfNeeded()
+    }
+
     private func resyncSharedTripIfNeeded() async {
         let details = checkpointDetailTexts()
         await syncService.resyncSharedTripIfNeeded(
@@ -910,6 +922,51 @@ private struct CheckpointRow: View {
 
 /// 歩いたルート（＝自分が通って塗りつぶした地図）を、使っていた古地図・
 /// チェックポイントと一緒に表示する、操作不要の小さな地図。
+/// 旅の動画を作ってある時、地図を押すとその動画を再生できるようにする。
+/// 端末に動画があれば`playLocal`（アプリ内のプレーヤー）で、無ければクラウドの共有リンクを開く。
+/// 動画が無い時は何もしない（地図はそのまま）。
+private struct TripVideoTapOverlay: ViewModifier {
+    let localVideoURL: URL?
+    let cloudVideoURL: String?
+    let playLocal: () -> Void
+    @Environment(\.openURL) private var openURL
+
+    private var cloudURL: URL? { cloudVideoURL.flatMap(URL.init(string:)) }
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if localVideoURL != nil || cloudURL != nil {
+                Button {
+                    if localVideoURL != nil {
+                        playLocal()
+                    } else if let cloudURL {
+                        openURL(cloudURL)
+                    }
+                } label: {
+                    ZStack(alignment: .bottomTrailing) {
+                        Color.clear.contentShape(Rectangle())
+                        Label("動画を再生", systemImage: "play.fill")
+                            .font(.caption.bold())
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.black.opacity(0.55), in: Capsule())
+                            .padding(10)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("旅の動画を再生")
+            }
+        }
+    }
+}
+
+extension View {
+    func playsTripVideoOnTap(localVideoURL: URL?, cloudVideoURL: String?, playLocal: @escaping () -> Void) -> some View {
+        modifier(TripVideoTapOverlay(localVideoURL: localVideoURL, cloudVideoURL: cloudVideoURL, playLocal: playLocal))
+    }
+}
+
 struct WalkRouteMapView: UIViewRepresentable {
     let overlayMap: HistoricalOverlayMap?
     let overlayOpacity: Float

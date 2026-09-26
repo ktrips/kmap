@@ -267,10 +267,75 @@ struct SyncService {
             "tripVideoURL": route.tripVideoURL as Any? ?? NSNull(),
             "travelJournalGeneratedAt": route.travelJournalGeneratedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
         ]
+        var payload = data
+        if let detailsUpdatedAt = route.detailsUpdatedAt {
+            payload["detailsUpdatedAt"] = Timestamp(date: detailsUpdatedAt)
+        }
 
-        try await walkRoutesCollection(for: userID)
-            .document(route.id.uuidString)
-            .setData(data, merge: true)
+        let document = walkRoutesCollection(for: userID).document(route.id.uuidString)
+        // Webで名前・感想を変えた方が新しければ、端末の古い名前・感想で上書きしない。
+        if let remote = try? await document.getDocument(),
+           let remoteUpdatedAt = (remote.data()?["detailsUpdatedAt"] as? Timestamp)?.dateValue(),
+           remoteUpdatedAt > (route.detailsUpdatedAt ?? .distantPast) {
+            payload.removeValue(forKey: "title")
+            payload.removeValue(forKey: "notes")
+            payload.removeValue(forKey: "detailsUpdatedAt")
+        }
+        try await document.setData(payload, merge: true)
+    }
+
+    /// Webで変えた時空旅の名前・感想を、端末の記録に取り込む。
+    ///
+    /// 名前・感想を最後に変えた日時（`detailsUpdatedAt`）を比べて新しい方を残す。
+    /// どちらにも日時が無い（この仕組みを入れる前にWebで変えた）場合は、iOSでの変更は
+    /// その都度クラウドへ上げているため、クラウド側の値をWebでの変更とみなして取り込む。
+    /// 端末の方が新しいのにクラウドが古いまま（上げ損ねた）なら、クラウドへ上げ直す。
+    /// - Returns: 端末の記録を書き換えた件数。
+    @MainActor
+    @discardableResult
+    func pullWalkRouteDetails(into routes: [WalkRoute], userID: String) async throws -> Int {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        let snapshot = try await walkRoutesCollection(for: userID).getDocuments()
+        let routesByID = Dictionary(routes.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
+
+        var updatedCount = 0
+        var routesToUpload: [WalkRoute] = []
+        for document in snapshot.documents {
+            guard let route = routesByID[document.documentID] else { continue }
+            let data = document.data()
+            let remoteTitle = Self.normalized(data["title"] as? String)
+            let remoteNotes = Self.normalized(data["notes"] as? String)
+            let remoteUpdatedAt = (data["detailsUpdatedAt"] as? Timestamp)?.dateValue()
+            let differs = remoteTitle != Self.normalized(route.title) || remoteNotes != Self.normalized(route.notes)
+
+            let remoteIsNewer: Bool
+            switch (remoteUpdatedAt, route.detailsUpdatedAt) {
+            case let (remote?, local?): remoteIsNewer = remote > local
+            case (_?, nil): remoteIsNewer = true
+            case (nil, nil): remoteIsNewer = differs
+            case (nil, _?): remoteIsNewer = false
+            }
+
+            if remoteIsNewer {
+                if differs {
+                    route.title = remoteTitle
+                    route.notes = remoteNotes
+                    updatedCount += 1
+                }
+                route.detailsUpdatedAt = remoteUpdatedAt ?? route.detailsUpdatedAt
+            } else if differs {
+                routesToUpload.append(route)
+            }
+        }
+        for route in routesToUpload {
+            try? await upload(route, userID: userID)
+        }
+        return updatedCount
+    }
+
+    private static func normalized(_ text: String?) -> String? {
+        guard let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 
     /// 削除をクラウド側にも反映する。

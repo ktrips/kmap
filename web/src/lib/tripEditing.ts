@@ -1,4 +1,4 @@
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 /**
@@ -13,7 +13,8 @@ export async function saveTripDetails(
   updates: { title: string | null; description: string | null },
 ): Promise<void> {
   if (!db) return;
-  const payload = { title: updates.title, notes: updates.description };
+  // `detailsUpdatedAt`: iOSアプリはこの日時と端末側の変更日時を比べ、新しい方の名前・感想を残す。
+  const payload = { title: updates.title, notes: updates.description, detailsUpdatedAt: serverTimestamp() };
   await updateDoc(doc(db, "users", userID, "walkRoutes", tripId), payload);
   if (isShared) {
     await updateDoc(doc(db, "sharedTrips", tripId), payload);
