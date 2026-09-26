@@ -5,7 +5,71 @@
 保存した「My Trips（私の時空旅）」はWebアプリ（`komap.ktrips.net` など）からも
 同じGoogleアカウントでログインして見ることができます。
 
-## 主な機能
+## サマリー
+
+### できること
+
+- **古地図を重ねて歩く**: 江戸〜明治期の東京の古地図を、今のGoogle Mapに重ねて表示する。
+  濃さはスライダーで変えられる。設定でオンにすると、海外4都市の旧市街の地図（Komap Global）も使える
+- **その場所の昔を知る**: 今いる場所・撮った写真をもとに、AIがその土地の昔の出来事や物語を語る
+- **歩いた記録を残す**: GPSで徒歩ルート・歩数・時間を記録する。iPhoneでもApple Watch単体でも
+  記録でき、画面をロックしても続く
+- **集めて楽しむ**: 史跡チェックポイントに近づくと御朱印（海外の地図では紋章バッジ）を獲得する。
+  写真の投稿・歩いた距離と合わせて「時空ポイント」がたまり、週間ランキングで競える
+- **旅を振り返る**: 歩いた記録はAIが書く「旅日記」と、軌跡の上を進む「旅の動画」になる
+- **旅を共有する**: 公開した旅はWeb（`komap.ktrips.net`）で誰でも見られ、URLやSNSで共有できる。
+  いいね・コメント・友達申請もできる
+- **古地図を作る**: 国立国会図書館・Wikimedia Commonsから古地図を探したり、AIで
+  ファンタジー地図を作ったりして追加し、「みんなの古地図」として公開できる
+
+### 主な機能
+
+| 分類 | 機能 |
+|---|---|
+| 地図 | 古地図の重ね表示と濃さの調整、全地図を重ねて表示、現在地を含む古地図の自動選択、大きな現在地マークと進行方向の矢印 |
+| 古地図 | 同梱の東京の古地図とKomap Global（海外4都市）、古地図の検索・AIでの作成、追加した古地図の編集と公開、みんなの古地図の取り込み |
+| 記録 | GPSでの徒歩ルート記録（バックグラウンド継続）、歩数（CMPedometer＋HealthKit）、Apple Watch単体での記録・iPhoneとの伴走、動きがない時の自動一時停止と8時間での自動終了、GPXファイルの取り込み |
+| ゲーム要素 | 御朱印・紋章バッジの自動獲得、時空ポイント（御朱印50pt・写真10pt・1kmごと10pt）、週間ランキング、友達 |
+| AI | 場所の物語、旅日記、古地図の範囲・チェックポイントの推定、ファンタジー地図・地図の描き直し（OpenAI／Gemini／Claudeから選択） |
+| 写真・動画 | 御朱印・投稿写真の撮影と加工（セピアなど）、旅の動画（MP4）、共有カード画像 |
+| 共有・Web | Googleサインインでのクラウド同期、旅の公開と短縮URL、Webでの閲覧（サインイン不要）、いいね・コメント、管理者レポート、TestFlightへの自動招待 |
+| 連携機器 | 同じWi-Fi上の連携カメラ・連携プリンター（M5Stackなど）で撮影・プリント |
+
+### 技術上のポイント
+
+- **iOSアプリが中心**: 記録・AI生成・写真・動画はすべてiPhoneの中で行う。Webは公開された
+  データを表示するだけのビューアで、iOSアプリと直接は通信しない
+- **まず端末に保存、クラウドは同期と公開のため**: SwiftDataとApplication Supportに保存するので、
+  サインインしなくても電波が悪くても使える。Googleサインインすると、Firestore・Storageに同期する
+- **AIのAPIキーはサーバーに置かない**: 各ユーザーが自分のキーを端末のKeychainに保存し、
+  `AIClient`が3社のAPIの違いを吸収する。Webは生成済みの文章を表示するだけなので、AIの料金がかからない
+- **記録を止めない・なくさない**: バックグラウンドの位置更新、WatchのHKWorkoutSession、
+  記録中の軌跡のこまめな下書き保存、GPU不具合で消えた古地図の自動貼り直し
+- **権限はセキュリティルールで守る**: 本人のデータは本人だけ、公開データは誰でも読めて持ち主だけが
+  書ける。管理者の確認やTestFlight招待では、Firebase Authが検証したトークンのメールアドレスを使う
+- **サーバー処理は最小限**: 独自のサーバーは持たず、Cloud Functionsは管理者レポートと
+  TestFlight招待の2つだけ。Webは`main`へのpushでGitHub ActionsがFirebase Hostingへ自動デプロイする
+- **プロジェクトファイルは生成する**: `.xcodeproj`はコミットせず、`project.yml`からXcodeGenで作る。
+  APIキーを入れるファイルはGitの管理外
+
+```mermaid
+flowchart LR
+  Watch["Apple Watch アプリ"] <-->|WatchConnectivity| App["Komap iOS アプリ<br/>SwiftUI + SwiftData"]
+  App <--> Maps["Google Maps SDK"]
+  App --> AI["AI<br/>OpenAI / Gemini / Claude"]
+  App --> OldMaps["国立国会図書館 / Wikimedia"]
+  App <--> Devices["連携カメラ・プリンター"]
+  App <-->|同期・公開| Firebase["Firebase<br/>Auth / Firestore / Storage"]
+  Web["Web アプリ<br/>komap.ktrips.net"] <--> Firebase
+  Web --> Functions["Cloud Functions"] --> ASC["App Store Connect<br/>TestFlight招待"]
+  GH["GitHub Actions"] -->|デプロイ| Web
+```
+
+以下、機能の詳細、技術構成、セットアップ手順の順に説明します。
+
+---
+
+## 機能の詳細
 
 ### 地図・古地図まわり
 - 現在地をGoogle Map上に表示。Google純正の現在地マーク（小さく見づらいとの声があったため）
