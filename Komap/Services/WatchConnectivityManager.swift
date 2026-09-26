@@ -1,5 +1,6 @@
 import CoreLocation
 import Foundation
+import UIKit
 import WatchConnectivity
 
 /// Watch単体のGPSで記録を終えた時に届く、まるごとの軌跡データ。
@@ -83,6 +84,26 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         super.init()
         session?.delegate = self
         session?.activate()
+        // アプリが終了させられる（App スイッチャーで上にスワイプ等）と、記録も一緒に終わる。
+        // その場で「記録していない」状態をWatchへ送り、伴走のGPSをすぐ止めてもらう。
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.notifyAppTerminating() }
+        }
+    }
+
+    private func notifyAppTerminating() {
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = nil
+        guard var context = lastStateContext else { return }
+        context["isRecording"] = false
+        context["isPaused"] = false
+        context.removeValue(forKey: "activeSessionID")
+        lastStateContext = context
+        sendStateContext()
     }
 
     /// 現在の記録状態・選択中の古地図をWatchへ反映する。Watch側アプリが起動していなくても、
@@ -99,16 +120,20 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         activeSessionID: UUID? = nil
     ) {
         guard let session, session.activationState == .activated else { return }
-        lastStateContext = [
+        var context: [String: Any] = [
             "isRecording": isRecording,
             "isPaused": isPaused,
             "mapIDs": availableMaps.map(\.id),
             "mapTitles": availableMaps.map(\.title),
-            "selectedMapID": selectedMapID as Any,
-            "activeSessionID": activeSessionID?.uuidString as Any,
             "autoPauseWhenStationary": AppSettings.autoPauseWhenStationary,
             "stationaryAutoPauseMinutes": AppSettings.stationaryAutoPauseMinutes,
         ]
+        // `nil`を`as Any`で入れるとNSNullになり、プロパティリストの型ではないため
+        // `updateApplicationContext`が失敗して何も届かない（記録を終えてもWatchに
+        // 「記録していない」が伝わらず、伴走のGPSが止まらない原因だった）。値がある時だけ入れる。
+        if let selectedMapID { context["selectedMapID"] = selectedMapID }
+        if let activeSessionID { context["activeSessionID"] = activeSessionID.uuidString }
+        lastStateContext = context
         sendStateContext()
         updateHeartbeat(isRecording: isRecording)
     }
@@ -116,14 +141,19 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     /// 最後に`updateState`で送った状態。記録中は`stateUpdatedAt`だけ新しくして定期的に送り直す。
     private var lastStateContext: [String: Any]?
     private var heartbeatTimer: Timer?
-    /// 記録中、この間隔で状態を送り直す。Watchはこの「生存確認」が途絶えると、iPhoneのアプリが
-    /// 落ちた・強制終了されたとみなして伴走のGPSを止める（Watchの電池を守るため）。
-    private static let heartbeatInterval: TimeInterval = 60
+    /// 記録中、この間隔で状態を送り直す（Watch側の`iPhoneStateMaxAge`より十分短くする）。
+    /// Watchはこの「生存確認」が途絶えると、iPhoneのアプリが落ちた・強制終了されたと
+    /// みなして伴走のGPSを止める（Watchの電池を守るため）。
+    private static let heartbeatInterval: TimeInterval = 30
 
     private func sendStateContext() {
         guard let session, session.activationState == .activated, var context = lastStateContext else { return }
         context["stateUpdatedAt"] = Date().timeIntervalSince1970
-        try? session.updateApplicationContext(context)
+        do {
+            try session.updateApplicationContext(context)
+        } catch {
+            print("[WatchConnectivity] updateApplicationContext failed: \(error)")
+        }
     }
 
     private func updateHeartbeat(isRecording: Bool) {

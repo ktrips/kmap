@@ -75,12 +75,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
     private var lastCompanionSnapshotSentAt: Date?
     /// 生存確認が途絶えて伴走を打ち切ったセッションID。同じ記録で伴走をやり直さない。
     private var abandonedCompanionSessionID: UUID?
-    /// iPhoneから最後に「記録中」の新しい状態が届いた時刻。iPhoneは記録中、1分ごとに
+    /// iPhoneから最後に「記録中」の新しい状態が届いた時刻。iPhoneは記録中、30秒ごとに
     /// 状態を送り直す（`stateUpdatedAt`）ので、これが途絶えたらiPhoneのアプリが
     /// 落ちた・強制終了されたとみなす。
     private var lastFreshRecordingStateAt: Date?
     /// iPhoneの状態をこの時間より古ければ信用しない（記録中とみなさない）。
-    private static let iPhoneStateMaxAge: TimeInterval = 3 * 60
+    private static let iPhoneStateMaxAge: TimeInterval = 90
     /// iPhoneの記録に連動している間、生存確認が途絶えていないかを見回るタイマー。
     private var iPhoneLivenessTimer: Timer?
 
@@ -186,15 +186,17 @@ final class WatchSessionManager: NSObject, ObservableObject {
                     return
                 }
                 guard result.path.count >= 2 else { return }
-                send([
+                var payload: [String: Any] = [
                     "command": "watchTrackingFinished",
                     "sessionID": sessionID?.uuidString ?? UUID().uuidString,
                     "latitudes": result.path.map(\.latitude),
                     "longitudes": result.path.map(\.longitude),
                     "startedAt": result.startedAt.timeIntervalSince1970,
                     "endedAt": result.endedAt.timeIntervalSince1970,
-                    "stepCount": result.stepCount as Any,
-                ], reliable: true)
+                ]
+                // `nil`を`as Any`で入れるとNSNullになり、プロパティリストの型でないため送れない。
+                if let stepCount = result.stepCount { payload["stepCount"] = stepCount }
+                send(payload, reliable: true)
             }
         } else {
             state = .idle
@@ -373,10 +375,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     private func startIPhoneLivenessTimer() {
         guard iPhoneLivenessTimer == nil else { return }
-        let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 15, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.checkIPhoneLiveness() }
         }
-        timer.tolerance = 10
+        timer.tolerance = 5
         RunLoop.main.add(timer, forMode: .common)
         iPhoneLivenessTimer = timer
     }
