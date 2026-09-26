@@ -20,6 +20,7 @@ struct TravelJournalView: View {
     }()
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @Environment(\.modelContext) private var modelContext
 
     @State private var likeCount = 0
@@ -63,8 +64,6 @@ struct TravelJournalView: View {
                     }
 
                     summarySection
-
-                    videoLinkSection
 
                     WalkRouteMapView(
                         overlayMap: route.overlayMap,
@@ -113,22 +112,18 @@ struct TravelJournalView: View {
         }
     }
 
-    /// 旅の動画へのリンク。クラウドの共有リンクがあればそれを開き（本文末尾にも同じリンクを載せている）、
-    /// リンクが無くても端末に動画があればここから再生できる。
-    @ViewBuilder
-    private var videoLinkSection: some View {
-        if let urlString = route.tripVideoURL, let url = URL(string: urlString) {
-            Link(destination: url) {
-                Label("旅の動画を見る", systemImage: "play.rectangle.fill")
-            }
-            .font(.subheadline.bold())
-        } else if localVideoURL != nil {
-            Button {
-                isShowingVideo = true
-            } label: {
-                Label("旅の動画を見る", systemImage: "play.rectangle.fill")
-            }
-            .font(.subheadline.bold())
+    /// 旅の動画のクラウドの共有リンク（未作成・未アップロードなら`nil`）。
+    private var cloudVideoURL: URL? {
+        route.tripVideoURL.flatMap(URL.init(string:))
+    }
+
+    /// 旅の動画を再生する。端末に動画があればアプリ内のプレーヤーで、無ければクラウドの共有リンクを開く
+    /// （地図を押した時と同じ）。
+    private func playVideo() {
+        if localVideoURL != nil {
+            isShowingVideo = true
+        } else if let cloudVideoURL {
+            openURL(cloudVideoURL)
         }
     }
 
@@ -179,6 +174,14 @@ struct TravelJournalView: View {
             if route.isSharedPublicly {
                 Label("いいね \(likeCount)件", systemImage: "heart.fill")
                     .foregroundStyle(.pink)
+            }
+            if localVideoURL != nil || cloudVideoURL != nil {
+                Button(action: playVideo) {
+                    Label("動画", systemImage: "play.rectangle.fill")
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("旅の動画を再生")
             }
         }
         .font(.caption)
