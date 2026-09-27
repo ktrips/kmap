@@ -38,6 +38,9 @@ enum CrestBadgeCatalog {
         "amsterdam-begijnhof": CrestBadge(symbolName: "leaf.fill", tint: azure),
         "amsterdam-montelbaanstoren": CrestBadge(symbolName: "building.fill", tint: sable),
         "amsterdam-voc-harbor": CrestBadge(symbolName: "sailboat.fill", tint: azure),
+        "amsterdam-westerkerk": CrestBadge(symbolName: "crown.fill", tint: azure),
+        "amsterdam-munttoren": CrestBadge(symbolName: "clock.fill", tint: gules),
+        "amsterdam-oude-kerk": CrestBadge(symbolName: "bell.fill", tint: sable),
 
         // ヘルシンキ
         "helsinki-senate-square": CrestBadge(symbolName: "building.columns.fill", tint: azure),
@@ -45,6 +48,9 @@ enum CrestBadgeCatalog {
         "helsinki-kauppatori": CrestBadge(symbolName: "fish.fill", tint: azure),
         "helsinki-uspenski": CrestBadge(symbolName: "cross.fill", tint: gules),
         "helsinki-vanhakaupunki": CrestBadge(symbolName: "leaf.fill", tint: vert),
+        "helsinki-railway-station": CrestBadge(symbolName: "tram.fill", tint: vert),
+        "helsinki-temppeliaukio": CrestBadge(symbolName: "mountain.2.fill", tint: sable),
+        "helsinki-sibelius": CrestBadge(symbolName: "music.note", tint: azure),
 
         // ストックホルム
         "stockholm-storkyrkan": CrestBadge(symbolName: "bell.fill", tint: gules),
@@ -52,6 +58,9 @@ enum CrestBadgeCatalog {
         "stockholm-royal-palace": CrestBadge(symbolName: "crown.fill", tint: azure),
         "stockholm-skeppsholmen": CrestBadge(symbolName: "sailboat.fill", tint: azure),
         "stockholm-slussen": CrestBadge(symbolName: "key.fill", tint: goldBright),
+        "stockholm-stortorget": CrestBadge(symbolName: "house.fill", tint: gules),
+        "stockholm-riddarhuset": CrestBadge(symbolName: "shield.lefthalf.filled", tint: azure),
+        "stockholm-marten-trotzig": CrestBadge(symbolName: "figure.walk", tint: sable),
 
         // タリン
         "tallinn-raekoja-plats": CrestBadge(symbolName: "building.columns.fill", tint: sable),
@@ -59,6 +68,9 @@ enum CrestBadgeCatalog {
         "tallinn-viru-gate": CrestBadge(symbolName: "building.2.fill", tint: sable),
         "tallinn-oleviste": CrestBadge(symbolName: "flame.fill", tint: gules),
         "tallinn-paks-margareeta": CrestBadge(symbolName: "shield.fill", tint: teal),
+        "tallinn-toomkirik": CrestBadge(symbolName: "cross.fill", tint: azure),
+        "tallinn-katariina-kaik": CrestBadge(symbolName: "hammer.fill", tint: sable),
+        "tallinn-kohtuotsa": CrestBadge(symbolName: "binoculars.fill", tint: teal),
     ]
 
     static func badge(for siteID: String) -> CrestBadge? {

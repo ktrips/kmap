@@ -120,6 +120,9 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "amsterdam-begijnhof", name: "ベイナホフ", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3699, lng: 4.8907 } },
   { id: "amsterdam-montelbaanstoren", name: "モンテルバーンス塔", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3713, lng: 4.9037 } },
   { id: "amsterdam-voc-harbor", name: "IJ港・VOC造船所", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3735, lng: 4.9127 } },
+  { id: "amsterdam-westerkerk", name: "西教会（ヴェステルケルク）", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3745, lng: 4.884 } },
+  { id: "amsterdam-munttoren", name: "ムント塔", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3671, lng: 4.8932 } },
+  { id: "amsterdam-oude-kerk", name: "旧教会（アウデ・ケルク）", overlayMapID: "amsterdam-medieval", coordinate: { lat: 52.3744, lng: 4.8981 } },
 
   // Komap Global — ヘルシンキ旧市街
   { id: "helsinki-senate-square", name: "元老院広場・トゥオミオ教会", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.1699, lng: 24.9522 } },
@@ -127,6 +130,9 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "helsinki-kauppatori", name: "カウッパトリ（港の市場広場）", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.1677, lng: 24.9535 } },
   { id: "helsinki-uspenski", name: "ウスペンスキー大聖堂", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.1699, lng: 24.9563 } },
   { id: "helsinki-vanhakaupunki", name: "ヴァンハカウプンキ（最初の入植地）", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.2197, lng: 24.9646 } },
+  { id: "helsinki-railway-station", name: "ヘルシンキ中央駅", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.1715, lng: 24.9406 } },
+  { id: "helsinki-temppeliaukio", name: "テンペリアウキオ教会（岩の教会）", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.173, lng: 24.9252 } },
+  { id: "helsinki-sibelius", name: "シベリウス・モニュメント", overlayMapID: "helsinki-old-town", coordinate: { lat: 60.182, lng: 24.9134 } },
 
   // Komap Global — ストックホルム旧市街
   { id: "stockholm-storkyrkan", name: "ストールシルカン（大聖堂）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3258, lng: 18.0717 } },
@@ -134,6 +140,9 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "stockholm-royal-palace", name: "クングリガ・スロッテット（王宮）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3268, lng: 18.0717 } },
   { id: "stockholm-skeppsholmen", name: "シェップスホルメン（造船の島）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3258, lng: 18.0847 } },
   { id: "stockholm-slussen", name: "スルッセン（メーラレン湖への水門）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3197, lng: 18.0717 } },
+  { id: "stockholm-stortorget", name: "ストールトリエット（大広場）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.325, lng: 18.0708 } },
+  { id: "stockholm-riddarhuset", name: "リッダルフーセット（貴族院）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3259, lng: 18.0658 } },
+  { id: "stockholm-marten-trotzig", name: "マーテン・トロッツィグ小路", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3231, lng: 18.0728 } },
 
   // Komap Global — タリン旧市街
   { id: "tallinn-raekoja-plats", name: "ラエコヤ広場（旧市庁舎広場）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4370, lng: 24.7454 } },
@@ -141,6 +150,9 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "tallinn-viru-gate", name: "ヴィル門", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4376, lng: 24.7484 } },
   { id: "tallinn-oleviste", name: "オレヴィステ教会（聖オレフ教会）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4393, lng: 24.7439 } },
   { id: "tallinn-paks-margareeta", name: "太っちょマルガレータ（港の円塔）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4425, lng: 24.7456 } },
+  { id: "tallinn-toomkirik", name: "トームキリク（聖母マリア大聖堂）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.437, lng: 24.7392 } },
+  { id: "tallinn-katariina-kaik", name: "カタリーナの小路", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4378, lng: 24.748 } },
+  { id: "tallinn-kohtuotsa", name: "コフトゥオツァ展望台", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.4377, lng: 24.7422 } },
   { id: "ginza-brick-town", name: "銀座煉瓦街跡", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6741, lng: 139.7712 } },
   { id: "ginza-kabukiza-theater", name: "歌舞伎座", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6693, lng: 139.7663 } },
   { id: "ginza-4chome-crossing", name: "銀座四丁目交差点", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6717, lng: 139.766 } },

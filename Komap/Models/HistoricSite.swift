@@ -858,6 +858,27 @@ enum HistoricSiteCatalog {
             summary: "世界へ漕ぎ出した船団の記憶が残る港。紋章は波間に浮かぶ金の帆船。",
             coordinate: CLLocationCoordinate2D(latitude: 52.3735, longitude: 4.9127)
         ),
+        HistoricSite(
+            id: "amsterdam-westerkerk",
+            overlayMapID: OldMapCatalog.amsterdam.id,
+            name: "西教会（ヴェステルケルク）",
+            summary: "黄金時代に建てられた街いちばんの高い塔。頂には皇帝から授かった王冠を戴き、アンネ・フランクの家もすぐそば。紋章は青地に金の王冠。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.3745, longitude: 4.884)
+        ),
+        HistoricSite(
+            id: "amsterdam-munttoren",
+            overlayMapID: OldMapCatalog.amsterdam.id,
+            name: "ムント塔",
+            summary: "中世の城門の名残りで、戦乱の時代に貨幣を鋳造したことから「貨幣の塔」と呼ばれる。紋章は赤地に金の時計。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.3671, longitude: 4.8932)
+        ),
+        HistoricSite(
+            id: "amsterdam-oude-kerk",
+            overlayMapID: OldMapCatalog.amsterdam.id,
+            name: "旧教会（アウデ・ケルク）",
+            summary: "13世紀に始まる街最古の教会。船乗りたちの祈りを受け止めてきた鐘楼がそびえる。紋章は黒地に金の鐘。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.3744, longitude: 4.8981)
+        ),
 
         // Komap Global — ヘルシンキ旧市街（帝政期）
         HistoricSite(
@@ -894,6 +915,27 @@ enum HistoricSiteCatalog {
             name: "ヴァンハカウプンキ（最初の入植地）",
             summary: "1550年、川の畔に街が生まれた場所。紋章は緑地に金の麦束。",
             coordinate: CLLocationCoordinate2D(latitude: 60.2197, longitude: 24.9646)
+        ),
+        HistoricSite(
+            id: "helsinki-railway-station",
+            overlayMapID: OldMapCatalog.helsinki.id,
+            name: "ヘルシンキ中央駅",
+            summary: "エリエル・サーリネン設計、ナショナル・ロマンティシズムを代表する花崗岩の駅舎。ランプを抱く石の巨人が出迎える。紋章は緑地に金の機関車。",
+            coordinate: CLLocationCoordinate2D(latitude: 60.1715, longitude: 24.9406)
+        ),
+        HistoricSite(
+            id: "helsinki-temppeliaukio",
+            overlayMapID: OldMapCatalog.helsinki.id,
+            name: "テンペリアウキオ教会（岩の教会）",
+            summary: "岩盤をくり抜いてつくられた教会。銅のドームの下、むき出しの岩肌に光が差し込む。紋章は黒地に銀の岩山。",
+            coordinate: CLLocationCoordinate2D(latitude: 60.173, longitude: 24.9252)
+        ),
+        HistoricSite(
+            id: "helsinki-sibelius",
+            overlayMapID: OldMapCatalog.helsinki.id,
+            name: "シベリウス・モニュメント",
+            summary: "交響詩『フィンランディア』の作曲家をたたえる、600本の鋼管がパイプオルガンのように連なる記念碑。紋章は青地に銀の音符。",
+            coordinate: CLLocationCoordinate2D(latitude: 60.182, longitude: 24.9134)
         ),
 
         // Komap Global — ストックホルム旧市街（ガムラスタン）
@@ -932,6 +974,27 @@ enum HistoricSiteCatalog {
             summary: "海と湖を隔てる水門。紋章は金地に黒い鍵。",
             coordinate: CLLocationCoordinate2D(latitude: 59.3197, longitude: 18.0717)
         ),
+        HistoricSite(
+            id: "stockholm-stortorget",
+            overlayMapID: OldMapCatalog.stockholm.id,
+            name: "ストールトリエット（大広場）",
+            summary: "ガムラスタンで最も古い広場。赤や黄の切妻の商家が囲み、1520年の「ストックホルムの血浴」の舞台にもなった。紋章は赤地に金の家。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.325, longitude: 18.0708)
+        ),
+        HistoricSite(
+            id: "stockholm-riddarhuset",
+            overlayMapID: OldMapCatalog.stockholm.id,
+            name: "リッダルフーセット（貴族院）",
+            summary: "17世紀、スウェーデン大国時代の貴族たちが議会を開いたオランダ・バロック様式の館。紋章は青地に金の盾。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3259, longitude: 18.0658)
+        ),
+        HistoricSite(
+            id: "stockholm-marten-trotzig",
+            overlayMapID: OldMapCatalog.stockholm.id,
+            name: "マーテン・トロッツィグ小路",
+            summary: "幅わずか90cmほどの、街でいちばん細い石段の路地。17世紀の商人の名が残る。紋章は黒地に銀の旅人。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3231, longitude: 18.0728)
+        ),
 
         // Komap Global — タリン旧市街（ハンザ同盟）
         HistoricSite(
@@ -968,6 +1031,27 @@ enum HistoricSiteCatalog {
             name: "太っちょマルガレータ（港の円塔）",
             summary: "大砲を構え、港へ入る船を見張ってきた丸々とした塔。紋章はティール地に銀の円塔。",
             coordinate: CLLocationCoordinate2D(latitude: 59.4425, longitude: 24.7456)
+        ),
+        HistoricSite(
+            id: "tallinn-toomkirik",
+            overlayMapID: OldMapCatalog.tallinn.id,
+            name: "トームキリク（聖母マリア大聖堂）",
+            summary: "トームペアの丘に建つエストニア最古の教会。壁にはバルト・ドイツ貴族の紋章板がずらりと掛かる。紋章は青地に銀の十字。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.437, longitude: 24.7392)
+        ),
+        HistoricSite(
+            id: "tallinn-katariina-kaik",
+            overlayMapID: OldMapCatalog.tallinn.id,
+            name: "カタリーナの小路",
+            summary: "中世の修道院の壁と墓石が残る石畳の路地。職人たちの工房が今も軒を連ねる。紋章は黒地に金の槌。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.4378, longitude: 24.748)
+        ),
+        HistoricSite(
+            id: "tallinn-kohtuotsa",
+            overlayMapID: OldMapCatalog.tallinn.id,
+            name: "コフトゥオツァ展望台",
+            summary: "トームペアの崖の上から、赤い屋根の下町と教会の尖塔、その先のバルト海を見渡す展望台。紋章はティール地に銀の遠眼鏡。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.4377, longitude: 24.7422)
         ),
     ]
 
