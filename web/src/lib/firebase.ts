@@ -1,6 +1,6 @@
 import { type FirebaseApp, initializeApp } from "firebase/app";
 import { type Auth, getAuth } from "firebase/auth";
-import { type Firestore, getFirestore } from "firebase/firestore";
+import { type Firestore, getFirestore } from "firebase/firestore/lite";
 import type { Functions } from "firebase/functions";
 import type { Analytics } from "firebase/analytics";
 
@@ -22,6 +22,7 @@ export const isFirebaseConfigured = Boolean(
 let app: FirebaseApp | undefined;
 let authInstance: Auth | undefined;
 let dbInstance: Firestore | undefined;
+let realtimeDbInstance: import("firebase/firestore").Firestore | undefined;
 let functionsInstance: Functions | undefined;
 let analyticsInstance: Analytics | undefined;
 
@@ -48,7 +49,23 @@ if (isFirebaseConfigured) {
 }
 
 export const auth = authInstance;
+/**
+ * 読み書き用のFirestore（軽量版 `firebase/firestore/lite`。リアルタイム更新は無い）。
+ * 公開ページ（未サインインの訪問者）が最初に読み込む量を減らすため、通常はこちらを使う。
+ */
 export const db = dbInstance;
+
+/**
+ * リアルタイム更新（`onSnapshot`）が必要な、サインイン後の自分の記録の購読だけで使う完全版のFirestore。
+ * 初回表示に含めないよう、初めて必要になった時に読み込む。
+ */
+export async function loadRealtimeFirestore() {
+  const module = await import("firebase/firestore");
+  if (!realtimeDbInstance && app) {
+    realtimeDbInstance = module.getFirestore(app);
+  }
+  return { firestore: module, db: realtimeDbInstance };
+}
 
 /**
  * Cloud Functions（管理者レポート・TestFlight招待）はサインインした人しか使わないため、

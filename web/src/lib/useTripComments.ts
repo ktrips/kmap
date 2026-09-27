@@ -1,16 +1,7 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp } from "firebase/firestore/lite";
+import { useCallback, useEffect, useState } from "react";
 import { db } from "./firebase";
+import { toDate } from "./tripDocument";
 
 export interface TripComment {
   id: string;
@@ -25,32 +16,34 @@ export function useTripComments(tripId: string | null) {
   const [comments, setComments] = useState<TripComment[]>([]);
   const [isPosting, setIsPosting] = useState(false);
 
-  useEffect(() => {
+  // 軽量版のFirestoreで、旅を開いた時と、自分が投稿・削除した後に読み直す。
+  const reload = useCallback(async () => {
     if (!db || !tripId) {
       setComments([]);
       return;
     }
-    const q = query(collection(db, "sharedTrips", tripId, "comments"), orderBy("createdAt", "asc"));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        setComments(
-          snapshot.docs.map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              authorUserID: data.authorUserID ?? "",
-              authorDisplayName: data.authorDisplayName ?? "名無し",
-              text: data.text ?? "",
-              createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-            };
-          }),
-        );
-      },
-      () => setComments([]),
-    );
-    return () => unsubscribe();
+    try {
+      const snapshot = await getDocs(query(collection(db, "sharedTrips", tripId, "comments"), orderBy("createdAt", "asc")));
+      setComments(
+        snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            authorUserID: data.authorUserID ?? "",
+            authorDisplayName: data.authorDisplayName ?? "名無し",
+            text: data.text ?? "",
+            createdAt: toDate(data.createdAt, new Date()),
+          };
+        }),
+      );
+    } catch {
+      setComments([]);
+    }
   }, [tripId]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const postComment = async (text: string, author: { uid: string; displayName: string | null }) => {
     if (!db || !tripId) return;
@@ -64,6 +57,7 @@ export function useTripComments(tripId: string | null) {
         text: trimmed,
         createdAt: serverTimestamp(),
       });
+      await reload();
     } finally {
       setIsPosting(false);
     }
@@ -72,6 +66,7 @@ export function useTripComments(tripId: string | null) {
   const deleteComment = async (commentId: string) => {
     if (!db || !tripId) return;
     await deleteDoc(doc(db, "sharedTrips", tripId, "comments", commentId));
+    await reload();
   };
 
   return { comments, postComment, deleteComment, isPosting };

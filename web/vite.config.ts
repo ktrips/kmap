@@ -19,6 +19,10 @@ export default defineConfig({
           if (/node_modules\/(@firebase\/(analytics|functions|installations)|firebase\/(analytics|functions))/.test(id)) {
             return undefined
           }
+          // リアルタイム更新用の完全版Firestoreは、サインイン後に初めて読み込む（公開ページは軽量版を使う）。
+          if (/node_modules\/(@firebase\/firestore|firebase\/firestore)\//.test(id) && !/[\\/]lite[\\/]/.test(id)) {
+            return undefined
+          }
           if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
             return 'firebase'
           }

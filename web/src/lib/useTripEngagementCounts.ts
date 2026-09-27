@@ -1,4 +1,4 @@
-import { collection, getCountFromServer } from "firebase/firestore";
+import { collection, getCount } from "firebase/firestore/lite";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 
@@ -20,8 +20,8 @@ function fetchCounts(tripId: string): Promise<Counts> {
   const firestore = db;
   if (!firestore) return Promise.resolve({ likeCount: 0, commentCount: 0 });
   const request = Promise.all([
-    getCountFromServer(collection(firestore, "sharedTrips", tripId, "likes")),
-    getCountFromServer(collection(firestore, "sharedTrips", tripId, "comments")),
+    getCount(collection(firestore, "sharedTrips", tripId, "likes")),
+    getCount(collection(firestore, "sharedTrips", tripId, "comments")),
   ])
     .then(([likes, comments]) => {
       const counts = { likeCount: likes.data().count, commentCount: comments.data().count };

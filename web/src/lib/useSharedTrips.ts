@@ -1,4 +1,4 @@
-import { collection, limit, onSnapshot, orderBy, query, type DocumentData } from "firebase/firestore";
+import { collection, getDocs, limit, orderBy, query, type DocumentData } from "firebase/firestore/lite";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { parseTripFields } from "./tripDocument";
@@ -34,9 +34,11 @@ function parsePhotos(value: unknown): SharedPhoto[] {
 }
 
 /**
- * 全ユーザーが公開している「みんなの時空旅」（`sharedTrips`）をリアルタイムに監視する。
- * サインインしていない訪問者でも、公開済みの時空旅は誰でも見られる
- * （Firestoreルールで`sharedTrips`は公開読み取り可にしているため）。
+ * 全ユーザーが公開している「みんなの時空旅」（`sharedTrips`）の直近50件を読み込む。
+ * サインインしていない訪問者でも見られる（Firestoreルールで`sharedTrips`は公開読み取り可）。
+ *
+ * 最初に読み込む量を減らすため、リアルタイム購読（完全版のFirestoreが必要）ではなく軽量版で1回読み、
+ * タブに戻ってきた時（5分以上たっていれば）に読み直す。
  */
 export function useSharedTrips() {
   const [trips, setTrips] = useState<SharedTrip[]>([]);
@@ -44,34 +46,38 @@ export function useSharedTrips() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!db) {
+    const firestore = db;
+    if (!firestore) {
       setTrips([]);
       return;
     }
-
-    setIsLoading(true);
-    setError(null);
-
-    // 上限を付けずに購読すると、公開ページを開いた全訪問者（未サインインでも見られる）が
-    // 「みんなの時空旅」の全件をリアルタイム購読することになり、件数が増えるほど
-    // 通信量・メモリ・再同期コストが際限なく膨らんでしまう。直近の投稿だけで十分
-    // 一覧として成立するため、まず新しい順に一定件数までに絞る。
-    const q = query(collection(db, "sharedTrips"), orderBy("startedAt", "desc"), limit(50));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const next: SharedTrip[] = snapshot.docs.map((doc) => parseSharedTripDocument(doc.id, doc.data()));
-        setTrips(next);
-        setIsLoading(false);
-      },
-      (err) => {
-        setError(err.message);
-        setIsLoading(false);
-      },
-    );
-
-    return () => unsubscribe();
+    let cancelled = false;
+    let loadedAt = 0;
+    const load = () => {
+      loadedAt = Date.now();
+      setIsLoading(true);
+      setError(null);
+      getDocs(query(collection(firestore, "sharedTrips"), orderBy("startedAt", "desc"), limit(50)))
+        .then((snapshot) => {
+          if (cancelled) return;
+          setTrips(snapshot.docs.map((doc) => parseSharedTripDocument(doc.id, doc.data())));
+          setIsLoading(false);
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setError(err instanceof Error ? err.message : "読み込みに失敗しました。");
+          setIsLoading(false);
+        });
+    };
+    load();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && Date.now() - loadedAt > 5 * 60_000) load();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   return { trips, isLoading, error };

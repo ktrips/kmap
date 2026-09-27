@@ -1,4 +1,4 @@
-import { Timestamp, collection, deleteDoc, doc, getCountFromServer, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { Timestamp, collection, deleteDoc, doc, getCount, query, serverTimestamp, setDoc, where } from "firebase/firestore/lite";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 
@@ -48,7 +48,7 @@ export function usePresence(): number | null {
     const refreshCount = () => {
       const cutoff = Timestamp.fromMillis(Date.now() - STALE_AFTER_MS);
       const activeQuery = query(collection(firestore, "presence"), where("lastSeen", ">", cutoff));
-      getCountFromServer(activeQuery)
+      getCount(activeQuery)
         .then((snapshot) => setCount(snapshot.data().count))
         .catch(() => {});
     };

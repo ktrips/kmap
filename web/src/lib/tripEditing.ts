@@ -1,4 +1,4 @@
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore/lite";
 import { db } from "./firebase";
 
 /**

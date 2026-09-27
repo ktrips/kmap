@@ -1,4 +1,4 @@
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore/lite";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { parseSharedTripDocument } from "./useSharedTrips";
