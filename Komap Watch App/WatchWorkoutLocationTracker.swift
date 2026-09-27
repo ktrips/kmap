@@ -16,6 +16,8 @@ final class WatchWorkoutLocationTracker: NSObject, ObservableObject {
     var onLocationUpdate: ((CLLocationCoordinate2D) -> Void)?
     /// 動きがない時間が続き、自動的に記録を一時停止した時に呼ばれる。
     var onAutoPausedForInactivity: (() -> Void)?
+    /// 自動一時停止の後、動き出して自動的に記録を再開した時に呼ばれる（画面の表示を戻すため）。
+    var onAutoResumed: (() -> Void)?
     /// 記録開始からの最長時間を超え、自動的に記録を終了すべき時に呼ばれる
     /// （iPhoneを開いていないまま気づかずGPSが回りっぱなしになる不具合への保険）。
     var onMaxDurationExceeded: (() -> Void)?
@@ -285,6 +287,7 @@ extension WatchWorkoutLocationTracker: CLLocationManagerDelegate {
             lastMovementCoordinate = coordinate
             path.append(coordinate)
             onLocationUpdate?(coordinate)
+            onAutoResumed?()
             return
         }
 

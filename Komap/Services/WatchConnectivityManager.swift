@@ -31,7 +31,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         /// Watch単体の記録が、Watchの保存確認シートで「破棄」されて終わった。
         case watchTrackingDiscarded
         /// Watch単体のGPSで記録中、現在地が更新された（御朱印チェックポイントの判定に使う）。
-        case watchLocationUpdate(CLLocationCoordinate2D)
+        case watchLocationUpdate([CLLocationCoordinate2D])
         /// Watch単体のGPSで記録中の累積軌跡（`updateApplicationContext`経由）。
         /// iPhoneがロック中・バックグラウンドなどで`watchLocationUpdate`が届かなかった間も、
         /// 後で操作可能になった時にこれで軌跡に追いつけるようにする。内容は常に最新の
@@ -41,7 +41,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         /// そちらのGPSも「伴走」させて、より正確な現在地としてiPhone側へ届く更新。
         /// Watch単体モード（`watchLocationUpdate`）とは違い、iPhone側の記録・保存フロー
         /// そのものはiPhoneのまま、座標の出どころだけWatchに寄せるためのもの。
-        case companionLocationUpdate(sessionID: String, coordinate: CLLocationCoordinate2D)
+        case companionLocationUpdate(sessionID: String, coordinates: [CLLocationCoordinate2D])
         /// 伴走トラッキングの累積軌跡スナップショット（`watchTrackingSnapshot`の伴走版）。
         case companionTrackingSnapshot(sessionID: String, coordinates: [CLLocationCoordinate2D])
 
@@ -58,11 +58,11 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             case let (.watchTrackingFinished(a), .watchTrackingFinished(b)):
                 return a.sessionID == b.sessionID
             case let (.watchLocationUpdate(a), .watchLocationUpdate(b)):
-                return a.latitude == b.latitude && a.longitude == b.longitude
+                return a.count == b.count && a.last?.latitude == b.last?.latitude && a.last?.longitude == b.last?.longitude
             case let (.watchTrackingSnapshot(idA, coordsA), .watchTrackingSnapshot(idB, coordsB)):
                 return idA == idB && coordsA.count == coordsB.count
             case let (.companionLocationUpdate(idA, a), .companionLocationUpdate(idB, b)):
-                return idA == idB && a.latitude == b.latitude && a.longitude == b.longitude
+                return idA == idB && a.count == b.count && a.last?.latitude == b.last?.latitude && a.last?.longitude == b.last?.longitude
             case let (.companionTrackingSnapshot(idA, coordsA), .companionTrackingSnapshot(idB, coordsB)):
                 return idA == idB && coordsA.count == coordsB.count
             default:
@@ -301,6 +301,17 @@ extension WatchConnectivityManager: WCSessionDelegate {
         }
     }
 
+    /// Watchがまとめて送る現在地（`lats`・`lons`）。古い版のWatchが1点ずつ送る`lat`・`lon`も読む。
+    private nonisolated static func parseCoordinates(_ message: [String: Any]) -> [CLLocationCoordinate2D] {
+        if let lats = message["lats"] as? [Double], let lons = message["lons"] as? [Double], lats.count == lons.count {
+            return zip(lats, lons).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) }
+        }
+        if let lat = message["lat"] as? Double, let lon = message["lon"] as? Double {
+            return [CLLocationCoordinate2D(latitude: lat, longitude: lon)]
+        }
+        return []
+    }
+
     private nonisolated static func parseCommand(from message: [String: Any]) -> Command? {
         guard let rawCommand = message["command"] as? String else { return nil }
         switch rawCommand {
@@ -320,14 +331,13 @@ extension WatchConnectivityManager: WCSessionDelegate {
         case "watchTrackingResumed":
             return .watchTrackingResumed
         case "watchLocationUpdate":
-            guard let lat = message["lat"] as? Double, let lon = message["lon"] as? Double else { return nil }
-            return .watchLocationUpdate(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+            let coordinates = parseCoordinates(message)
+            guard !coordinates.isEmpty else { return nil }
+            return .watchLocationUpdate(coordinates)
         case "companionLocationUpdate":
-            guard let sessionID = message["sessionID"] as? String,
-                  let lat = message["lat"] as? Double,
-                  let lon = message["lon"] as? Double
-            else { return nil }
-            return .companionLocationUpdate(sessionID: sessionID, coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon))
+            let coordinates = parseCoordinates(message)
+            guard let sessionID = message["sessionID"] as? String, !coordinates.isEmpty else { return nil }
+            return .companionLocationUpdate(sessionID: sessionID, coordinates: coordinates)
         case "watchTrackingFinished":
             guard let sessionID = message["sessionID"] as? String,
                   let latitudes = message["latitudes"] as? [Double],

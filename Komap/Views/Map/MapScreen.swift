@@ -935,12 +935,13 @@ struct MapScreen: View {
             isWatchTrackingPaused = false
             activeWatchSessionID = nil
             watchTrackedPath = []
-        case .watchLocationUpdate(let coordinate):
+        case .watchLocationUpdate(let coordinates):
             // Watch単体のGPSで記録中は、iPhone側の地図にもリアルタイムで軌跡を表示し、
             // iPhone側の位置情報だけでは気づけない御朱印チェックポイントの判定も行う。
+            // Watchは数秒ごとにまとめて送ってくる。
             guard isWatchTrackingActive else { return }
-            watchTrackedPath.append(coordinate)
-            checkForNewStamps(near: coordinate)
+            watchTrackedPath.append(contentsOf: coordinates)
+            coordinates.forEach { checkForNewStamps(near: $0) }
         case .watchTrackingSnapshot(let sessionID, let coordinates):
             // iPhoneがロック中・バックグラウンドなどで`watchLocationUpdate`を取りこぼしていた間も、
             // ここで累積軌跡に追いつく。別セッションの古いスナップショットは無視し、
@@ -952,12 +953,12 @@ struct MapScreen: View {
             if coordinates.count > watchTrackedPath.count {
                 watchTrackedPath = coordinates
             }
-        case .companionLocationUpdate(let sessionID, let coordinate):
-            // iPhoneで記録中、Watchが伴走して送ってきた現在地。別セッション
-            // （既に終わった記録など）からの取りこぼれは無視する。
+        case .companionLocationUpdate(let sessionID, let coordinates):
+            // iPhoneで記録中、Watchが伴走して（数秒ごとにまとめて）送ってきた現在地。
+            // 別セッション（既に終わった記録など）からの取りこぼれは無視する。
             guard let activeWalkSessionID, sessionID == activeWalkSessionID.uuidString else { return }
-            companionWatchPath.append(coordinate)
-            checkForNewStamps(near: coordinate)
+            companionWatchPath.append(contentsOf: coordinates)
+            coordinates.forEach { checkForNewStamps(near: $0) }
         case .companionTrackingSnapshot(let sessionID, let coordinates):
             // iPhoneがロック中などで`companionLocationUpdate`を取りこぼしていた間も、
             // ここで追いつく（`watchTrackingSnapshot`の伴走版）。

@@ -112,6 +112,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
             self.didAutoPauseForInactivity = true
             self.send(["command": "watchTrackingPaused"])
         }
+        tracker.onAutoResumed = { [weak self] in
+            guard let self, self.isSelfTracking, self.state == .paused else { return }
+            self.state = .recording
+            self.didAutoPauseForInactivity = false
+            self.send(["command": "watchTrackingResumed"])
+        }
         tracker.onMaxDurationExceeded = { [weak self] in
             self?.stop(shouldSave: true)
         }
@@ -243,16 +249,33 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// 記録の軌跡がiPhone側にまったく反映されないままになってしまう。そのため、
     /// 到達可能かどうかに関わらず`sendTrackingSnapshot()`で累積軌跡も送っておき、
     /// iPhoneが後で操作可能になった時にすぐ追いつけるようにする。
+    ///
+    /// GPSの更新（5mごと）のたびには送らず、`locationBatchInterval`ごとにまとめて送る
+    /// （無線の送信回数を減らしてWatchの電池を守るため）。
     private func sendLocationUpdate(_ coordinate: CLLocationCoordinate2D) {
+        pendingLocations.append(coordinate)
+        if let lastLocationBatchSentAt, Date().timeIntervalSince(lastLocationBatchSentAt) < Self.locationBatchInterval {
+            return
+        }
+        lastLocationBatchSentAt = Date()
+        let batch = pendingLocations
+        pendingLocations = []
         if let session, session.activationState == .activated, session.isReachable {
             session.sendMessage(
-                ["command": "watchLocationUpdate", "lat": coordinate.latitude, "lon": coordinate.longitude],
+                ["command": "watchLocationUpdate", "lats": batch.map(\.latitude), "lons": batch.map(\.longitude)],
                 replyHandler: nil,
                 errorHandler: nil
             )
         }
         sendTrackingSnapshot()
     }
+
+    /// まだiPhoneへ送っていない現在地（`locationBatchInterval`ごとにまとめて送る）。
+    private var pendingLocations: [CLLocationCoordinate2D] = []
+    private var lastLocationBatchSentAt: Date?
+    private var pendingCompanionLocations: [CLLocationCoordinate2D] = []
+    private var lastCompanionBatchSentAt: Date?
+    private static let locationBatchInterval: TimeInterval = 3
 
     /// 記録中の累積軌跡を、iPhoneが今すぐ受け取れるかどうかに関わらず送っておく。
     /// `updateApplicationContext`は内容が常に最新のものに置き換わるだけなので、
@@ -422,13 +445,20 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// 間の埋め合わせとして累積軌跡のスナップショットも定期的に送る。
     private func sendCompanionLocationUpdate(_ coordinate: CLLocationCoordinate2D) {
         guard let sessionID = companionSessionID else { return }
+        pendingCompanionLocations.append(coordinate)
+        if let lastCompanionBatchSentAt, Date().timeIntervalSince(lastCompanionBatchSentAt) < Self.locationBatchInterval {
+            return
+        }
+        lastCompanionBatchSentAt = Date()
+        let batch = pendingCompanionLocations
+        pendingCompanionLocations = []
         if let session, session.activationState == .activated, session.isReachable {
             session.sendMessage(
                 [
                     "command": "companionLocationUpdate",
                     "sessionID": sessionID.uuidString,
-                    "lat": coordinate.latitude,
-                    "lon": coordinate.longitude,
+                    "lats": batch.map(\.latitude),
+                    "lons": batch.map(\.longitude),
                 ],
                 replyHandler: nil,
                 errorHandler: nil
