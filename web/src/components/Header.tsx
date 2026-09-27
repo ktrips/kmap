@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import { useTestFlightInvite } from "../lib/useTestFlightInvite";
 
@@ -13,22 +14,47 @@ interface Props {
   onShowList?: () => void;
   /** 左上のアプリアイコンを押した時。選択中の時空旅・地点を解除してホームに戻す。 */
   onGoHome?: () => void;
+  /** trueなら、アカウントメニューに「管理者レポート」を出す。 */
+  isAdmin?: boolean;
+  onOpenAdminReport?: () => void;
 }
 
-export function Header({ user, tripCount, onSignOut, showListButton = false, onShowList, onGoHome }: Props) {
+export function Header({
+  user,
+  tripCount,
+  onSignOut,
+  showListButton = false,
+  onShowList,
+  onGoHome,
+  isAdmin = false,
+  onOpenAdminReport,
+}: Props) {
   const { status, errorMessage, adminReport, requestInvite } = useTestFlightInvite();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // メニューの外を押した時・Escキーで閉じる。
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setIsMenuOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
 
   const adminMailtoHref = adminReport
     ? `mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(
         "Komap: TestFlight招待エラー",
       )}&body=${encodeURIComponent(`${adminReport}\n\n---\n問い合わせ元: ${user.email ?? "(不明)"}`)}`
     : null;
-
-  const handleAvatarClick = () => {
-    if (window.confirm("サインアウトしますか?")) {
-      onSignOut();
-    }
-  };
 
   const buttonLabel = {
     idle: "📱 iOSアプリを取得",
@@ -87,19 +113,52 @@ export function Header({ user, tripCount, onSignOut, showListButton = false, onS
             </p>
           )}
         </div>
-        <button
-          className="account-avatar-button"
-          onClick={handleAvatarClick}
-          title={user.displayName ?? "サインアウト"}
-        >
-          {user.photoURL ? (
-            <img src={user.photoURL} alt={user.displayName ?? "アカウント"} className="account-avatar" />
-          ) : (
-            <span className="account-avatar account-avatar-fallback">
-              {(user.displayName ?? "?").charAt(0)}
-            </span>
+        <div className="account-menu-anchor" ref={menuRef}>
+          <button
+            className="account-avatar-button"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            title={user.displayName ?? "アカウント"}
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+          >
+            {user.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName ?? "アカウント"} className="account-avatar" />
+            ) : (
+              <span className="account-avatar account-avatar-fallback">
+                {(user.displayName ?? "?").charAt(0)}
+              </span>
+            )}
+          </button>
+          {isMenuOpen && (
+            <div className="account-menu" role="menu">
+              <p className="account-menu-email">{user.email}</p>
+              {isAdmin && onOpenAdminReport && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="account-menu-item"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onOpenAdminReport();
+                  }}
+                >
+                  📊 管理者レポート
+                </button>
+              )}
+              <button
+                type="button"
+                role="menuitem"
+                className="account-menu-item"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onSignOut();
+                }}
+              >
+                ログアウト
+              </button>
+            </div>
           )}
-        </button>
+        </div>
       </div>
     </header>
   );

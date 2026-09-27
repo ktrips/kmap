@@ -20,7 +20,8 @@ import type { SharedTrip } from "./types/sharedTrip";
 import { fromSharedTrip, fromWalkTrip, groupByWalkRoute, type UnifiedTrip } from "./types/unifiedTrip";
 import type { SavedPlace } from "./types/place";
 
-type SidebarTab = "places" | "trips" | "maps" | "admin";
+/** 左の一覧のタブ。`admin`は右上のアカウントメニューから開く管理者レポート（タブのボタンは無い）。 */
+type SidebarTab = "trips" | "maps" | "admin";
 
 /** 管理者レポートタブを表示してよいメールアドレス（Cloud Function側でも同じ値を検証する）。 */
 const ADMIN_EMAIL = "kenichiyoshida13@gmail.com";
@@ -32,7 +33,7 @@ interface Props {
 }
 
 /**
- * サインイン済みのユーザー専用の画面（保存した物語・自分の時空旅）。
+ * サインイン済みのユーザー専用の画面（自分の時空旅・古地図と保存した物語）。
  * `usePlaces`/`useWalkRoutes`/`useStamps`/`usePhotoPosts`はサインインしていないと
  * 使わないため、この画面ごとApp.tsxから遅延読み込み（`React.lazy`）している
  * （未サインインの訪問者が最初に読み込むコード量を減らすため）。
@@ -73,8 +74,17 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const { selectedTripId, selectedTrip, isSidebarOpen, openSidebar, selectTrip, goHome, collapseSidebarOnMobile } =
     useTripBrowser(unifiedTrips);
 
-  const handleSelect = (place: SavedPlace) => {
+  // 保存した物語は「古地図」タブの一番下に並べる。物語と古地図は、選んだ方を右側に表示する。
+  const handleSelectPlace = (place: SavedPlace) => {
     setSelectedId(place.id);
+    setSelectedMap(null);
+    collapseSidebarOnMobile();
+  };
+
+  const handleSelectMap = (map: OldMapEntry) => {
+    setSelectedMap(map);
+    setSelectedId(null);
+    collapseSidebarOnMobile();
   };
 
   const handleTabChange = (nextTab: SidebarTab) => {
@@ -98,18 +108,14 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
         showListButton={!isSidebarOpen}
         onShowList={openSidebar}
         onGoHome={handleGoHome}
+        isAdmin={isAdmin}
+        onOpenAdminReport={() => handleTabChange("admin")}
       />
       {isKindleOpen && <KindleBookModal isSignedIn onClose={() => setIsKindleOpen(false)} />}
       <div className="app-body">
         {isSidebarOpen && (
           <aside className="app-sidebar">
             <div className="sidebar-tabs">
-              <button
-                className={`sidebar-tab ${tab === "places" ? "is-active" : ""}`}
-                onClick={() => handleTabChange("places")}
-              >
-                保存した物語
-              </button>
               <button
                 className={`sidebar-tab ${tab === "trips" ? "is-active" : ""}`}
                 onClick={() => handleTabChange("trips")}
@@ -122,27 +128,18 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
               >
                 古地図
               </button>
-              {isAdmin && (
-                <button
-                  className={`sidebar-tab ${tab === "admin" ? "is-active" : ""}`}
-                  onClick={() => handleTabChange("admin")}
-                >
-                  管理者レポート
-                </button>
-              )}
             </div>
-            {tab === "places" && <PlaceList places={places} selectedId={selectedId} onSelect={handleSelect} />}
             {tab === "trips" && (
               <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={selectTrip} />
             )}
             {tab === "maps" && (
-              <OldMapList
-                selectedId={selectedMap?.id ?? null}
-                onSelect={(map) => {
-                  setSelectedMap(map);
-                  collapseSidebarOnMobile();
-                }}
-              />
+              <>
+                <OldMapList selectedId={selectedMap?.id ?? null} onSelect={handleSelectMap} />
+                <section className="trip-region">
+                  <h3 className="trip-region-title">保存した物語（{places.length}件）</h3>
+                  <PlaceList places={places} selectedId={selectedId} onSelect={handleSelectPlace} />
+                </section>
+              </>
             )}
             {tab === "admin" && (
               <p className="admin-report-sidebar-hint">
@@ -163,16 +160,18 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
           </aside>
         )}
         <main className="app-main">
-          {tab === "places" && (
-            <>
-              <MapView places={places} selectedId={selectedId} onSelect={handleSelect} />
-              <PlaceDetail place={selectedPlace} />
-            </>
-          )}
           {tab === "trips" && (
             <TripDetail trip={selectedTrip} currentUser={{ uid: user.uid, displayName: user.displayName }} />
           )}
-          {tab === "maps" && <OldMapDetail map={selectedMap} />}
+          {tab === "maps" &&
+            (selectedPlace ? (
+              <>
+                <MapView places={places} selectedId={selectedId} onSelect={handleSelectPlace} />
+                <PlaceDetail place={selectedPlace} />
+              </>
+            ) : (
+              <OldMapDetail map={selectedMap} />
+            ))}
           {tab === "admin" && isAdmin && <AdminFunnelReport />}
         </main>
       </div>

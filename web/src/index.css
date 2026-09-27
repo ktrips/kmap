@@ -173,6 +173,51 @@ code {
   border-radius: 50%;
 }
 
+.account-menu-anchor {
+  position: relative;
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  min-width: 200px;
+  padding: 6px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.account-menu-email {
+  margin: 0;
+  padding: 8px 10px 6px;
+  font-size: 0.75rem;
+  color: #8a7c68;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-brown-deep);
+  cursor: pointer;
+}
+
+.account-menu-item:hover {
+  background: rgba(140, 90, 52, 0.08);
+}
+
 .account-avatar {
   width: 36px;
   height: 36px;
