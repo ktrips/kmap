@@ -17,6 +17,10 @@ struct PhotoDetailActionRow: View {
     var isUpdatingVisibility: Bool
     /// 「公開／非公開」「削除」を出すか（写真がある時だけ意味がある）。
     var showsRemoveActions: Bool
+    /// 写真の追加・変更が Komap Plus 限定で、今は使えない（無料版）か。
+    /// `true`の時は「写真を追加」「連携カメラ」に鍵マークを付ける（押すと`onChange`等が呼ばれ、
+    /// 呼び出し側で比較ページを開く）。
+    var isPhotoLocked: Bool = false
     var onChange: () -> Void
     var onLinkedCamera: () -> Void
     var onPrint: () -> Void
@@ -53,13 +57,13 @@ struct PhotoDetailActionRow: View {
 
             HStack(spacing: 12) {
                 Button(action: onChange) {
-                    Label(hasPhoto ? "写真を変更" : "写真を追加", systemImage: "camera.fill")
+                    Label(hasPhoto ? "写真を変更" : "写真を追加", systemImage: isPhotoLocked ? "lock.fill" : "camera.fill")
                 }
                 .disabled(isBusy)
 
                 if showsLinkedCamera {
                     Button(action: onLinkedCamera) {
-                        Label("連携カメラ", systemImage: "network")
+                        Label("連携カメラ", systemImage: isPhotoLocked ? "lock.fill" : "network")
                     }
                     .disabled(isBusy)
                 }

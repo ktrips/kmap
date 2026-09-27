@@ -22,6 +22,9 @@ struct MapScreen: View {
     @AppStorage(AppSettings.mapRegionKey) private var mapRegionRaw = MapRegion.japan.rawValue
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var mapSession: MapSessionState
+    @EnvironmentObject private var plusStore: PlusStore
+    /// Komap Plus の比較ページを開く理由（写真投稿を押した・初めて旅を保存した）。
+    @State private var plusPaywallReason: PlusFeature?
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WalkRoute.startedAt, order: .reverse) private var savedRoutes: [WalkRoute]
     @Query private var collectedStamps: [CollectedStamp]
@@ -535,6 +538,9 @@ struct MapScreen: View {
             .presentationDetents([.height(300)])
             .presentationDragIndicator(.hidden)
         }
+        .sheet(item: $plusPaywallReason) { reason in
+            PlusComparisonView(reason: reason)
+        }
     }
 
     private var isSaveConfirmationPresented: Binding<Bool> {
@@ -649,10 +655,18 @@ struct MapScreen: View {
 
     private var photoPostButton: some View {
         Group {
+            // 写真の追加は Komap Plus の機能。無料の間もボタンは出しておき、
+            // 押したら比較ページを開く（写真を残したくなった瞬間に案内する）。
             // 連携カメラが設定されていない時は選ぶ余地がないため、メニューを
             // 挟まず直接「iPhoneで撮る」を立ち上げる。設定されている時だけ
             // 「連携カメラを使う」との選択メニューを見せる。
-            if isCameraLinkConfigured {
+            if !plusStore.isPlus {
+                Button {
+                    plusPaywallReason = .photo
+                } label: {
+                    photoPostButtonLabel
+                }
+            } else if isCameraLinkConfigured {
                 Menu {
                     Button {
                         isShowingPhotoPostCamera = true
@@ -1115,6 +1129,18 @@ struct MapScreen: View {
         activeWalkSessionID = nil
         activeWalkStartedAt = nil
         InProgressWalkDraftStore.clear()
+        showPlusAfterFirstTripIfNeeded()
+    }
+
+    /// 初めて旅を保存した時に一度だけ、Komap Plus の比較ページを見せる
+    /// （保存確認のシートが閉じ終わってから開く）。
+    private func showPlusAfterFirstTripIfNeeded() {
+        let key = "plus.hasShownAfterFirstTrip"
+        guard !plusStore.isPlus, !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            plusPaywallReason = .firstTrip
+        }
     }
 
     /// 「保存しない」が選ばれた、またはダイアログが閉じられた時、記録を破棄する。
@@ -1381,5 +1407,6 @@ private struct WalkSaveDecisionSheet: View {
     MapScreen()
         .environmentObject(AuthService())
         .environmentObject(MapSessionState())
+        .environmentObject(PlusStore())
         .modelContainer(for: [SavedPlace.self, WalkRoute.self, CollectedStamp.self, WalkPhotoPost.self], inMemory: true)
 }

@@ -92,6 +92,9 @@ struct WalkRouteDetailView: View {
     /// シェア画像を作る時に、既に画面表示されているこの地図をそのままスナップショットする。
     @State private var mapViewForSharing: GMSMapView?
     @State private var isGeneratingVideo = false
+    /// 無料の1本を使い切った後に動画を作ろうとした時、Komap Plus の比較ページを開く。
+    @State private var isShowingPlusForVideo = false
+    @EnvironmentObject private var plusStore: PlusStore
     @State private var videoErrorMessage: String?
     /// 作成済みの動画（再生し直す時は作り直さず使い回す）。
     @State private var videoURL: URL?
@@ -273,6 +276,9 @@ struct WalkRouteDetailView: View {
             if let videoURL {
                 TripVideoPlayerSheet(videoURL: videoURL)
             }
+        }
+        .sheet(isPresented: $isShowingPlusForVideo) {
+            PlusComparisonView(reason: .tripVideo)
         }
         .sheet(isPresented: $isShowingJournal) {
             TravelJournalView(
@@ -539,6 +545,12 @@ struct WalkRouteDetailView: View {
             isShowingVideo = true
             return
         }
+        // 旅の動画は、無料では1本（1つの旅）まで。同じ旅の作り直しは何度でもできる。
+        let videoItemID = route.id.uuidString
+        guard plusStore.canUse(.tripVideo, itemID: videoItemID) else {
+            isShowingPlusForVideo = true
+            return
+        }
         guard let mapView = mapViewForSharing, let base = captureMapSnapshot() else {
             videoErrorMessage = "地図の表示を待ってから、もう一度お試しください。"
             return
@@ -577,6 +589,7 @@ struct WalkRouteDetailView: View {
         do {
             let rendered = try await TripVideoRenderer.render(base: base, points: points, stops: stops)
             let saved = TripVideoStore.save(rendered, for: route.id)
+            plusStore.recordFreeUse(.tripVideo, itemID: videoItemID)
             videoURL = saved
             isShowingVideo = true
             uploadVideoInBackground(saved)
@@ -1083,4 +1096,5 @@ private struct RouteStampGallerySheet: View {
         )
     }
     .modelContainer(for: [WalkRoute.self, CollectedStamp.self, WalkPhotoPost.self], inMemory: true)
+    .environmentObject(PlusStore())
 }

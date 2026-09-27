@@ -34,6 +34,7 @@
 | 写真・動画 | 御朱印・投稿写真の撮影と加工（セピアなど）、旅の動画（MP4）、共有カード画像 |
 | 共有・Web | Googleサインインでのクラウド同期、旅の公開と短縮URL、Webでの閲覧（サインイン不要）、いいね・コメント、管理者レポート、TestFlightへの自動招待 |
 | 連携機器 | 同じWi-Fi上の連携カメラ・連携プリンター（M5Stackなど）で撮影・プリント |
+| Komap Plus | 月額480円／年額3,800円のサブスクリプション。無料版は歩く・御朱印集め・ポイントまで。Plusで写真の追加、場所の詳細（無料は3か所まで）、旅の動画（無料は1本まで）、Kindle本の全文（Web、無料は冒頭約10ページ） |
 
 ### 技術上のポイント
 
@@ -731,6 +732,50 @@ firebase deploy --only functions
 デプロイ後、Web版で新しいGoogleアカウントを使ってサインインすると、そのメール宛に
 Appleから「TestFlightでKomapをテストするよう招待されました」というメールが届きます。
 送信状況は `firebase functions:log` で確認できます。
+
+### 2-6. Komap Plus（サブスクリプション）
+
+無料版と Plus の違いは、アプリの「設定」→「Komap Plus」の比較ページ（`PlusComparisonView`）に
+まとめている。比較ページは、次の場面でも開く。
+
+- 地図画面の写真投稿ボタン、御朱印・投稿写真の「写真を追加／変更」「連携カメラ」（写真の追加は Plus のみ）
+- 無料の3か所を使い切った後に、まだ詳細を作っていない場所の詳細を開いた時
+- 無料の1本を使い切った後に、別の旅の動画を作ろうとした時
+- 初めて旅を保存した時（一度だけ）
+
+無料で使った場所・旅はKeychainに記録し（`PlusFreeUsage`）、アプリを入れ直しても回数は戻らない。
+一度作った場所の詳細・旅の動画は、無料でもいつでも見返せる。
+
+**App Store Connect の設定**
+
+1. サブスクリプショングループ「Komap Plus」を作り、次の2つを登録する。
+   - `com.komap.Komap.plus.monthly`（1か月、480円）
+   - `com.komap.Komap.plus.yearly`（1年、3,800円）
+2. 初回登録向けに、両方へ「無料トライアル 7日間」の導入オファーを設定する（比較ページのボタンが「7日間無料で試す」になる）。
+3. 「ユーザとアクセス」→「統合」→「App内課金」でキーを発行し、Cloud Functions のシークレットに登録する
+   （TestFlight招待の App Store Connect APIキーとは別の種類。発行者IDは共通の`APPSTORE_CONNECT_ISSUER_ID`を使う）。
+
+```bash
+firebase functions:secrets:set APPSTORE_IAP_KEY_ID        # 例: 2X9R4HXF34
+firebase functions:secrets:set APPSTORE_IAP_PRIVATE_KEY   # .p8ファイルの中身を貼り付け
+```
+
+**Web版の Kindle本の全文**
+
+- 誰でも、`web/public/kindle-preview.md`（冒頭約10ページ）を読める。
+- Plus の人がWebにサインインすると、Cloud Function `getKindleFullText` が購入状態を確かめてから、
+  Storage の `premium/kindle-full.md` を返す（このパスはブラウザから直接は読めない）。
+- アプリからは `https://komap.ktrips.net/?book=1` を開くと、最初からKindle原稿が開く。
+- 購入状態は、アプリが購入・復元・起動時に Cloud Function `syncPlusEntitlement` へ取引IDを送り、
+  サーバーが App Store Server API に問い合わせて `entitlements/{uid}` に記録する。有効期限が過ぎていれば、
+  Webで開いた時にもう一度 Apple に確かめるので、自動更新された分はアプリを開かなくても反映される。
+
+全文のアップロードとデプロイ:
+
+```bash
+scripts/upload-kindle-full-text.sh   # docs/GeoGameAppWithGoogleMap.md を premium/kindle-full.md へ
+firebase deploy --only functions
+```
 
 ---
 

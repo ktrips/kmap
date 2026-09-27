@@ -37,6 +37,11 @@ struct CheckpointInfoSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var plusStore: PlusStore
+    /// 無料の3か所を使い切っていて、まだ詳細を作っていない場所を開いた時は`true`
+    /// （AIには問い合わせず、Komap Plus の案内を出す）。
+    @State private var isLockedByPlus = false
+    @State private var isShowingPlus = false
 
     @State private var isLoading = true
     @State private var storyTitle: String = ""
@@ -68,7 +73,9 @@ struct CheckpointInfoSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
-                    if isLoading {
+                    if isLockedByPlus {
+                        lockedView
+                    } else if isLoading {
                         loadingView
                     } else if let errorMessage {
                         errorView(errorMessage)
@@ -84,7 +91,7 @@ struct CheckpointInfoSheet: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("閉じる") { dismiss() }
                 }
-                if canManuallyCheckIn || (!isLoading && errorMessage == nil) {
+                if canManuallyCheckIn || (!isLoading && errorMessage == nil && !isLockedByPlus) {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             if canManuallyCheckIn {
@@ -94,7 +101,7 @@ struct CheckpointInfoSheet: View {
                                     Label(manualCheckInLabel, systemImage: "checkmark.seal")
                                 }
                             }
-                            if !isLoading && errorMessage == nil {
+                            if !isLoading && errorMessage == nil && !isLockedByPlus {
                                 Button {
                                     isEditing = true
                                 } label: {
@@ -116,6 +123,12 @@ struct CheckpointInfoSheet: View {
         .task {
             await loadStory()
         }
+        .sheet(isPresented: $isShowingPlus) {
+            PlusComparisonView(reason: .placeDetail)
+        }
+        .onChange(of: plusStore.isPlus) { _, isPlus in
+            if isPlus && isLockedByPlus { Task { await loadStory() } }
+        }
         .sheet(isPresented: $isEditing) {
             CheckpointStoryEditView(title: storyTitle, bodyText: storyBody) { newTitle, newBody in
                 save(title: newTitle, body: newBody, isManuallyEdited: true)
@@ -131,6 +144,21 @@ struct CheckpointInfoSheet: View {
             Text(site.summary)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    private var lockedView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("場所の詳細は、無料で\(PlusFeature.placeDetail.freeLimit)か所まで読めます。Komap Plus なら、どの場所でも昔の出来事を読めます。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Button {
+                isShowingPlus = true
+            } label: {
+                Label("Plus で詳しく見る", systemImage: "lock.open.fill")
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.brown)
         }
     }
 
@@ -183,6 +211,14 @@ struct CheckpointInfoSheet: View {
             return
         }
 
+        // 一度作った詳細（上の保存済みの物語）は無料でもいつでも読める。
+        // 新しくAIに作ってもらうのは、無料では3か所まで。
+        isLockedByPlus = !plusStore.canUse(.placeDetail, itemID: site.id)
+        guard !isLockedByPlus else {
+            isLoading = false
+            return
+        }
+
         do {
             // 御朱印を獲得済みでチェックイン写真があれば、その内容も踏まえた説明にする。
             let story = try await service.generateStory(
@@ -192,6 +228,7 @@ struct CheckpointInfoSheet: View {
                 photo: checkInPhoto
             )
             save(title: story.title, body: story.body, isManuallyEdited: false)
+            plusStore.recordFreeUse(.placeDetail, itemID: site.id)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -289,4 +326,5 @@ private struct CheckpointStoryEditView: View {
         overlayMap: OldMapCatalog.edoCastle
     )
     .modelContainer(for: [CheckpointStory.self], inMemory: true)
+    .environmentObject(PlusStore())
 }

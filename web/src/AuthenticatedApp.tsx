@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { AdminFunnelReport } from "./components/AdminFunnelReport";
 import { Header } from "./components/Header";
+import { KindleBookModal, useKindleDeepLink } from "./components/KindleBookModal";
 import { MapView } from "./components/MapView";
 import { OldMapDetail } from "./components/OldMapDetail";
 import { OldMapList } from "./components/OldMapList";
@@ -44,6 +45,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<SidebarTab>("trips");
   const [selectedMap, setSelectedMap] = useState<OldMapEntry | null>(null);
+  const [isKindleOpen, setIsKindleOpen] = useKindleDeepLink();
   const isAdmin = user.email === ADMIN_EMAIL;
   // 「時空旅」タブは、自分の記録と他ユーザーが公開した時空旅（sharedTrips）の
   // 両方を並べる。自分の記録のうち公開中のものは、同じidが`sharedTrips`にも
@@ -97,6 +99,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
         onShowList={openSidebar}
         onGoHome={handleGoHome}
       />
+      {isKindleOpen && <KindleBookModal isSignedIn onClose={() => setIsKindleOpen(false)} />}
       <div className="app-body">
         {isSidebarOpen && (
           <aside className="app-sidebar">
@@ -146,6 +149,9 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
                 Web経由のユーザーが今どの利用フェーズにいるかをまとめたレポートです。
               </p>
             )}
+            <button type="button" className="sidebar-footer-button" onClick={() => setIsKindleOpen(true)}>
+              📚 Komapの作り方 Kindle（Plusは全文）
+            </button>
             <a
               className="sidebar-footer-link"
               href="https://github.com/ktrips/kmap#readme"

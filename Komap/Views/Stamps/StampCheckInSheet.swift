@@ -9,6 +9,9 @@ struct StampCheckInSheet: View {
     @Bindable var stamp: CollectedStamp
 
     @EnvironmentObject private var authService: AuthService
+    @EnvironmentObject private var plusStore: PlusStore
+    /// Komap Plus の比較ページを開く理由（写真の追加・場所の詳細）。
+    @State private var plusPaywallReason: PlusFeature?
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var isLoadingPhoto = false
@@ -79,8 +82,17 @@ struct StampCheckInSheet: View {
                         isHidden: stamp.isHiddenFromSharing,
                         isUpdatingVisibility: isUpdatingVisibility,
                         showsRemoveActions: stamp.photo != nil,
-                        onChange: { isShowingCamera = true },
-                        onLinkedCamera: { Task { await captureFromLinkedCamera() } },
+                        isPhotoLocked: !plusStore.isPlus,
+                        onChange: {
+                            if plusStore.isPlus { isShowingCamera = true } else { plusPaywallReason = .photo }
+                        },
+                        onLinkedCamera: {
+                            if plusStore.isPlus {
+                                Task { await captureFromLinkedCamera() }
+                            } else {
+                                plusPaywallReason = .photo
+                            }
+                        },
                         onPrint: { Task { await printToLinkedPrinter() } },
                         onToggleHidden: { Task { await toggleVisibility() } },
                         onDelete: { isConfirmingDelete = true }
@@ -127,6 +139,12 @@ struct StampCheckInSheet: View {
         .task {
             await loadStoryIfNeeded()
         }
+        .sheet(item: $plusPaywallReason) { reason in
+            PlusComparisonView(reason: reason)
+        }
+        .onChange(of: plusStore.isPlus) { _, isPlus in
+            if isPlus { Task { await loadStoryIfNeeded() } }
+        }
     }
 
     /// 場所の詳細（由来やエピソード）をAIで補足する。
@@ -136,7 +154,9 @@ struct StampCheckInSheet: View {
                 .font(.headline)
                 .foregroundStyle(.brown)
 
-            if isLoadingStory {
+            if isStoryLocked {
+                lockedStoryView
+            } else if isLoadingStory {
                 HStack(spacing: 8) {
                     ProgressView()
                     Text("AIが昔の出来事を紐解いています…")
@@ -165,6 +185,24 @@ struct StampCheckInSheet: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 無料の3か所を使い切っていて、この場所の詳細は Plus でないと読めないか。
+    private var isStoryLocked: Bool {
+        !plusStore.canUse(.placeDetail, itemID: site.id)
+    }
+
+    private var lockedStoryView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("場所の詳細は、無料で\(PlusFeature.placeDetail.freeLimit)か所まで読めます。Komap Plus なら、どの場所でも昔の出来事を読めます。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Button {
+                plusPaywallReason = .placeDetail
+            } label: {
+                Label("Plus で詳しく見る", systemImage: "lock.open.fill")
+            }
+        }
     }
 
     /// 「非公開」を切り替える。「みんなの時空旅」に公開中の時空旅であれば、
@@ -261,6 +299,10 @@ struct StampCheckInSheet: View {
 
     private func loadStoryIfNeeded(force: Bool = false) async {
         guard force || story == nil else { return }
+        guard !isStoryLocked else {
+            isLoadingStory = false
+            return
+        }
         isLoadingStory = true
         storyErrorMessage = nil
         do {
@@ -271,6 +313,7 @@ struct StampCheckInSheet: View {
                 placeName: site.name,
                 photo: stamp.photo
             )
+            plusStore.recordFreeUse(.placeDetail, itemID: site.id)
         } catch {
             storyErrorMessage = error.localizedDescription
         }

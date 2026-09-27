@@ -5,8 +5,10 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var mapSession: MapSessionState
+    @EnvironmentObject private var plusStore: PlusStore
     @Environment(\.modelContext) private var modelContext
 
+    @State private var isShowingPlus = false
     @State private var isSyncing = false
     @State private var syncMessage: String?
     @State private var defaultOverlayOpacity: Double = MapSessionState.defaultOverlayOpacity
@@ -33,6 +35,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                plusSection
                 accountSection
                 overlayOpacitySection
                 recordingSafetySection
@@ -46,8 +49,8 @@ struct SettingsView: View {
                     Link(destination: URL(string: "https://github.com/ktrips/kmap#readme")!) {
                         Label("Komapの使い方", systemImage: "book")
                     }
-                    Link(destination: URL(string: "https://link.amazon/B006awnVi")!) {
-                        Label("Komapの作り方 Kindle本", systemImage: "book.closed")
+                    Link(destination: PlusStore.kindleWebURL) {
+                        Label(plusStore.isPlus ? "Komapの作り方 Kindle本（全文をWebで読む）" : "Komapの作り方 Kindle本（冒頭を無料で読む）", systemImage: "book.closed")
                     }
                 } header: {
                     HStack {
@@ -60,6 +63,9 @@ struct SettingsView: View {
                 advancedSettingsSection
             }
             .navigationTitle("設定")
+            .sheet(isPresented: $isShowingPlus) {
+                PlusComparisonView()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -81,6 +87,33 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    /// 一番上の「Komap Plus」。無料版と Plus の比較ページを開く。
+    private var plusSection: some View {
+        Section {
+            Button {
+                isShowingPlus = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "seal.fill")
+                        .font(.title2)
+                        .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(plusStore.isPlus ? "Komap Plus 会員です" : "Komap Plus")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(plusStore.isPlus ? "特典と登録内容を見る" : "無料版との違いを見る（写真・場所の詳細・旅の動画・Kindle本の全文）")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+
     private var accountSection: some View {
         Section {
             if !authService.isFirebaseConfigured {
@@ -363,5 +396,6 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(AuthService())
+        .environmentObject(PlusStore())
         .modelContainer(for: SavedPlace.self, inMemory: true)
 }

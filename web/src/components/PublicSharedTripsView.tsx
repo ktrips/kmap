@@ -5,7 +5,7 @@ import { TripDetail } from "./TripDetail";
 import type { OldMapEntry } from "../lib/oldMapCatalog";
 import { TripList } from "./TripList";
 import { HowToUseModal } from "./HowToUseModal";
-import { KindleBookModal } from "./KindleBookModal";
+import { KindleBookModal, useKindleDeepLink } from "./KindleBookModal";
 import { usePresence } from "../lib/usePresence";
 import { useTripBrowser } from "../lib/useTripBrowser";
 import { fromSharedTrip, type UnifiedTrip } from "../types/unifiedTrip";
@@ -32,7 +32,7 @@ export function PublicSharedTripsView({
   onSignInWithGoogle,
 }: Props) {
   const [isHowToOpen, setIsHowToOpen] = useState(false);
-  const [isKindleOpen, setIsKindleOpen] = useState(false);
+  const [isKindleOpen, setIsKindleOpen] = useKindleDeepLink();
 
   const trips = useMemo<UnifiedTrip[]>(
     () => sharedTrips.map(fromSharedTrip).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime()),
@@ -150,7 +150,9 @@ export function PublicSharedTripsView({
       {isHowToOpen && (
         <HowToUseModal onClose={() => setIsHowToOpen(false)} onSignInWithGoogle={onSignInWithGoogle} />
       )}
-      {isKindleOpen && <KindleBookModal onClose={() => setIsKindleOpen(false)} />}
+      {isKindleOpen && (
+        <KindleBookModal onClose={() => setIsKindleOpen(false)} onSignIn={onSignInWithGoogle} />
+      )}
 
       <div className="app-body">
         {isSidebarOpen && (

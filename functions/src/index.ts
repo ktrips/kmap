@@ -6,6 +6,7 @@ import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import jwt from "jsonwebtoken";
 import * as crypto from "node:crypto";
+import { normalizePEMPrivateKey } from "./pem";
 
 admin.initializeApp();
 setGlobalOptions({ region: "asia-northeast1", maxInstances: 10 });
@@ -16,22 +17,6 @@ const APPSTORE_PRIVATE_KEY = defineSecret("APPSTORE_CONNECT_PRIVATE_KEY");
 const APPSTORE_BETA_GROUP_ID = defineSecret("APPSTORE_CONNECT_BETA_GROUP_ID");
 
 const APPSTORE_API_BASE = "https://api.appstoreconnect.apple.com/v1";
-
-/**
- * `firebase functions:secrets:set`での貼り付け方（実改行が保持される・
- * リテラルな`\n`になる・ヘッダー無しで本文だけ・CRLFなど）によらず、
- * 常に正しい形のPEM（1行64文字・実改行・BEGIN/ENDヘッダー付き）を作り直す。
- * これをしないと、改行が失われた場合などに`jsonwebtoken`が鍵として
- * 認識できず「secretOrPrivateKey must be an asymmetric key」で失敗する。
- */
-function normalizePEMPrivateKey(raw: string): string {
-  const cleaned = raw.trim().replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
-  const match = cleaned.match(/-----BEGIN ([^-]+)-----([\s\S]*?)-----END \1-----/);
-  const label = match?.[1] ?? "PRIVATE KEY";
-  const body = (match?.[2] ?? cleaned).replace(/\s+/g, "");
-  const lines = body.match(/.{1,64}/g) ?? [];
-  return `-----BEGIN ${label}-----\n${lines.join("\n")}\n-----END ${label}-----\n`;
-}
 
 /** App Store Connect APIへの認証に使う短命JWT（ES256）を都度作る。 */
 function buildAppStoreConnectToken(): string {
@@ -467,3 +452,5 @@ export const syncTripCommentCount = onDocumentWritten(
     await recountEngagement(event.params.tripId);
   },
 );
+
+export { syncPlusEntitlement, getKindleFullText } from "./plus";

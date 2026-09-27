@@ -1568,6 +1568,32 @@ code {
   color: var(--color-brown);
 }
 
+.kindle-plus-box {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #fffaf1;
+}
+
+.kindle-plus-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-brown-deep);
+}
+
+.kindle-plus-signin {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-brown-deep);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .kindle-buy-button {
   display: block;
   margin-top: 16px;

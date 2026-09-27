@@ -82,6 +82,8 @@ struct PhotoPostPageView: View {
     @State private var isRegeneratingStory = false
     @State private var isShowingPhotoChange = false
     @State private var isChangingPhoto = false
+    @State private var isShowingPlus = false
+    @EnvironmentObject private var plusStore: PlusStore
 
     private let geocoder = CLGeocoder()
     private let historyService = AIHistoryService()
@@ -108,8 +110,17 @@ struct PhotoPostPageView: View {
                     isHidden: post.isHiddenFromSharing,
                     isUpdatingVisibility: isUpdatingVisibility,
                     showsRemoveActions: true,
-                    onChange: { isShowingPhotoChange = true },
-                    onLinkedCamera: { Task { await changePhotoFromLinkedCamera() } },
+                    isPhotoLocked: !plusStore.isPlus,
+                    onChange: {
+                        if plusStore.isPlus { isShowingPhotoChange = true } else { isShowingPlus = true }
+                    },
+                    onLinkedCamera: {
+                        if plusStore.isPlus {
+                            Task { await changePhotoFromLinkedCamera() }
+                        } else {
+                            isShowingPlus = true
+                        }
+                    },
                     onPrint: { Task { await printToLinkedPrinter() } },
                     onToggleHidden: { Task { await toggleVisibility() } },
                     onDelete: { isConfirmingDelete = true }
@@ -185,6 +196,9 @@ struct PhotoPostPageView: View {
             Button("キャンセル", role: .cancel) {}
         } message: {
             Text("獲得したポイントも含めて取り消され、元に戻せません。")
+        }
+        .sheet(isPresented: $isShowingPlus) {
+            PlusComparisonView(reason: .photo)
         }
         .photoChangePicker(isPresented: $isShowingPhotoChange) { image in
             Task { await changePhoto(to: image) }

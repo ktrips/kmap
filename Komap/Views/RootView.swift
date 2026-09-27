@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @StateObject private var authService = AuthService()
     @StateObject private var mapSession = MapSessionState()
+    @StateObject private var plusStore = PlusStore()
     private let syncService = SyncService()
 
     var body: some View {
@@ -15,9 +16,13 @@ struct RootView: View {
         }
         .environmentObject(authService)
         .environmentObject(mapSession)
+        .environmentObject(plusStore)
+        .onAppear { plusStore.start() }
         // サインインするたび、自分の検証済みメールアドレス宛に届いている友達招待が
         // あれば受け取れる状態にする（`friendRequests`の`toUID`を自分のuidで確定させる）。
         .task(id: authService.userID) {
+            // Web版でも Plus の特典（Kindle本の全文）を使えるよう、サインインしたアカウントに購入を記録する。
+            await plusStore.setSignedInUser(authService.userID)
             guard let userID = authService.userID, let email = authService.email else { return }
             await syncService.claimFriendRequestsAddressedToMe(userID: userID, email: email)
         }
