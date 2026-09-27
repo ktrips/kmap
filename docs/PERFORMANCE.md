@@ -48,6 +48,8 @@
 - [x] Web: `walkRoutes` と `sharedTrips` の読み取り処理を `parseTripFields` にまとめた
 - [x] Web: 公開ページとサインイン後の画面の、一覧の開閉・旅の選択の処理を `useTripBrowser` にまとめた
 - [x] 使っていないテンプレートの画像（`web/src/assets/vite.svg`）を削除
+- [x] リージョンを切り替えた時の後始末（既定の古地図・表示中の古地図を戻す）を、「設定」と「古地図を選択」の
+  両方に書かず`MapSessionState.changeRegion`にまとめた（2026-09-27）
 
 ---
 

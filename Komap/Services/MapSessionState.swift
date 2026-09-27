@@ -90,6 +90,20 @@ final class MapSessionState: ObservableObject {
         }
     }
 
+    /// 古地図のリージョンを切り替える（「設定」と「古地図を選択」の両方から呼ぶ）。
+    /// 別のリージョンの古地図が「最初に表示する古地図」や表示中の古地図だった場合は、
+    /// 選択肢から消えたまま残らないよう、新しいリージョンの既定の古地図に戻す。
+    func changeRegion(to region: MapRegion) {
+        guard AppSettings.mapRegion != region else { return }
+        AppSettings.mapRegion = region
+        if let defaultID = AppSettings.defaultOverlayMapID, OldMapCatalog.isHiddenBySettings(overlayID: defaultID) {
+            AppSettings.defaultOverlayMapID = AppSettings.defaultOverlayCurrentLocationToken
+        }
+        if let selected = selectedOverlay, OldMapCatalog.isHiddenBySettings(selected) {
+            selectedOverlay = OldMapCatalog.defaultOverlay
+        }
+    }
+
     /// 「セットアップ」画面から呼ぶ。次回以降の起動時に使うデフォルト濃度として保存しつつ、
     /// 今表示中の濃度にもすぐ反映する。
     func updateDefaultOverlayOpacity(_ value: Double) {

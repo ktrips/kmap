@@ -99,10 +99,28 @@ struct OldMapPickerSheet: View {
     @State private var sharedMaps: [RemoteOverlayMap] = []
     @State private var importingSharedID: String?
     @EnvironmentObject private var authService: AuthService
+    /// 表示する古地図のリージョン（「設定」の「リージョン」と同じ値）。
+    @State private var region: MapRegion = AppSettings.mapRegion
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Picker(selection: $region) {
+                        ForEach(MapRegion.allCases) { region in
+                            Text("\(region.title)（\(region.subtitle)）").tag(region)
+                        }
+                    } label: {
+                        Label("リージョン", systemImage: "globe.asia.australia")
+                    }
+                    .pickerStyle(.menu)
+                    .onChange(of: region) { _, newValue in
+                        mapSession.changeRegion(to: newValue)
+                        selectedOverlay = mapSession.selectedOverlay
+                        customOverlays = Self.customOverlaysInRegion()
+                    }
+                }
+
                 Section {
                     HStack(spacing: 8) {
                         quickButton("現在地", systemImage: "magnifyingglass",

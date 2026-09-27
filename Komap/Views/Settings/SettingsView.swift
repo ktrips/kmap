@@ -157,16 +157,11 @@ struct SettingsView: View {
                 }
             }
             .onChange(of: mapRegion) { _, newValue in
-                AppSettings.mapRegion = newValue
-                // 別のリージョンの古地図が「最初に表示する古地図」や表示中の古地図だった場合は、
-                // 選択肢から消えたまま残らないよう、新しいリージョンの既定の古地図に戻す。
-                if OldMapCatalog.isHiddenBySettings(overlayID: defaultOverlayMapID) {
-                    defaultOverlayMapID = AppSettings.defaultOverlayCurrentLocationToken
-                }
-                if let selected = mapSession.selectedOverlay, OldMapCatalog.isHiddenBySettings(selected) {
-                    mapSession.selectedOverlay = OldMapCatalog.defaultOverlay
-                }
+                mapSession.changeRegion(to: newValue)
+                defaultOverlayMapID = AppSettings.defaultOverlayMapID ?? AppSettings.defaultOverlayCurrentLocationToken
             }
+            // 「古地図を選択」画面でリージョンを変えた後に開いた時も、今の値を表示する。
+            .onAppear { mapRegion = AppSettings.mapRegion }
 
             Picker("最初に表示する古地図", selection: $defaultOverlayMapID) {
                 Text("現在地").tag(AppSettings.defaultOverlayCurrentLocationToken)
