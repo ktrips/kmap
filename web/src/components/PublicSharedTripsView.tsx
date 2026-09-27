@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
+import { OldMapDetail } from "./OldMapDetail";
+import { OldMapList } from "./OldMapList";
 import { TripDetail } from "./TripDetail";
+import type { OldMapEntry } from "../lib/oldMapCatalog";
 import { TripList } from "./TripList";
 import { HowToUseModal } from "./HowToUseModal";
 import { KindleBookModal } from "./KindleBookModal";
@@ -43,9 +46,25 @@ export function PublicSharedTripsView({
     selectedTrip,
     isSidebarOpen,
     openSidebar,
-    selectTrip: handleSelectTrip,
-    goHome: handleGoHome,
+    selectTrip,
+    goHome,
+    collapseSidebarOnMobile,
   } = useTripBrowser(trips);
+  // 左の一覧で「みんなの時空旅」と「古地図」（リージョンごとの古地図一覧）を切り替える。
+  const [sidebarTab, setSidebarTab] = useState<"trips" | "maps">("trips");
+  const [selectedMap, setSelectedMap] = useState<OldMapEntry | null>(null);
+  const handleSelectTrip = (trip: UnifiedTrip) => {
+    setSelectedMap(null);
+    selectTrip(trip);
+  };
+  const handleSelectMap = (map: OldMapEntry) => {
+    setSelectedMap(map);
+    collapseSidebarOnMobile();
+  };
+  const handleGoHome = () => {
+    setSelectedMap(null);
+    goHome();
+  };
   const activeVisitorCount = usePresence();
   // ヘッダーの「ログイン」ボタンを出す条件。モバイルでは従来通り一覧を閉じている時
   // （＝詳細を全画面表示している時）。モバイルでない時は一覧を閉じることが無くなった
@@ -136,8 +155,28 @@ export function PublicSharedTripsView({
       <div className="app-body">
         {isSidebarOpen && (
           <aside className="app-sidebar">
-            <p className="trip-list-heading">みんなの時空旅 ({trips.length}件の公開旅日記)</p>
-            <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
+            <div className="sidebar-tabs">
+              <button
+                className={`sidebar-tab ${sidebarTab === "trips" ? "is-active" : ""}`}
+                onClick={() => setSidebarTab("trips")}
+              >
+                みんなの時空旅
+              </button>
+              <button
+                className={`sidebar-tab ${sidebarTab === "maps" ? "is-active" : ""}`}
+                onClick={() => setSidebarTab("maps")}
+              >
+                古地図
+              </button>
+            </div>
+            {sidebarTab === "trips" ? (
+              <>
+                <p className="trip-list-heading">みんなの時空旅 ({trips.length}件の公開旅日記)</p>
+                <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
+              </>
+            ) : (
+              <OldMapList selectedId={selectedMap?.id ?? null} onSelect={handleSelectMap} />
+            )}
             <button type="button" className="sidebar-footer-button" onClick={() => setIsKindleOpen(true)}>
               📚 Komapの作り方 Kindle（一部無料）
             </button>
@@ -152,8 +191,14 @@ export function PublicSharedTripsView({
           </aside>
         )}
         <main className="app-main">
-          {!isMobile && !selectedTrip && introContent}
-          <TripDetail trip={selectedTrip} currentUser={null} onRequestSignIn={onSignInWithGoogle} />
+          {selectedMap ? (
+            <OldMapDetail map={selectedMap} />
+          ) : (
+            <>
+              {!isMobile && !selectedTrip && introContent}
+              <TripDetail trip={selectedTrip} currentUser={null} onRequestSignIn={onSignInWithGoogle} />
+            </>
+          )}
         </main>
       </div>
     </div>

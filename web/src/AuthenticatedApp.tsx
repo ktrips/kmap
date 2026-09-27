@@ -3,6 +3,9 @@ import type { User } from "firebase/auth";
 import { AdminFunnelReport } from "./components/AdminFunnelReport";
 import { Header } from "./components/Header";
 import { MapView } from "./components/MapView";
+import { OldMapDetail } from "./components/OldMapDetail";
+import { OldMapList } from "./components/OldMapList";
+import type { OldMapEntry } from "./lib/oldMapCatalog";
 import { PlaceDetail } from "./components/PlaceDetail";
 import { PlaceList } from "./components/PlaceList";
 import { TripDetail } from "./components/TripDetail";
@@ -16,7 +19,7 @@ import type { SharedTrip } from "./types/sharedTrip";
 import { fromSharedTrip, fromWalkTrip, groupByWalkRoute, type UnifiedTrip } from "./types/unifiedTrip";
 import type { SavedPlace } from "./types/place";
 
-type SidebarTab = "places" | "trips" | "admin";
+type SidebarTab = "places" | "trips" | "maps" | "admin";
 
 /** 管理者レポートタブを表示してよいメールアドレス（Cloud Function側でも同じ値を検証する）。 */
 const ADMIN_EMAIL = "kenichiyoshida13@gmail.com";
@@ -40,6 +43,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const { photoPosts } = usePhotoPosts(user.uid);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<SidebarTab>("trips");
+  const [selectedMap, setSelectedMap] = useState<OldMapEntry | null>(null);
   const isAdmin = user.email === ADMIN_EMAIL;
   // 「時空旅」タブは、自分の記録と他ユーザーが公開した時空旅（sharedTrips）の
   // 両方を並べる。自分の記録のうち公開中のものは、同じidが`sharedTrips`にも
@@ -60,7 +64,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
 
   const selectedPlace = places.find((place) => place.id === selectedId) ?? null;
   // 一覧の開閉・旅の選択・共有リンクで開いた旅の個別取得は、公開ページと共通（`useTripBrowser`）。
-  const { selectedTripId, selectedTrip, isSidebarOpen, openSidebar, selectTrip, goHome } =
+  const { selectedTripId, selectedTrip, isSidebarOpen, openSidebar, selectTrip, goHome, collapseSidebarOnMobile } =
     useTripBrowser(unifiedTrips);
 
   const handleSelect = (place: SavedPlace) => {
@@ -105,6 +109,12 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
               >
                 時空旅
               </button>
+              <button
+                className={`sidebar-tab ${tab === "maps" ? "is-active" : ""}`}
+                onClick={() => handleTabChange("maps")}
+              >
+                古地図
+              </button>
               {isAdmin && (
                 <button
                   className={`sidebar-tab ${tab === "admin" ? "is-active" : ""}`}
@@ -117,6 +127,15 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
             {tab === "places" && <PlaceList places={places} selectedId={selectedId} onSelect={handleSelect} />}
             {tab === "trips" && (
               <TripList trips={unifiedTrips} selectedId={selectedTripId} onSelect={selectTrip} />
+            )}
+            {tab === "maps" && (
+              <OldMapList
+                selectedId={selectedMap?.id ?? null}
+                onSelect={(map) => {
+                  setSelectedMap(map);
+                  collapseSidebarOnMobile();
+                }}
+              />
             )}
             {tab === "admin" && (
               <p className="admin-report-sidebar-hint">
@@ -143,6 +162,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
           {tab === "trips" && (
             <TripDetail trip={selectedTrip} currentUser={{ uid: user.uid, displayName: user.displayName }} />
           )}
+          {tab === "maps" && <OldMapDetail map={selectedMap} />}
           {tab === "admin" && isAdmin && <AdminFunnelReport />}
         </main>
       </div>

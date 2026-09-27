@@ -388,6 +388,129 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 59.444, longitude: 24.752)
     )
 
+    // Asia・Americaリージョンの古地図。OpenStreetMapの現在の地図データ（海岸線・水面・通り・建物・城壁）を
+    // もとに、各地域の古地図の様式で描いたオリジナル画像（`scripts/global_maps/render_world.py`）。
+    // 中国の都市は、端末のGPSと同じ世界測地系（WGS84）の座標で描いている。
+    static let beijing = HistoricalOverlayMap(
+        id: "beijing-qing",
+        title: "北京・紫禁城と内城（清代）",
+        era: "清代（18世紀・乾隆期）",
+        summary: "明・清の皇帝の都。紫禁城を中心に、城壁で囲まれた内城と外城に胡同（路地）が広がっていました。天壇・景山・鐘鼓楼までをめぐります。",
+        imageAssetName: "OldMap_Beijing",
+        southWest: CLLocationCoordinate2D(latitude: 39.862, longitude: 116.333),
+        northEast: CLLocationCoordinate2D(latitude: 39.952, longitude: 116.45)
+    )
+
+    static let xian = HistoricalOverlayMap(
+        id: "xian-changan",
+        title: "西安・長安（明の西安府城）",
+        era: "唐の長安〜明代（14〜17世紀）",
+        summary: "シルクロードの起点として栄えた唐の都・長安。明代に築かれた周囲約14kmの城壁の中に、鐘楼と鼓楼が向かい合います。城外の大雁塔までをめぐります。",
+        imageAssetName: "OldMap_Xian",
+        southWest: CLLocationCoordinate2D(latitude: 34.212, longitude: 108.898),
+        northEast: CLLocationCoordinate2D(latitude: 34.287, longitude: 108.9885)
+    )
+
+    static let lhasa = HistoricalOverlayMap(
+        id: "lhasa-holy-city",
+        title: "ラサ・ポタラ宮と聖都",
+        era: "17〜18世紀（ダライ・ラマの時代）",
+        summary: "標高約3,650mのチベットの聖都。マルポリの丘にそびえるポタラ宮と、巡礼者が集まるジョカン、バルコルの巡礼路、夏の離宮ノルブリンカをめぐります。",
+        imageAssetName: "OldMap_Lhasa",
+        southWest: CLLocationCoordinate2D(latitude: 29.632, longitude: 91.086),
+        northEast: CLLocationCoordinate2D(latitude: 29.679, longitude: 91.14)
+    )
+
+    static let angkor = HistoricalOverlayMap(
+        id: "angkor-yasodharapura",
+        title: "アンコール（クメール王朝の都）",
+        era: "9〜15世紀（クメール王朝）",
+        summary: "密林の中に環濠と寺院が広がる、クメール王朝の都ヤショダラプラ。アンコール・ワットから城壁都市アンコール・トム、タ・プロームまでをめぐります。",
+        imageAssetName: "OldMap_Angkor",
+        southWest: CLLocationCoordinate2D(latitude: 13.404, longitude: 103.848),
+        northEast: CLLocationCoordinate2D(latitude: 13.447, longitude: 103.8923)
+    )
+
+    static let delhi = HistoricalOverlayMap(
+        id: "delhi-shahjahanabad",
+        title: "デリー・シャージャハーナーバード（ムガル帝国）",
+        era: "17〜18世紀（ムガル帝国）",
+        summary: "ムガル皇帝シャー・ジャハーンが築いた城壁都市。赤い城から目抜き通りチャンドニー・チョーク、ジャーマー・マスジド、北のカシミール門までをめぐります。",
+        imageAssetName: "OldMap_Delhi",
+        southWest: CLLocationCoordinate2D(latitude: 28.64, longitude: 77.215),
+        northEast: CLLocationCoordinate2D(latitude: 28.672, longitude: 77.2515)
+    )
+
+    static let isfahan = HistoricalOverlayMap(
+        id: "isfahan-safavid",
+        title: "イスファハーン（ペルシャ・サファヴィー朝）",
+        era: "16〜17世紀（サファヴィー朝）",
+        summary: "「イスファハーンは世界の半分」と称えられたペルシャの王都。青いタイルのモスクが囲む広場から、宮殿、ザーヤンデ川の橋、金曜モスクまでをめぐります。",
+        imageAssetName: "OldMap_Isfahan",
+        southWest: CLLocationCoordinate2D(latitude: 32.64, longitude: 51.656),
+        northEast: CLLocationCoordinate2D(latitude: 32.674, longitude: 51.6965)
+    )
+
+    static let jerusalem = HistoricalOverlayMap(
+        id: "jerusalem-old-city",
+        title: "エルサレム旧市街",
+        era: "16世紀〜（オスマン帝国の城壁）",
+        summary: "オスマン帝国のスレイマン1世が築いた城壁に囲まれた、ユダヤ教・キリスト教・イスラームの聖地。城門と聖所をめぐります。",
+        imageAssetName: "OldMap_Jerusalem",
+        southWest: CLLocationCoordinate2D(latitude: 31.767, longitude: 35.2185),
+        northEast: CLLocationCoordinate2D(latitude: 31.789, longitude: 35.2444)
+    )
+
+    static let boston = HistoricalOverlayMap(
+        id: "boston-colonial",
+        title: "ボストン（独立戦争の時代）",
+        era: "18世紀（1775年頃）",
+        summary: "アメリカ独立革命の舞台となった港町。レンガの道「フリーダム・トレイル」に沿って、議事堂・集会所・教会をめぐります。",
+        imageAssetName: "OldMap_Boston",
+        southWest: CLLocationCoordinate2D(latitude: 42.348, longitude: -71.0745),
+        northEast: CLLocationCoordinate2D(latitude: 42.372, longitude: -71.042)
+    )
+
+    static let newYork = HistoricalOverlayMap(
+        id: "newyork-new-amsterdam",
+        title: "ニューヨーク（ニューアムステルダム）",
+        era: "17〜18世紀（オランダ・英国植民地）",
+        summary: "オランダの植民地ニューアムステルダムとして始まったマンハッタン南端。砦の跡からウォール街、初代大統領の就任の地、市庁舎までをめぐります。",
+        imageAssetName: "OldMap_NewYork",
+        southWest: CLLocationCoordinate2D(latitude: 40.698, longitude: -74.024),
+        northEast: CLLocationCoordinate2D(latitude: 40.718, longitude: -73.9977)
+    )
+
+    static let mexicoCity = HistoricalOverlayMap(
+        id: "mexico-tenochtitlan",
+        title: "メキシコシティ（テノチティトランの跡）",
+        era: "14〜17世紀（アステカ〜スペイン植民地）",
+        summary: "湖上の都テノチティトランの上に築かれたスペイン植民地の首都。大広場ソカロ、大聖堂、アステカの大神殿の遺跡をめぐります。",
+        imageAssetName: "OldMap_Mexico",
+        southWest: CLLocationCoordinate2D(latitude: 19.425, longitude: -99.1478),
+        northEast: CLLocationCoordinate2D(latitude: 19.445, longitude: -99.1266)
+    )
+
+    static let cusco = HistoricalOverlayMap(
+        id: "cusco-inca",
+        title: "クスコ（インカ帝国の都）",
+        era: "15〜17世紀（インカ〜スペイン植民地）",
+        summary: "標高約3,400mのインカ帝国の都。インカの石組みの上にスペインの教会が建つ街を、広場・太陽の神殿・丘の上の城塞までめぐります。",
+        imageAssetName: "OldMap_Cusco",
+        southWest: CLLocationCoordinate2D(latitude: -13.527, longitude: -71.9895),
+        northEast: CLLocationCoordinate2D(latitude: -13.504, longitude: -71.9659)
+    )
+
+    static let buenosAires = HistoricalOverlayMap(
+        id: "buenosaires-colonial",
+        title: "ブエノスアイレス（植民地時代の港町）",
+        era: "18〜19世紀（スペイン植民地〜独立）",
+        summary: "ラ・プラタ川の港町として栄えたスペイン植民地の都。五月革命の広場から、石畳のサン・テルモ、コロン劇場、オベリスコまでをめぐります。",
+        imageAssetName: "OldMap_BuenosAires",
+        southWest: CLLocationCoordinate2D(latitude: -34.626, longitude: -58.389),
+        northEast: CLLocationCoordinate2D(latitude: -34.597, longitude: -58.354)
+    )
+
     /// 選択可能な古地図の一覧
     static let all: [HistoricalOverlayMap] = [
         edoCastle, asakusa, meijiWriters, nihonbashi,
@@ -396,6 +519,8 @@ enum OldMapCatalog {
         oyamaKaido,
         kiminonaSeichi, ghibliSeichi, tokyoToilet,
         amsterdam, helsinki, stockholm, tallinn,
+        beijing, xian, lhasa, angkor, delhi, isfahan, jerusalem,
+        boston, newYork, mexicoCity, cusco, buenosAires,
     ]
 
     /// アプリ起動時・記録開始時などにデフォルトで選ぶ古地図。「設定」の
@@ -417,6 +542,10 @@ enum OldMapCatalog {
         case animePilgrimage = "アニメ・映画聖地巡礼"
         /// 海外都市の旧市街コース（Europeのアムステルダム・ヘルシンキ・ストックホルム・タリン）。
         case oldTowns = "旧市街巡り"
+        /// Asiaの古都・聖地（北京・西安・ラサ・アンコール・デリー・イスファハーン・エルサレム）。
+        case ancientCapitals = "古都・聖地巡り"
+        /// Americaの歴史地区（ボストン・ニューヨーク・メキシコシティ・クスコ・ブエノスアイレス）。
+        case colonialCities = "歴史地区巡り"
     }
 
     private static let categoryByID: [String: Category] = [
@@ -438,6 +567,18 @@ enum OldMapCatalog {
         helsinki.id: .oldTowns,
         stockholm.id: .oldTowns,
         tallinn.id: .oldTowns,
+        beijing.id: .ancientCapitals,
+        xian.id: .ancientCapitals,
+        lhasa.id: .ancientCapitals,
+        angkor.id: .ancientCapitals,
+        delhi.id: .ancientCapitals,
+        isfahan.id: .ancientCapitals,
+        jerusalem.id: .ancientCapitals,
+        boston.id: .colonialCities,
+        newYork.id: .colonialCities,
+        mexicoCity.id: .colonialCities,
+        cusco.id: .colonialCities,
+        buenosAires.id: .colonialCities,
     ]
 
     /// この古地図が属する分類。同梱リストにない（ユーザーが検索して追加した）古地図は`nil`。

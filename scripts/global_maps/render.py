@@ -1,4 +1,4 @@
-"""Komap Global の古地図を、OpenStreetMap のデータから各国の古地図の様式で描く。
+"""Europe（旧Komap Global）の古地図を、OpenStreetMap のデータから各国の古地図の様式で描く。
 
     python3 render.py [city ...]
 
@@ -476,8 +476,9 @@ def base_map(elements, proj, rng, pal, building_color=None, building_outline=Non
     # 建物（街区）
     if building_color:
         bd = ImageDraw.Draw(img)
+        colors = building_color if isinstance(building_color, list) else [building_color]
         for pts in polygons(elements, proj, lambda t: "building" in t):
-            bd.polygon(pts, fill=building_color, outline=building_outline)
+            bd.polygon(pts, fill=colors[int(rng.integers(0, len(colors)))], outline=building_outline)
 
     # 鉄道（ハッチ線）
     d = ImageDraw.Draw(img)
@@ -566,7 +567,7 @@ def helsinki(elements, proj, rng):
     centered_text(d, mid, cy0 + 150, "· HELSINKI · ANNO MDCCCXL ·", font("Didot.ttc", 34, index=2), pal["ink"])
     centered_text(d, mid, cy0 + 205, "ヘルシンキ旧市街（帝政期）", ImageFont.truetype(JP_FONT, 40, index=0), pal["ink"])
     d.line([(mid - 150, cy0 + 268), (mid + 150, cy0 + 268)], fill=blue, width=3)
-    centered_text(d, mid, cy0 + 280, "KOMAP GLOBAL", font("Didot.ttc", 22), pal["ink"], spacing=8)
+    centered_text(d, mid, cy0 + 280, "KOMAP · EUROPE", font("Didot.ttc", 22), pal["ink"], spacing=8)
 
     rose_block(img, water, pts, [(cx0, cy0, cw, ch)], proj, pal, blue, birch, font("Copperplate.ttc", 44),
                1000, "1000 m", font("Didot.ttc", 28))
@@ -616,7 +617,7 @@ def stockholm(elements, proj, rng):
     centered_text(d, mid, cy0 + 100, "STOCKHOLMIA", font("Trattatello.ttf", 96), blue)
     centered_text(d, mid, cy0 + 236, "HOLMIA · ANNO MDCC", font("Copperplate.ttc", 32), pal["ink"], spacing=3)
     centered_text(d, mid, cy0 + 284, "ストックホルム旧市街（ガムラスタン）", ImageFont.truetype(JP_FONT, 36), pal["ink"])
-    centered_text(d, mid, cy0 + 336, "KOMAP GLOBAL", font("Didot.ttc", 22), pal["ink"], spacing=8)
+    centered_text(d, mid, cy0 + 336, "KOMAP · EUROPE", font("Didot.ttc", 22), pal["ink"], spacing=8)
 
     rose_block(img, water, pts, [(cx0, cy0, cw, ch)], proj, pal, blue, (246, 238, 216), font("Copperplate.ttc", 44),
                119, "200 alnar ≈ 120 m", font("Didot.ttc", 26, index=2), radius=130)
@@ -685,7 +686,7 @@ def amsterdam(elements, proj, rng):
     centered_text(d, mid, cy0 + 92, "AMSTELODAMUM", font("Trattatello.ttf", 92), pal["ink"])
     centered_text(d, mid, cy0 + 200, "Nova et accurata descriptio · MDCL", font("Didot.ttc", 30, index=2), pal["ink"])
     centered_text(d, mid, cy0 + 245, "アムステルダム旧市街（黄金時代）", ImageFont.truetype(JP_FONT, 36), pal["ink"])
-    centered_text(d, mid, cy0 + 300, "KOMAP GLOBAL", font("Didot.ttc", 20), pal["ink"], spacing=8)
+    centered_text(d, mid, cy0 + 300, "KOMAP · EUROPE", font("Didot.ttc", 20), pal["ink"], spacing=8)
 
     rose_block(img, water, pts, [(cx0, cy0, cw, ch)], proj, pal, orange, (244, 235, 212), font("Copperplate.ttc", 42),
                300, "300 m", font("Didot.ttc", 26, index=2), radius=120, corners_only=True)
@@ -781,7 +782,7 @@ def tallinn(elements, proj, rng):
     centered_text(d, mid, cy0 + 50, "REVALIA", font("Luminari.ttf", 104), roof)
     centered_text(d, mid, cy0 + 175, "Civitas Hanseatica · MDC", font("Didot.ttc", 32, index=2), pal["ink"])
     centered_text(d, mid, cy0 + 222, "タリン旧市街（ハンザ同盟）", ImageFont.truetype(JP_FONT, 38), pal["ink"])
-    centered_text(d, mid, cy0 + 285, "KOMAP GLOBAL", font("Didot.ttc", 22), pal["ink"], spacing=8)
+    centered_text(d, mid, cy0 + 285, "KOMAP · EUROPE", font("Didot.ttc", 22), pal["ink"], spacing=8)
 
     rose_block(img, free, pts, [(cx0, cy0, cw, ch)], proj, pal, roof, (245, 236, 214), font("Luminari.ttf", 44),
                100, "100 m", font("Didot.ttc", 26, index=2), radius=120)

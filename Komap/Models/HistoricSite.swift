@@ -1053,6 +1053,438 @@ enum HistoricSiteCatalog {
             summary: "トームペアの崖の上から、赤い屋根の下町と教会の尖塔、その先のバルト海を見渡す展望台。紋章はティール地に銀の遠眼鏡。",
             coordinate: CLLocationCoordinate2D(latitude: 59.4377, longitude: 24.7422)
         ),
+        // 北京・紫禁城と内城（清代）
+        HistoricSite(
+            id: "beijing-forbidden-city",
+            overlayMapID: OldMapCatalog.beijing.id,
+            name: "紫禁城（故宮）",
+            summary: "明・清の皇帝が暮らした、黄色い瑠璃瓦が連なる世界最大級の宮殿。",
+            coordinate: CLLocationCoordinate2D(latitude: 39.9163, longitude: 116.3908)
+        ),
+        HistoricSite(
+            id: "beijing-tiananmen",
+            overlayMapID: OldMapCatalog.beijing.id,
+            name: "天安門",
+            summary: "紫禁城の正門として皇帝の詔が発せられた門。朱色の城楼が広場を見下ろす。",
+            coordinate: CLLocationCoordinate2D(latitude: 39.9075, longitude: 116.391)
+        ),
+        HistoricSite(
+            id: "beijing-temple-of-heaven",
+            overlayMapID: OldMapCatalog.beijing.id,
+            name: "天壇・祈年殿",
+            summary: "皇帝が五穀豊穣を天に祈った、三層の青い屋根の円形の殿堂。",
+            coordinate: CLLocationCoordinate2D(latitude: 39.8822, longitude: 116.4007)
+        ),
+        HistoricSite(
+            id: "beijing-jingshan",
+            overlayMapID: OldMapCatalog.beijing.id,
+            name: "景山",
+            summary: "紫禁城の北を守る人工の丘。頂の万春亭から宮殿の黄色い屋根の海を一望できる。",
+            coordinate: CLLocationCoordinate2D(latitude: 39.9245, longitude: 116.3904)
+        ),
+        HistoricSite(
+            id: "beijing-drum-bell-tower",
+            overlayMapID: OldMapCatalog.beijing.id,
+            name: "鐘楼・鼓楼",
+            summary: "鐘と太鼓で都に時を告げた二つの楼閣。周りには胡同が広がる。",
+            coordinate: CLLocationCoordinate2D(latitude: 39.9393, longitude: 116.3897)
+        ),
+        // 西安・長安（明の西安府城）
+        HistoricSite(
+            id: "xian-bell-tower",
+            overlayMapID: OldMapCatalog.xian.id,
+            name: "鐘楼",
+            summary: "西安府城の中心、東西南北の大街が交わる所に立つ明代の楼閣。",
+            coordinate: CLLocationCoordinate2D(latitude: 34.261, longitude: 108.9423)
+        ),
+        HistoricSite(
+            id: "xian-drum-tower",
+            overlayMapID: OldMapCatalog.xian.id,
+            name: "鼓楼",
+            summary: "鐘楼と向かい合い、夕暮れに太鼓で時を告げた楼閣。北には回民街が続く。",
+            coordinate: CLLocationCoordinate2D(latitude: 34.2618, longitude: 108.9388)
+        ),
+        HistoricSite(
+            id: "xian-yongning-gate",
+            overlayMapID: OldMapCatalog.xian.id,
+            name: "永寧門（南門）と城壁",
+            summary: "周囲約14kmの明代の城壁の正門。城壁の上を歩いて一周できる。",
+            coordinate: CLLocationCoordinate2D(latitude: 34.2531, longitude: 108.9423)
+        ),
+        HistoricSite(
+            id: "xian-beilin",
+            overlayMapID: OldMapCatalog.xian.id,
+            name: "碑林",
+            summary: "唐代以来の石碑が林のように立ち並ぶ、書の聖地。",
+            coordinate: CLLocationCoordinate2D(latitude: 34.255, longitude: 108.9481)
+        ),
+        HistoricSite(
+            id: "xian-big-wild-goose-pagoda",
+            overlayMapID: OldMapCatalog.xian.id,
+            name: "大雁塔",
+            summary: "玄奘三蔵がインドから持ち帰った経典を納めるために建てられた唐代の塔。",
+            coordinate: CLLocationCoordinate2D(latitude: 34.2198, longitude: 108.9594)
+        ),
+        // ラサ・ポタラ宮と聖都
+        HistoricSite(
+            id: "lhasa-potala",
+            overlayMapID: OldMapCatalog.lhasa.id,
+            name: "ポタラ宮",
+            summary: "歴代ダライ・ラマの宮殿。マルポリの丘に白宮と紅宮がそびえる。",
+            coordinate: CLLocationCoordinate2D(latitude: 29.6576, longitude: 91.117)
+        ),
+        HistoricSite(
+            id: "lhasa-jokhang",
+            overlayMapID: OldMapCatalog.lhasa.id,
+            name: "ジョカン（大昭寺）",
+            summary: "7世紀、ソンツェン・ガンポ王の時代に建てられたチベット仏教で最も聖なる寺院。",
+            coordinate: CLLocationCoordinate2D(latitude: 29.6529, longitude: 91.1318)
+        ),
+        HistoricSite(
+            id: "lhasa-barkhor",
+            overlayMapID: OldMapCatalog.lhasa.id,
+            name: "バルコル（八廓街）",
+            summary: "ジョカンを囲む巡礼路。人々がマニ車を回しながら時計回りに歩く。",
+            coordinate: CLLocationCoordinate2D(latitude: 29.652, longitude: 91.133)
+        ),
+        HistoricSite(
+            id: "lhasa-norbulingka",
+            overlayMapID: OldMapCatalog.lhasa.id,
+            name: "ノルブリンカ",
+            summary: "ダライ・ラマの夏の離宮。「宝石の庭」を意味する緑豊かな庭園。",
+            coordinate: CLLocationCoordinate2D(latitude: 29.6546, longitude: 91.09)
+        ),
+        HistoricSite(
+            id: "lhasa-ramoche",
+            overlayMapID: OldMapCatalog.lhasa.id,
+            name: "ラモチェ（小昭寺）",
+            summary: "唐から嫁いだ文成公主ゆかりの寺院。",
+            coordinate: CLLocationCoordinate2D(latitude: 29.6586, longitude: 91.1304)
+        ),
+        // アンコール（クメール王朝の都）
+        HistoricSite(
+            id: "angkor-wat",
+            overlayMapID: OldMapCatalog.angkor.id,
+            name: "アンコール・ワット",
+            summary: "12世紀、スーリヤヴァルマン2世が建てた寺院。環濠に五つの塔が映る。",
+            coordinate: CLLocationCoordinate2D(latitude: 13.4125, longitude: 103.8666)
+        ),
+        HistoricSite(
+            id: "angkor-thom-south-gate",
+            overlayMapID: OldMapCatalog.angkor.id,
+            name: "アンコール・トム南大門",
+            summary: "四面に観世音菩薩の顔を刻んだ城門。参道の欄干には神々と阿修羅が並ぶ。",
+            coordinate: CLLocationCoordinate2D(latitude: 13.4288, longitude: 103.8597)
+        ),
+        HistoricSite(
+            id: "angkor-bayon",
+            overlayMapID: OldMapCatalog.angkor.id,
+            name: "バイヨン",
+            summary: "アンコール・トムの中心に建つ寺院。無数の「クメールの微笑み」が見下ろす。",
+            coordinate: CLLocationCoordinate2D(latitude: 13.4412, longitude: 103.8591)
+        ),
+        HistoricSite(
+            id: "angkor-ta-prohm",
+            overlayMapID: OldMapCatalog.angkor.id,
+            name: "タ・プローム",
+            summary: "巨大なガジュマルの根が遺跡を抱き込む、密林の寺院。",
+            coordinate: CLLocationCoordinate2D(latitude: 13.4349, longitude: 103.8896)
+        ),
+        HistoricSite(
+            id: "angkor-phnom-bakheng",
+            overlayMapID: OldMapCatalog.angkor.id,
+            name: "プノン・バケン",
+            summary: "都の最初の中心となった丘の上の寺院。夕日の名所。",
+            coordinate: CLLocationCoordinate2D(latitude: 13.4238, longitude: 103.8562)
+        ),
+        // デリー・シャージャハーナーバード（ムガル帝国）
+        HistoricSite(
+            id: "delhi-red-fort",
+            overlayMapID: OldMapCatalog.delhi.id,
+            name: "ラール・キラー（赤い城）",
+            summary: "ムガル皇帝シャー・ジャハーンが築いた赤砂岩の宮城。",
+            coordinate: CLLocationCoordinate2D(latitude: 28.6561, longitude: 77.2408)
+        ),
+        HistoricSite(
+            id: "delhi-jama-masjid",
+            overlayMapID: OldMapCatalog.delhi.id,
+            name: "ジャーマー・マスジド",
+            summary: "インド最大級のモスク。赤砂岩と白大理石の三つのドームが並ぶ。",
+            coordinate: CLLocationCoordinate2D(latitude: 28.6507, longitude: 77.233)
+        ),
+        HistoricSite(
+            id: "delhi-chandni-chowk",
+            overlayMapID: OldMapCatalog.delhi.id,
+            name: "チャンドニー・チョーク",
+            summary: "「月光の広場」と呼ばれたオールドデリーの目抜き通り。今も市場の熱気に満ちる。",
+            coordinate: CLLocationCoordinate2D(latitude: 28.656, longitude: 77.2322)
+        ),
+        HistoricSite(
+            id: "delhi-fatehpuri-masjid",
+            overlayMapID: OldMapCatalog.delhi.id,
+            name: "ファテープリー・マスジド",
+            summary: "チャンドニー・チョークの西の端に建つ、皇妃が寄進したモスク。",
+            coordinate: CLLocationCoordinate2D(latitude: 28.6567, longitude: 77.2223)
+        ),
+        HistoricSite(
+            id: "delhi-kashmiri-gate",
+            overlayMapID: OldMapCatalog.delhi.id,
+            name: "カシミール門",
+            summary: "城壁都市の北の門。カシミールへ向かう道の起点。",
+            coordinate: CLLocationCoordinate2D(latitude: 28.6668, longitude: 77.2291)
+        ),
+        // イスファハーン（ペルシャ・サファヴィー朝）
+        HistoricSite(
+            id: "isfahan-naqsh-e-jahan",
+            overlayMapID: OldMapCatalog.isfahan.id,
+            name: "ナグシェ・ジャハーン広場",
+            summary: "「世界の肖像」の名を持つ、サファヴィー朝の王都の巨大な広場。",
+            coordinate: CLLocationCoordinate2D(latitude: 32.6581, longitude: 51.6774)
+        ),
+        HistoricSite(
+            id: "isfahan-shah-mosque",
+            overlayMapID: OldMapCatalog.isfahan.id,
+            name: "イマーム・モスク（王のモスク）",
+            summary: "青いタイルに覆われたドームと門が、広場の南を飾るモスク。",
+            coordinate: CLLocationCoordinate2D(latitude: 32.6548, longitude: 51.6784)
+        ),
+        HistoricSite(
+            id: "isfahan-chehel-sotoun",
+            overlayMapID: OldMapCatalog.isfahan.id,
+            name: "チェヘル・ソトゥーン",
+            summary: "池に柱が映って「四十の柱」に見える宮殿。",
+            coordinate: CLLocationCoordinate2D(latitude: 32.6574, longitude: 51.672)
+        ),
+        HistoricSite(
+            id: "isfahan-si-o-se-pol",
+            overlayMapID: OldMapCatalog.isfahan.id,
+            name: "スィー・オ・セ橋",
+            summary: "ザーヤンデ川に架かる33のアーチの橋。",
+            coordinate: CLLocationCoordinate2D(latitude: 32.6446, longitude: 51.6675)
+        ),
+        HistoricSite(
+            id: "isfahan-jameh-mosque",
+            overlayMapID: OldMapCatalog.isfahan.id,
+            name: "金曜モスク（マスジェデ・ジャーメ）",
+            summary: "千年以上にわたって増築されてきた、イラン建築の博物館のようなモスク。",
+            coordinate: CLLocationCoordinate2D(latitude: 32.67, longitude: 51.6855)
+        ),
+        // エルサレム旧市街
+        HistoricSite(
+            id: "jerusalem-dome-of-the-rock",
+            overlayMapID: OldMapCatalog.jerusalem.id,
+            name: "岩のドーム",
+            summary: "金色のドームが旧市街を見下ろす、7世紀末に建てられたイスラームの聖堂。",
+            coordinate: CLLocationCoordinate2D(latitude: 31.778, longitude: 35.2353)
+        ),
+        HistoricSite(
+            id: "jerusalem-western-wall",
+            overlayMapID: OldMapCatalog.jerusalem.id,
+            name: "嘆きの壁",
+            summary: "第二神殿を支えた西側の擁壁。ユダヤ教の祈りの場。",
+            coordinate: CLLocationCoordinate2D(latitude: 31.7767, longitude: 35.2344)
+        ),
+        HistoricSite(
+            id: "jerusalem-holy-sepulchre",
+            overlayMapID: OldMapCatalog.jerusalem.id,
+            name: "聖墳墓教会",
+            summary: "イエスの磔刑と埋葬の地とされる、キリスト教の聖地。",
+            coordinate: CLLocationCoordinate2D(latitude: 31.7784, longitude: 35.2298)
+        ),
+        HistoricSite(
+            id: "jerusalem-jaffa-gate",
+            overlayMapID: OldMapCatalog.jerusalem.id,
+            name: "ヤッフォ門・ダビデの塔",
+            summary: "地中海の港町ヤッフォへ向かう西の門。脇に城塞がそびえる。",
+            coordinate: CLLocationCoordinate2D(latitude: 31.7766, longitude: 35.2273)
+        ),
+        HistoricSite(
+            id: "jerusalem-damascus-gate",
+            overlayMapID: OldMapCatalog.jerusalem.id,
+            name: "ダマスカス門",
+            summary: "スレイマン1世が築いた、北の最も壮麗な門。",
+            coordinate: CLLocationCoordinate2D(latitude: 31.7817, longitude: 35.2305)
+        ),
+        // ボストン（独立戦争の時代）
+        HistoricSite(
+            id: "boston-old-state-house",
+            overlayMapID: OldMapCatalog.boston.id,
+            name: "旧州議事堂",
+            summary: "1770年のボストン虐殺事件の現場。バルコニーから独立宣言が読み上げられた。",
+            coordinate: CLLocationCoordinate2D(latitude: 42.3587, longitude: -71.0575)
+        ),
+        HistoricSite(
+            id: "boston-faneuil-hall",
+            overlayMapID: OldMapCatalog.boston.id,
+            name: "ファニエル・ホール",
+            summary: "「自由のゆりかご」と呼ばれた集会所。独立を求める演説が行われた。",
+            coordinate: CLLocationCoordinate2D(latitude: 42.36, longitude: -71.0562)
+        ),
+        HistoricSite(
+            id: "boston-paul-revere-house",
+            overlayMapID: OldMapCatalog.boston.id,
+            name: "ポール・リビアの家",
+            summary: "1775年、英軍の進軍を夜通し馬で知らせた銀細工師の家。",
+            coordinate: CLLocationCoordinate2D(latitude: 42.3637, longitude: -71.0537)
+        ),
+        HistoricSite(
+            id: "boston-old-north-church",
+            overlayMapID: OldMapCatalog.boston.id,
+            name: "オールド・ノース教会",
+            summary: "「陸なら一つ、海なら二つ」のランタンが掲げられた尖塔。",
+            coordinate: CLLocationCoordinate2D(latitude: 42.3663, longitude: -71.0544)
+        ),
+        HistoricSite(
+            id: "boston-common",
+            overlayMapID: OldMapCatalog.boston.id,
+            name: "ボストン・コモンと州議事堂",
+            summary: "1634年に造られた米国最古の公園と、金色のドームの州議事堂。",
+            coordinate: CLLocationCoordinate2D(latitude: 42.3586, longitude: -71.0639)
+        ),
+        // ニューヨーク（ニューアムステルダム）
+        HistoricSite(
+            id: "newyork-castle-clinton",
+            overlayMapID: OldMapCatalog.newYork.id,
+            name: "キャッスル・クリントン",
+            summary: "マンハッタン南端の砦。移民の受け入れ所だった時代もある。",
+            coordinate: CLLocationCoordinate2D(latitude: 40.7035, longitude: -74.0166)
+        ),
+        HistoricSite(
+            id: "newyork-fraunces-tavern",
+            overlayMapID: OldMapCatalog.newYork.id,
+            name: "フランセス・タバーン",
+            summary: "1783年、ワシントンが将校たちに別れを告げた酒場。",
+            coordinate: CLLocationCoordinate2D(latitude: 40.7034, longitude: -74.0113)
+        ),
+        HistoricSite(
+            id: "newyork-federal-hall",
+            overlayMapID: OldMapCatalog.newYork.id,
+            name: "フェデラル・ホール",
+            summary: "1789年、ワシントンが初代大統領に就任した場所。前はウォール街。",
+            coordinate: CLLocationCoordinate2D(latitude: 40.7073, longitude: -74.0103)
+        ),
+        HistoricSite(
+            id: "newyork-trinity-church",
+            overlayMapID: OldMapCatalog.newYork.id,
+            name: "トリニティ教会",
+            summary: "ウォール街の突き当たりに建つゴシックの教会。",
+            coordinate: CLLocationCoordinate2D(latitude: 40.7081, longitude: -74.0122)
+        ),
+        HistoricSite(
+            id: "newyork-city-hall",
+            overlayMapID: OldMapCatalog.newYork.id,
+            name: "ニューヨーク市庁舎",
+            summary: "1812年に完成した、今も使われる米国最古級の市庁舎。",
+            coordinate: CLLocationCoordinate2D(latitude: 40.7127, longitude: -74.0059)
+        ),
+        // メキシコシティ（テノチティトランの跡）
+        HistoricSite(
+            id: "mexico-zocalo",
+            overlayMapID: OldMapCatalog.mexicoCity.id,
+            name: "ソカロ（憲法広場）",
+            summary: "アステカの都テノチティトランの中心に築かれた、世界有数の大きな広場。",
+            coordinate: CLLocationCoordinate2D(latitude: 19.4326, longitude: -99.1332)
+        ),
+        HistoricSite(
+            id: "mexico-cathedral",
+            overlayMapID: OldMapCatalog.mexicoCity.id,
+            name: "メトロポリタン大聖堂",
+            summary: "アステカの神殿の石を使って建てられた、ラテンアメリカ最大級の大聖堂。",
+            coordinate: CLLocationCoordinate2D(latitude: 19.4344, longitude: -99.1331)
+        ),
+        HistoricSite(
+            id: "mexico-templo-mayor",
+            overlayMapID: OldMapCatalog.mexicoCity.id,
+            name: "テンプロ・マヨール",
+            summary: "アステカの大神殿の遺跡。1978年に偶然発見された。",
+            coordinate: CLLocationCoordinate2D(latitude: 19.4351, longitude: -99.1314)
+        ),
+        HistoricSite(
+            id: "mexico-bellas-artes",
+            overlayMapID: OldMapCatalog.mexicoCity.id,
+            name: "ベジャス・アルテス宮殿",
+            summary: "アール・ヌーヴォーの外観とアール・デコの内装を持つ劇場。",
+            coordinate: CLLocationCoordinate2D(latitude: 19.4355, longitude: -99.1413)
+        ),
+        HistoricSite(
+            id: "mexico-santo-domingo",
+            overlayMapID: OldMapCatalog.mexicoCity.id,
+            name: "サント・ドミンゴ広場",
+            summary: "植民地時代の代書屋が並んだ広場。赤いテソントレ石の教会が建つ。",
+            coordinate: CLLocationCoordinate2D(latitude: 19.4373, longitude: -99.1339)
+        ),
+        // クスコ（インカ帝国の都）
+        HistoricSite(
+            id: "cusco-plaza-de-armas",
+            overlayMapID: OldMapCatalog.cusco.id,
+            name: "アルマス広場",
+            summary: "インカの儀式の広場ワカイパタの上に築かれた広場と大聖堂。",
+            coordinate: CLLocationCoordinate2D(latitude: -13.5168, longitude: -71.9788)
+        ),
+        HistoricSite(
+            id: "cusco-qorikancha",
+            overlayMapID: OldMapCatalog.cusco.id,
+            name: "コリカンチャ（太陽の神殿）",
+            summary: "金の板で覆われていたインカの太陽神殿。上にサント・ドミンゴ修道院が建つ。",
+            coordinate: CLLocationCoordinate2D(latitude: -13.5203, longitude: -71.9751)
+        ),
+        HistoricSite(
+            id: "cusco-hatun-rumiyoc",
+            overlayMapID: OldMapCatalog.cusco.id,
+            name: "12角の石（ハトゥン・ルミヨク通り）",
+            summary: "剃刀の刃も入らない、インカの精巧な石組み。",
+            coordinate: CLLocationCoordinate2D(latitude: -13.5157, longitude: -71.9765)
+        ),
+        HistoricSite(
+            id: "cusco-san-blas",
+            overlayMapID: OldMapCatalog.cusco.id,
+            name: "サン・ブラス地区",
+            summary: "職人の工房が集まる坂の街。",
+            coordinate: CLLocationCoordinate2D(latitude: -13.5152, longitude: -71.9742)
+        ),
+        HistoricSite(
+            id: "cusco-sacsayhuaman",
+            overlayMapID: OldMapCatalog.cusco.id,
+            name: "サクサイワマン",
+            summary: "巨石を三段に積んだインカの城塞。",
+            coordinate: CLLocationCoordinate2D(latitude: -13.5068, longitude: -71.9802)
+        ),
+        // ブエノスアイレス（植民地時代の港町）
+        HistoricSite(
+            id: "buenosaires-plaza-de-mayo",
+            overlayMapID: OldMapCatalog.buenosAires.id,
+            name: "五月広場とカサ・ロサーダ",
+            summary: "1810年の五月革命の舞台。桃色の大統領府が向かい合う。",
+            coordinate: CLLocationCoordinate2D(latitude: -34.6084, longitude: -58.3722)
+        ),
+        HistoricSite(
+            id: "buenosaires-cabildo",
+            overlayMapID: OldMapCatalog.buenosAires.id,
+            name: "カビルド（旧市参事会）",
+            summary: "植民地時代の市政の中心だった、白い回廊の建物。",
+            coordinate: CLLocationCoordinate2D(latitude: -34.6089, longitude: -58.3737)
+        ),
+        HistoricSite(
+            id: "buenosaires-plaza-dorrego",
+            overlayMapID: OldMapCatalog.buenosAires.id,
+            name: "ドレーゴ広場（サン・テルモ）",
+            summary: "石畳の古い街並みでタンゴが踊られる広場。",
+            coordinate: CLLocationCoordinate2D(latitude: -34.6205, longitude: -58.3718)
+        ),
+        HistoricSite(
+            id: "buenosaires-teatro-colon",
+            overlayMapID: OldMapCatalog.buenosAires.id,
+            name: "コロン劇場",
+            summary: "世界三大劇場の一つに数えられるオペラハウス。",
+            coordinate: CLLocationCoordinate2D(latitude: -34.6011, longitude: -58.3832)
+        ),
+        HistoricSite(
+            id: "buenosaires-obelisco",
+            overlayMapID: OldMapCatalog.buenosAires.id,
+            name: "オベリスコ",
+            summary: "市の創設400年を記念して建てられた、7月9日大通りの白い塔。",
+            coordinate: CLLocationCoordinate2D(latitude: -34.6037, longitude: -58.3816)
+        ),
     ]
 
     /// 同梱のチェックポイントのID・古地図IDによる索引。`site(withID:)`や

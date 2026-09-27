@@ -50,6 +50,10 @@ export function useTripBrowser(trips: UnifiedTrip[]) {
     selectedTrip,
     isSidebarOpen,
     openSidebar: () => setIsSidebarOpen(true),
+    /** スマホ幅の時だけ一覧を収納する（旅以外の詳細を開いた時など）。 */
+    collapseSidebarOnMobile: () => {
+      if (isMobile) setIsSidebarOpen(false);
+    },
     selectTrip,
     goHome,
   };

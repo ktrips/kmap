@@ -318,6 +318,25 @@ code {
   overflow-y: auto;
 }
 
+.old-map-checkpoints {
+  margin: 0;
+  padding-left: 1.4em;
+  line-height: 1.9;
+}
+
+.old-map-full-image {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.old-map-note {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+}
+
 .trip-sort {
   display: flex;
   gap: 6px;

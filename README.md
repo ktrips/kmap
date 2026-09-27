@@ -93,6 +93,9 @@ flowchart LR
   リージョンごと（Europe → America → Japan → Asia）に分けて表示し、各リージョンの中は「いいね順」（既定。
   同じ数なら日付の新しい順、さらに距離の長い順）・「日付順」・「距離順」から選んだ順番で並べる
   （iOSは`AppSettings.tripSortOrder`、Webは`web/src/lib/tripRegion.ts`。Webの選択はブラウザに保存）
+- **Webの古地図一覧**: Webの公開ページ（サインイン不要）とサインイン後の画面に「古地図」タブを追加。
+  全リージョンの古地図をEurope → America → Japan → Asiaの順に並べ、選ぶと今の地図に重ねた表示・
+  チェックポイントの一覧・古地図の画像を見られる（`OldMapList`・`OldMapDetail`）
 - スライダーで「現在の地図」⇔「古地図」の濃さ（不透明度）を自由に調整
 - 「全ての古地図を表示」を選ぶと、同梱・登録済みの古地図とチェックポイントを
   地図上にまとめて重ねて見られる（チェックポイント以外の場所をタップすると、
@@ -180,7 +183,7 @@ flowchart LR
   （画面上はいつも通り「iPhoneでの記録」のまま。Watchの画面も「iPhoneと連動中」の
   表示を変えない）
 - 古地図ごとに置かれた史跡チェックポイントに近づくと「御朱印」を自動で獲得
-  （Komap Globalの地図では、チェックイン画面・御朱印帳のグリッドに紋章風バッジを表示。
+  （Europeの古地図では、チェックイン画面・御朱印帳のグリッドに紋章風バッジを表示。
   未獲得は灰色の盾。意匠は`HistoricSite`の`crestSymbolName`/`crestTintHex`、描画は
   `CrestBadgeCatalog`（`Komap/Views/Stamps/CrestBadge.swift`））
 - 御朱印を1件獲得するごとに50pt、ウォーキング中に自由なタイミングで写真を投稿すると1枚10pt
@@ -419,6 +422,7 @@ web/                         # Webアプリ本体（Vite + React）
   deploy-web.yml              # main へのpushでWebアプリをFirebase Hostingへ自動デプロイ
 docs/
   CHANGELOG.md                # 主な機能追加・変更の更新履歴
+  PERFORMANCE.md              # パフォーマンス改善・見つけた不具合・今後の候補のリスト
   GeoGameAppWithGoogleMap.md  # 本アプリの開発・収益化手法をまとめたKindle向け原稿（Markdown）
   Komap_週末リリースと収益化ガイド.docx # 上記原稿をKindleペーパーバック判型（8.27x10.11in）で書き出したWord版
 ```
@@ -746,7 +750,14 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
   ピン等が写り込んでいないためinpaintは行っていません。位置合わせ座標は、画像に写っている
   実在の駅・交差点（四ツ谷・青山一丁目・麻布十番など）の緯度経度、またはOpenStreetMapタイル
   座標から正確に算出しています。
-- **Komap Global向けのオリジナル古地図イラスト**（アムステルダム／ヘルシンキ／ストックホルム／タリン）:
+- **Asia・America向けのオリジナル古地図**（北京／西安／ラサ／アンコール／デリー／イスファハーン／エルサレム、
+  ボストン／ニューヨーク／メキシコシティ／クスコ／ブエノスアイレス）: Europeと同じくOpenStreetMapのデータから、
+  中国の清代の都城図（回紋の縁取り・朱印・紫禁城）、チベットの祈祷旗の五色と法輪、クメールの蓮弁、ムガルの
+  多弁アーチ、ペルシャのタイルの八芒星、中世の聖都図、18世紀の英国の都市図、アステカの階段雷文と太陽の石、
+  インカの織物文様（トカプ）と太陽、アルゼンチンの五月の太陽、といった各地域の様式で描いたオリジナル画像
+  （`scripts/global_maps/render_world.py`）。チェックポイントは各5箇所。中国の都市は端末のGPSと同じ
+  世界測地系（WGS84）で描いているため、中国国内のGoogleマップ（GCJ-02）の背景とは数百mずれて見えることがある
+- **Europe向けのオリジナル古地図イラスト**（アムステルダム／ヘルシンキ／ストックホルム／タリン）:
   実際の歴史史料ではなく、OpenStreetMapの現在の地図データ（海岸線・水面・運河・通り・建物・城壁）を
   もとに、各国の古地図の様式で描き直したこのアプリ用のオリジナル画像です（© OpenStreetMap contributors、
   ODbL。画像の右下に出典を記載）。ヘルシンキはフィンランドのナショナル・ロマンティシズム（カレリア刺繍風の
@@ -783,7 +794,8 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
 > `.sheet` + `List`（`OldMapPickerSheet`、`Komap/Views/Map/OverlayControlPanel.swift`）に
 > しており、`OldMapCatalog` に何件追加してもスクロールで必ず選べる。今後古地図を追加する際も
 > `Menu` へ戻さないよう注意する。一覧は「旧跡・名所巡り」「街道巡り」「アニメ・映画聖地巡礼」
-> 「🌍 Komap Global（海外の旧市街）」の4セクションに分けており（`OldMapCatalog.Category` / `OldMapCatalog.category(of:)`）、
+> 「旧市街巡り」（Europe）「古都・聖地巡り」（Asia）「歴史地区巡り」（America）に分け、選んでいるリージョンの
+> 分類だけを出しており（`OldMapCatalog.Category` / `OldMapCatalog.category(of:)`）、
 > 新しい古地図を追加する際は `categoryByID` にも分類を登録すること。
 
 > **注記（古地図の画像サイズについて）**: Google Maps SDKにはグラウンドオーバーレイ用の
@@ -840,7 +852,7 @@ Komap/
     Shared/                      # 共通部品（カメラ、写真詳細のボタン行など）
     SavedPlaces/                 # 保存済み地点・時間旅の一覧・詳細
     MyTimeTrip/                  # 「My Trips」タブ（時間旅・御朱印・写真・物語）
-    Stamps/                      # 御朱印のチェックイン画面・Komap Globalの紋章風バッジ
+    Stamps/                      # 御朱印のチェックイン画面・Europeの紋章風バッジ
     Settings/                    # APIキー設定・Googleサインイン
   Resources/
     Assets.xcassets              # 古地図画像・アプリアイコンなどのアセット

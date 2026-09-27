@@ -1,4 +1,4 @@
-import { findOldMap } from "./oldMapCatalog";
+import { findOldMap, OLD_MAP_CATALOG, type OldMapEntry } from "./oldMapCatalog";
 import type { UnifiedTrip } from "../types/unifiedTrip";
 
 /** iOSアプリの`MapRegion`と同じ4つのリージョン。 */
@@ -20,6 +20,16 @@ export function regionOf(lat: number, lng: number): MapRegion {
   if (lat >= 34 && lat <= 72 && lng >= -25 && lng <= 45) return "europe";
   if (lng >= -170 && lng <= -30) return "america";
   return "asia";
+}
+
+/** 画像と範囲を持つ（統合で廃止されていない）古地図だけ。 */
+export const VISIBLE_OLD_MAPS = OLD_MAP_CATALOG.filter((map) => map.imageUrl && map.southWest && map.northEast);
+
+/** 古地図のリージョン（地図の中心の位置で決める）。 */
+export function oldMapRegion(map: OldMapEntry): MapRegion {
+  const sw = map.southWest ?? { lat: 0, lng: 0 };
+  const ne = map.northEast ?? sw;
+  return regionOf((sw.lat + ne.lat) / 2, (sw.lng + ne.lng) / 2);
 }
 
 /** 旅のリージョン。使った古地図があればその古地図の、無ければ歩き始めた地点のリージョン。 */

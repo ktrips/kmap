@@ -160,6 +160,78 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "ginza-old-shimbashi-station", name: "旧新橋停車場跡", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6658, lng: 139.7616 } },
   { id: "ginza-hamarikyu-gardens", name: "浜離宮恩賜庭園", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6597, lng: 139.7636 } },
   { id: "ginza-daimon", name: "大門", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6564, lng: 139.7566 } },
+  // 北京・紫禁城と内城（清代）
+  { id: "beijing-forbidden-city", name: "紫禁城（故宮）", overlayMapID: "beijing-qing", coordinate: { lat: 39.9163, lng: 116.3908 } },
+  { id: "beijing-tiananmen", name: "天安門", overlayMapID: "beijing-qing", coordinate: { lat: 39.9075, lng: 116.391 } },
+  { id: "beijing-temple-of-heaven", name: "天壇・祈年殿", overlayMapID: "beijing-qing", coordinate: { lat: 39.8822, lng: 116.4007 } },
+  { id: "beijing-jingshan", name: "景山", overlayMapID: "beijing-qing", coordinate: { lat: 39.9245, lng: 116.3904 } },
+  { id: "beijing-drum-bell-tower", name: "鐘楼・鼓楼", overlayMapID: "beijing-qing", coordinate: { lat: 39.9393, lng: 116.3897 } },
+  // 西安・長安（明の西安府城）
+  { id: "xian-bell-tower", name: "鐘楼", overlayMapID: "xian-changan", coordinate: { lat: 34.261, lng: 108.9423 } },
+  { id: "xian-drum-tower", name: "鼓楼", overlayMapID: "xian-changan", coordinate: { lat: 34.2618, lng: 108.9388 } },
+  { id: "xian-yongning-gate", name: "永寧門（南門）と城壁", overlayMapID: "xian-changan", coordinate: { lat: 34.2531, lng: 108.9423 } },
+  { id: "xian-beilin", name: "碑林", overlayMapID: "xian-changan", coordinate: { lat: 34.255, lng: 108.9481 } },
+  { id: "xian-big-wild-goose-pagoda", name: "大雁塔", overlayMapID: "xian-changan", coordinate: { lat: 34.2198, lng: 108.9594 } },
+  // ラサ・ポタラ宮と聖都
+  { id: "lhasa-potala", name: "ポタラ宮", overlayMapID: "lhasa-holy-city", coordinate: { lat: 29.6576, lng: 91.117 } },
+  { id: "lhasa-jokhang", name: "ジョカン（大昭寺）", overlayMapID: "lhasa-holy-city", coordinate: { lat: 29.6529, lng: 91.1318 } },
+  { id: "lhasa-barkhor", name: "バルコル（八廓街）", overlayMapID: "lhasa-holy-city", coordinate: { lat: 29.652, lng: 91.133 } },
+  { id: "lhasa-norbulingka", name: "ノルブリンカ", overlayMapID: "lhasa-holy-city", coordinate: { lat: 29.6546, lng: 91.09 } },
+  { id: "lhasa-ramoche", name: "ラモチェ（小昭寺）", overlayMapID: "lhasa-holy-city", coordinate: { lat: 29.6586, lng: 91.1304 } },
+  // アンコール（クメール王朝の都）
+  { id: "angkor-wat", name: "アンコール・ワット", overlayMapID: "angkor-yasodharapura", coordinate: { lat: 13.4125, lng: 103.8666 } },
+  { id: "angkor-thom-south-gate", name: "アンコール・トム南大門", overlayMapID: "angkor-yasodharapura", coordinate: { lat: 13.4288, lng: 103.8597 } },
+  { id: "angkor-bayon", name: "バイヨン", overlayMapID: "angkor-yasodharapura", coordinate: { lat: 13.4412, lng: 103.8591 } },
+  { id: "angkor-ta-prohm", name: "タ・プローム", overlayMapID: "angkor-yasodharapura", coordinate: { lat: 13.4349, lng: 103.8896 } },
+  { id: "angkor-phnom-bakheng", name: "プノン・バケン", overlayMapID: "angkor-yasodharapura", coordinate: { lat: 13.4238, lng: 103.8562 } },
+  // デリー・シャージャハーナーバード（ムガル帝国）
+  { id: "delhi-red-fort", name: "ラール・キラー（赤い城）", overlayMapID: "delhi-shahjahanabad", coordinate: { lat: 28.6561, lng: 77.2408 } },
+  { id: "delhi-jama-masjid", name: "ジャーマー・マスジド", overlayMapID: "delhi-shahjahanabad", coordinate: { lat: 28.6507, lng: 77.233 } },
+  { id: "delhi-chandni-chowk", name: "チャンドニー・チョーク", overlayMapID: "delhi-shahjahanabad", coordinate: { lat: 28.656, lng: 77.2322 } },
+  { id: "delhi-fatehpuri-masjid", name: "ファテープリー・マスジド", overlayMapID: "delhi-shahjahanabad", coordinate: { lat: 28.6567, lng: 77.2223 } },
+  { id: "delhi-kashmiri-gate", name: "カシミール門", overlayMapID: "delhi-shahjahanabad", coordinate: { lat: 28.6668, lng: 77.2291 } },
+  // イスファハーン（ペルシャ・サファヴィー朝）
+  { id: "isfahan-naqsh-e-jahan", name: "ナグシェ・ジャハーン広場", overlayMapID: "isfahan-safavid", coordinate: { lat: 32.6581, lng: 51.6774 } },
+  { id: "isfahan-shah-mosque", name: "イマーム・モスク（王のモスク）", overlayMapID: "isfahan-safavid", coordinate: { lat: 32.6548, lng: 51.6784 } },
+  { id: "isfahan-chehel-sotoun", name: "チェヘル・ソトゥーン", overlayMapID: "isfahan-safavid", coordinate: { lat: 32.6574, lng: 51.672 } },
+  { id: "isfahan-si-o-se-pol", name: "スィー・オ・セ橋", overlayMapID: "isfahan-safavid", coordinate: { lat: 32.6446, lng: 51.6675 } },
+  { id: "isfahan-jameh-mosque", name: "金曜モスク（マスジェデ・ジャーメ）", overlayMapID: "isfahan-safavid", coordinate: { lat: 32.67, lng: 51.6855 } },
+  // エルサレム旧市街
+  { id: "jerusalem-dome-of-the-rock", name: "岩のドーム", overlayMapID: "jerusalem-old-city", coordinate: { lat: 31.778, lng: 35.2353 } },
+  { id: "jerusalem-western-wall", name: "嘆きの壁", overlayMapID: "jerusalem-old-city", coordinate: { lat: 31.7767, lng: 35.2344 } },
+  { id: "jerusalem-holy-sepulchre", name: "聖墳墓教会", overlayMapID: "jerusalem-old-city", coordinate: { lat: 31.7784, lng: 35.2298 } },
+  { id: "jerusalem-jaffa-gate", name: "ヤッフォ門・ダビデの塔", overlayMapID: "jerusalem-old-city", coordinate: { lat: 31.7766, lng: 35.2273 } },
+  { id: "jerusalem-damascus-gate", name: "ダマスカス門", overlayMapID: "jerusalem-old-city", coordinate: { lat: 31.7817, lng: 35.2305 } },
+  // ボストン（独立戦争の時代）
+  { id: "boston-old-state-house", name: "旧州議事堂", overlayMapID: "boston-colonial", coordinate: { lat: 42.3587, lng: -71.0575 } },
+  { id: "boston-faneuil-hall", name: "ファニエル・ホール", overlayMapID: "boston-colonial", coordinate: { lat: 42.36, lng: -71.0562 } },
+  { id: "boston-paul-revere-house", name: "ポール・リビアの家", overlayMapID: "boston-colonial", coordinate: { lat: 42.3637, lng: -71.0537 } },
+  { id: "boston-old-north-church", name: "オールド・ノース教会", overlayMapID: "boston-colonial", coordinate: { lat: 42.3663, lng: -71.0544 } },
+  { id: "boston-common", name: "ボストン・コモンと州議事堂", overlayMapID: "boston-colonial", coordinate: { lat: 42.3586, lng: -71.0639 } },
+  // ニューヨーク（ニューアムステルダム）
+  { id: "newyork-castle-clinton", name: "キャッスル・クリントン", overlayMapID: "newyork-new-amsterdam", coordinate: { lat: 40.7035, lng: -74.0166 } },
+  { id: "newyork-fraunces-tavern", name: "フランセス・タバーン", overlayMapID: "newyork-new-amsterdam", coordinate: { lat: 40.7034, lng: -74.0113 } },
+  { id: "newyork-federal-hall", name: "フェデラル・ホール", overlayMapID: "newyork-new-amsterdam", coordinate: { lat: 40.7073, lng: -74.0103 } },
+  { id: "newyork-trinity-church", name: "トリニティ教会", overlayMapID: "newyork-new-amsterdam", coordinate: { lat: 40.7081, lng: -74.0122 } },
+  { id: "newyork-city-hall", name: "ニューヨーク市庁舎", overlayMapID: "newyork-new-amsterdam", coordinate: { lat: 40.7127, lng: -74.0059 } },
+  // メキシコシティ（テノチティトランの跡）
+  { id: "mexico-zocalo", name: "ソカロ（憲法広場）", overlayMapID: "mexico-tenochtitlan", coordinate: { lat: 19.4326, lng: -99.1332 } },
+  { id: "mexico-cathedral", name: "メトロポリタン大聖堂", overlayMapID: "mexico-tenochtitlan", coordinate: { lat: 19.4344, lng: -99.1331 } },
+  { id: "mexico-templo-mayor", name: "テンプロ・マヨール", overlayMapID: "mexico-tenochtitlan", coordinate: { lat: 19.4351, lng: -99.1314 } },
+  { id: "mexico-bellas-artes", name: "ベジャス・アルテス宮殿", overlayMapID: "mexico-tenochtitlan", coordinate: { lat: 19.4355, lng: -99.1413 } },
+  { id: "mexico-santo-domingo", name: "サント・ドミンゴ広場", overlayMapID: "mexico-tenochtitlan", coordinate: { lat: 19.4373, lng: -99.1339 } },
+  // クスコ（インカ帝国の都）
+  { id: "cusco-plaza-de-armas", name: "アルマス広場", overlayMapID: "cusco-inca", coordinate: { lat: -13.5168, lng: -71.9788 } },
+  { id: "cusco-qorikancha", name: "コリカンチャ（太陽の神殿）", overlayMapID: "cusco-inca", coordinate: { lat: -13.5203, lng: -71.9751 } },
+  { id: "cusco-hatun-rumiyoc", name: "12角の石（ハトゥン・ルミヨク通り）", overlayMapID: "cusco-inca", coordinate: { lat: -13.5157, lng: -71.9765 } },
+  { id: "cusco-san-blas", name: "サン・ブラス地区", overlayMapID: "cusco-inca", coordinate: { lat: -13.5152, lng: -71.9742 } },
+  { id: "cusco-sacsayhuaman", name: "サクサイワマン", overlayMapID: "cusco-inca", coordinate: { lat: -13.5068, lng: -71.9802 } },
+  // ブエノスアイレス（植民地時代の港町）
+  { id: "buenosaires-plaza-de-mayo", name: "五月広場とカサ・ロサーダ", overlayMapID: "buenosaires-colonial", coordinate: { lat: -34.6084, lng: -58.3722 } },
+  { id: "buenosaires-cabildo", name: "カビルド（旧市参事会）", overlayMapID: "buenosaires-colonial", coordinate: { lat: -34.6089, lng: -58.3737 } },
+  { id: "buenosaires-plaza-dorrego", name: "ドレーゴ広場（サン・テルモ）", overlayMapID: "buenosaires-colonial", coordinate: { lat: -34.6205, lng: -58.3718 } },
+  { id: "buenosaires-teatro-colon", name: "コロン劇場", overlayMapID: "buenosaires-colonial", coordinate: { lat: -34.6011, lng: -58.3832 } },
+  { id: "buenosaires-obelisco", name: "オベリスコ", overlayMapID: "buenosaires-colonial", coordinate: { lat: -34.6037, lng: -58.3816 } },
 ];
 
 // 一覧の行・御朱印ごとに呼ばれるため、毎回全件を順に探さないよう索引を一度だけ作る。
