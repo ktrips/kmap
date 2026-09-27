@@ -47,10 +47,15 @@
   記録中の軌跡のこまめな下書き保存、GPU不具合で消えた古地図の自動貼り直し
 - **権限はセキュリティルールで守る**: 本人のデータは本人だけ、公開データは誰でも読めて持ち主だけが
   書ける。管理者の確認やTestFlight招待では、Firebase Authが検証したトークンのメールアドレスを使う
-- **サーバー処理は最小限**: 独自のサーバーは持たず、Cloud Functionsは管理者レポートと
-  TestFlight招待の2つだけ。Webは`main`へのpushでGitHub ActionsがFirebase Hostingへ自動デプロイする
+- **サーバー処理は最小限**: 独自のサーバーは持たず、Cloud Functionsは管理者レポート・
+  TestFlight招待・いいね/コメントの件数の更新だけ。Webは`main`へのpushでGitHub ActionsがFirebase Hostingへ自動デプロイする
 - **プロジェクトファイルは生成する**: `.xcodeproj`はコミットせず、`project.yml`からXcodeGenで作る。
   APIキーを入れるファイルはGitの管理外
+- **古地図の一覧は1か所で管理**: 同梱の古地図・チェックポイントは`catalog/*.json`だけに書き、
+  iOS（Swift）・Web（TypeScript）のデータは`scripts/generate-catalog.mjs`で生成する。生成し忘れはCIで検出する
+- **軽く・電池にやさしく**: 古地図画像はJPEG（31枚で52.9MB→10.4MB）、Webの公開ページは軽量版の
+  Firestore（初回のJS 856KB→555KB）、Watchの位置送信は3秒ごとにまとめる。いいね・コメントの件数は
+  Cloud Functionsで公開データに書き込み、一覧で集計しない（改善の記録は`docs/PERFORMANCE.md`）
 
 ```mermaid
 flowchart LR
@@ -243,6 +248,8 @@ flowchart LR
   - ワークアウトがコントロールセンターなどから終了された時や、Watchアプリが記録中に落ちて
     watchOSがワークアウトを残したまま起動し直した時（`handleActiveWorkoutRecovery`）も、
     ワークアウトとGPSを確実に止める
+  - iPhoneへの位置の送信は、1点ごとではなく3秒ごとにまとめて送る（`watchLocationUpdate`の`lats`/`lons`）。
+    自動一時停止から歩き出した時は、Watchの画面も「記録中」に戻す
 - 「設定」→「アドバンス設定」の一番上「AI設定」で、デフォルトのAIプロバイダー
   （OpenAI／Google／Anthropic、既定はOpenAI）と、それぞれのAPIキー、「新しい地図を追加」の
   オン・オフ、Google Mapsの設定状況を確認できる（キーはこの端末のKeychainに保存）。
@@ -383,6 +390,11 @@ flowchart LR
   読むため常に実態と一致するが、Web側は手動で更新する定数（`web/src/version.ts`）
 - iPhoneでWeb公開ページを「ホーム画面に追加」すると、iOSアプリ本体と見分けられる
   よう「WEB」の帯を付けた専用アイコン（`apple-touch-icon.png`）が使われる
+- Webの公開ページ（未サインイン）は、リアルタイム更新の無い軽量版のFirestore（`firebase/firestore/lite`）
+  だけで表示し、最初に読み込むJSを約33%減らしている。リアルタイム購読が要る完全版は、サインイン後に
+  読み込む（`web/src/lib/firebase.ts`）。購読の処理は`useRealtimeCollection`に共通化
+- 時空旅のいいね・コメントの件数は、Cloud Functionsが`sharedTrips`の公開データに書き込むため、
+  一覧を開くたびに件数を集計しない（設定は「2-4-1」を参照）
 
 ## 技術構成
 
@@ -422,16 +434,18 @@ scripts/
 web/                         # Webアプリ本体（Vite + React）
 .github/workflows/
   deploy-web.yml              # main へのpushでWebアプリをFirebase Hostingへ自動デプロイ
+  catalog-sync.yml            # catalog/*.json と生成ファイルの食い違い（生成し忘れ）を検出
 docs/
   CHANGELOG.md                # 主な機能追加・変更の更新履歴
   PERFORMANCE.md              # パフォーマンス改善・見つけた不具合・今後の候補のリスト
+  GeoGameAppWithGoogleMap.md  # 本アプリの開発・収益化手法をまとめたKindle向け原稿（Markdown）
+  Komap_週末リリースと収益化ガイド.docx # 上記原稿をKindleペーパーバック判型（8.27x10.11in）で書き出したWord版
 catalog/
   old_maps.json               # 同梱の古地図の一覧（iOS・Web共通の元データ。追加・変更はここだけ）
   historic_sites.json         # 同梱の史跡チェックポイントの一覧（同上）
 scripts/
   generate-catalog.mjs        # catalog/*.json から iOS（Komap/Models/Generated/）と Web（web/src/lib/generated/）のデータを生成
-  GeoGameAppWithGoogleMap.md  # 本アプリの開発・収益化手法をまとめたKindle向け原稿（Markdown）
-  Komap_週末リリースと収益化ガイド.docx # 上記原稿をKindleペーパーバック判型（8.27x10.11in）で書き出したWord版
+  global_maps/                # 海外の古地図の描画スクリプト（OpenStreetMapのデータから各地域の様式で描く）
 ```
 
 ---
@@ -722,8 +736,9 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
 
 ## 古地図データについて（重要な注意）
 
-同梱している古地図は、大きく次の種類に分かれます（いずれも `Komap/Models/HistoricalOverlayMap.swift`
-の `OldMapCatalog` で定義）。
+同梱している古地図は、大きく次の種類に分かれます（いずれも `catalog/old_maps.json` で定義し、
+iOSの `OldMapCatalog`・Webの `oldMapCatalog.ts` のデータはそこから生成）。画像はJPEGで、iOSは
+`Komap/Resources/Assets.xcassets`、Webは `web/public/old-maps/` に置いています。
 
 - **イラスト画像**（江戸城周辺・浅草周辺）: このサンプルアプリのために生成した
   **古地図"風"のイラスト**で、実際の歴史史料をスキャンしたものではありません。
@@ -785,9 +800,7 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
   海の上などへ自動で配置する。作り直しは`scripts/global_maps/`の`fetch.py`（地図データの取得）→
   `render.py`（描画）で行う。チェックポイントは各8箇所
   （例: ダム広場・新教会／元老院広場・トゥオミオ教会／ストールシルカン／トームペア など）。
-  iOS（`OldMapCatalog`・`HistoricSiteCatalog`）とWeb（`web/src/lib/oldMapCatalog.ts`・
-  `web/src/lib/historicSiteCatalog.ts`、画像は`web/public/old-maps/`）で同じIDを使い、
-  Firestoreの御朱印データを相互に参照できるようにしています。
+  iOS・Webとも`catalog/*.json`から生成した同じIDを使い、Firestoreの御朱印データを相互に参照できるようにしています。
 - **アニメ・映画聖地巡礼向けのファンタジー地図画像**（「君の名は。」聖地巡礼／ジブリ映画の聖地巡り／
   東京トイレット（Perfect Days））:
   史実の古地図・現在の地図のセピア加工とは区別するため、深緑〜クリーム〜淡い金の配色・
@@ -803,7 +816,7 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
   チェックポイントとした、現代の聖地巡礼スポット集です。
 
 いずれの画像も、設定している緯度経度の位置合わせ座標
-（`OldMapCatalog` 内の `southWest` / `northEast`）は、現在の地理に大まかに合わせた
+（`catalog/old_maps.json` の `southWest` / `northEast`）は、現在の地理に大まかに合わせた
 **仮の値**です。
 
 > **注記（古地図選択メニューについて）**: `OldMapCatalog.all` の件数が増えた結果、
@@ -814,7 +827,7 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
 > `Menu` へ戻さないよう注意する。一覧は「旧跡・名所巡り」「街道巡り」「アニメ・映画聖地巡礼」
 > 「旧市街巡り」（Europe）「古都・聖地巡り」（Asia）「歴史地区巡り」（America）に分け、選んでいるリージョンの
 > 分類だけを出しており（`OldMapCatalog.Category` / `OldMapCatalog.category(of:)`）、
-> 新しい古地図を追加する際は `categoryByID` にも分類を登録すること。
+> 新しい古地図を追加する際は `catalog/old_maps.json` の `category` に分類を書くこと。
 
 > **注記（古地図の画像サイズについて）**: Google Maps SDKにはグラウンドオーバーレイ用の
 > テクスチャアトラスの上限があり、フル解像度の大きな画像のまま古地図を何度も切り替えると、
@@ -825,14 +838,15 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
 
 実際の史料に基づく古地図を使いたい場合は、次の手順で入れ替えてください。
 
-1. 実際の古地図画像（できれば矩形に近い形でトリミング済みのもの）を用意する。
-2. `Komap/Resources/Assets.xcassets` 内に新しいImage Setを追加し、画像を登録する。
-3. `Komap/Models/HistoricalOverlayMap.swift` の `OldMapCatalog` に、
-   画像名・時代・タイトルと合わせて、画像の南西端・北東端の緯度経度
-   （できるだけ正確に位置合わせしたもの）を追加する。
-4. `OldMapCatalog.all` に追加したエントリを登録すると、アプリ内のピッカーから選択できるようになる。
-5. （任意）Web側でも時代ラベルを表示したい場合は、`web/src/lib/oldMapCatalog.ts` にも
-   同じ `id` でエントリを追加してください。
+1. 実際の古地図画像（できれば矩形に近い形でトリミング済みのもの）をJPEGで用意する。
+2. `Komap/Resources/Assets.xcassets` 内に新しいImage Setを追加し、画像を登録する
+   （Webでも表示する場合は `web/public/old-maps/` にも置く）。
+3. `catalog/old_maps.json` の `maps` に、ID・画像名（`imageAssetName`・`webImage`）・時代・タイトル・分類
+   （`category`）と、画像の南西端・北東端の緯度経度（できるだけ正確に位置合わせしたもの）を追加する。
+   チェックポイントは `catalog/historic_sites.json` に `overlayMapID` を付けて追加する。
+4. `node scripts/generate-catalog.mjs` を実行すると、iOS（`Komap/Models/Generated/`）と
+   Web（`web/src/lib/generated/`）のデータが作り直され、アプリ・Webの両方で選べるようになる
+   （生成したファイルは直接編集しない。生成し忘れはCIの `catalog-sync.yml` で検出される）。
 
 ## iOSアプリのプロジェクト構成
 
@@ -845,8 +859,9 @@ Komap/
     WalkRoute.swift              # SwiftDataモデル（歩いた時間旅・軌跡）
     CollectedStamp.swift         # SwiftDataモデル（獲得した御朱印）
     WalkPhotoPost.swift          # SwiftDataモデル（投稿写真・ポイント）
-    HistoricalOverlayMap.swift  # 古地図カタログ（画像・時代・位置合わせ座標）
-    HistoricSite.swift           # 古地図ごとの史跡チェックポイント一覧
+    HistoricalOverlayMap.swift  # 古地図カタログ（分類・リージョン・統合済みIDの解決）
+    HistoricSite.swift           # 古地図ごとの史跡チェックポイント
+    Generated/                   # catalog/*.json から生成した古地図・チェックポイントのデータ（直接編集しない）
     TappedPoint.swift
   Services/
     LocationManager.swift       # 現在地・徒歩ルートの記録
@@ -899,5 +914,5 @@ Komap Watch App/
   時空旅の両方を一覧できます（距離・時間・歩数などの詳細、選択した時間旅の
   地図（軌跡）・投稿写真・御朱印も表示）。未サインインの訪問者向けには、
   同じ公開データをWeb公開ページ（`komap.ktrips.net`）でも閲覧できます。
-- `OldMapCatalog` にエントリを追加するだけで、選べる古地図を拡張できます
-  （Web側でも表示したい場合は `web/src/lib/oldMapCatalog.ts` にも同じ `id` で追加）。
+- `catalog/old_maps.json` にエントリを追加して `node scripts/generate-catalog.mjs` を実行するだけで、
+  iOS・Webの両方で選べる古地図を拡張できます。
