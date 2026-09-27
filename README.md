@@ -425,6 +425,11 @@ web/                         # Webアプリ本体（Vite + React）
 docs/
   CHANGELOG.md                # 主な機能追加・変更の更新履歴
   PERFORMANCE.md              # パフォーマンス改善・見つけた不具合・今後の候補のリスト
+catalog/
+  old_maps.json               # 同梱の古地図の一覧（iOS・Web共通の元データ。追加・変更はここだけ）
+  historic_sites.json         # 同梱の史跡チェックポイントの一覧（同上）
+scripts/
+  generate-catalog.mjs        # catalog/*.json から iOS（Komap/Models/Generated/）と Web（web/src/lib/generated/）のデータを生成
   GeoGameAppWithGoogleMap.md  # 本アプリの開発・収益化手法をまとめたKindle向け原稿（Markdown）
   Komap_週末リリースと収益化ガイド.docx # 上記原稿をKindleペーパーバック判型（8.27x10.11in）で書き出したWord版
 ```

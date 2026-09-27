@@ -1,23 +1,22 @@
-name: Catalog sync check
+name: Catalog check
 
-# iOSとWebに二重に持っている古地図・史跡チェックポイントの一覧が一致しているかを確かめる。
+# 古地図・史跡チェックポイントの一覧は catalog/*.json だけで管理し、iOS（Swift）と Web（TypeScript）の
+# データファイルは scripts/generate-catalog.mjs で生成する。生成し忘れ（JSONと生成ファイルの食い違い）を検出する。
 on:
   push:
     branches: [main]
     paths:
-      - "Komap/Models/HistoricalOverlayMap.swift"
-      - "Komap/Models/HistoricSite.swift"
-      - "web/src/lib/oldMapCatalog.ts"
-      - "web/src/lib/historicSiteCatalog.ts"
-      - "scripts/check-catalog-sync.mjs"
+      - "catalog/**"
+      - "Komap/Models/Generated/**"
+      - "web/src/lib/generated/**"
+      - "scripts/generate-catalog.mjs"
       - ".github/workflows/catalog-sync.yml"
   pull_request:
     paths:
-      - "Komap/Models/HistoricalOverlayMap.swift"
-      - "Komap/Models/HistoricSite.swift"
-      - "web/src/lib/oldMapCatalog.ts"
-      - "web/src/lib/historicSiteCatalog.ts"
-      - "scripts/check-catalog-sync.mjs"
+      - "catalog/**"
+      - "Komap/Models/Generated/**"
+      - "web/src/lib/generated/**"
+      - "scripts/generate-catalog.mjs"
   workflow_dispatch: {}
 
 jobs:
@@ -30,4 +29,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: node scripts/check-catalog-sync.mjs
+      - run: node scripts/generate-catalog.mjs --check

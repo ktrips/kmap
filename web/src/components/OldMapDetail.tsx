@@ -33,6 +33,7 @@ export function OldMapDetail({ map }: Props) {
           <span>🕰 {map.era}</span>
           <span>📍 チェックポイント{checkpoints.length}か所</span>
         </p>
+        {map.summary && <p className="trip-description-text">{map.summary}</p>}
       </div>
 
       {/* 今の地図に古地図を重ねて表示（チェックポイントも） */}
