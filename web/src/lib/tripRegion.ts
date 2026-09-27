@@ -47,12 +47,6 @@ export function tripRegion(trip: UnifiedTrip): MapRegion {
 /** 各リージョンの中での並び順（iOSの`TripSortOrder`と同じ）。 */
 export type TripSortOrder = "likes" | "date" | "distance";
 
-export const SORT_LABEL: Record<TripSortOrder, string> = {
-  likes: "いいね順",
-  date: "日付順",
-  distance: "距離順",
-};
-
 export function compareTrips(order: TripSortOrder, likes: (id: string) => number) {
   return (a: UnifiedTrip, b: UnifiedTrip): number => {
     if (order === "distance") return b.totalDistanceMeters - a.totalDistanceMeters;
