@@ -154,7 +154,7 @@ export function PublicSharedTripsView({
         <KindleBookModal onClose={() => setIsKindleOpen(false)} onSignIn={onSignInWithGoogle} />
       )}
 
-      <div className="app-body">
+      <div className="app-body is-public">
         {isSidebarOpen && (
           <aside className="app-sidebar">
             <div className="sidebar-tabs">
@@ -162,7 +162,7 @@ export function PublicSharedTripsView({
                 className={`sidebar-tab ${sidebarTab === "trips" ? "is-active" : ""}`}
                 onClick={() => setSidebarTab("trips")}
               >
-                みんなの時空旅
+                みんなの時空旅（{trips.length}件）
               </button>
               <button
                 className={`sidebar-tab ${sidebarTab === "maps" ? "is-active" : ""}`}
@@ -172,10 +172,7 @@ export function PublicSharedTripsView({
               </button>
             </div>
             {sidebarTab === "trips" ? (
-              <>
-                <p className="trip-list-heading">みんなの時空旅 ({trips.length}件の公開旅日記)</p>
-                <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
-              </>
+              <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
             ) : (
               <OldMapList selectedId={selectedMap?.id ?? null} onSelect={handleSelectMap} />
             )}
