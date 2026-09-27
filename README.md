@@ -658,6 +658,17 @@ gcloud iam service-accounts keys create github-actions-deploy-key.json \
 シークレットに貼り付けたら、ローカルのキーファイルは削除してください。漏洩した場合は
 `gcloud iam service-accounts keys delete` で失効できます。
 
+### 2-4-1. いいね・コメントの件数（Cloud Functions）
+
+公開中の時空旅（`sharedTrips/{id}`）の`likeCount`・`commentCount`は、いいね・コメントが増減するたびに
+Cloud Functions（`syncTripLikeCount`・`syncTripCommentCount`）が数え直して書き込みます。Firestoreの
+データベースが米国のマルチリージョン（nam5）にあるため、この2つだけus-central1に置いています。
+GitHub Actionsでは配置されないため、変更した時は手動で配置します。
+
+```
+firebase deploy --only functions:syncTripLikeCount,functions:syncTripCommentCount --project komapprj
+```
+
 ### 2-5. Googleサインイン時のTestFlight自動招待（Cloud Functions）
 
 Web版でGoogleサインインすると、そのメールアドレス宛にTestFlightの外部テスト招待が

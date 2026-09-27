@@ -1,5 +1,6 @@
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
@@ -423,5 +424,46 @@ export const requestTestFlightInvite = onCall(
       lastName: lastName || "Tester",
     });
     return { status };
+  },
+);
+
+/**
+ * 公開中の時空旅（`sharedTrips/{tripId}`）に、いいね・コメントの件数（`likeCount`・`commentCount`）を持たせる。
+ *
+ * 一覧（Web・iOSの「みんなの旅」）で件数を出すために、以前は旅ごとに`likes`・`comments`の集計クエリを
+ * 2本ずつ投げていた。いいね・コメントが増減するたびにここで数え直して旅のドキュメントに書いておけば、
+ * 一覧は旅のドキュメントを読むだけで件数が分かる。増減の差分ではなく毎回数え直すので、
+ * 取りこぼしや二重実行があっても正しい値に戻る。件数をまだ持っていない（一度もいいね・コメントが
+ * 変わっていない）旅は、クライアント側がこれまで通り集計クエリで数える。
+ *
+ * Firestoreのデータベースが米国のマルチリージョン（nam5）にあるため、トリガーはus-central1に置く。
+ */
+async function recountEngagement(tripId: string): Promise<void> {
+  const db = admin.firestore();
+  const tripRef = db.collection("sharedTrips").doc(tripId);
+  const [trip, likes, comments] = await Promise.all([
+    tripRef.get(),
+    tripRef.collection("likes").count().get(),
+    tripRef.collection("comments").count().get(),
+  ]);
+  // 非公開にされた（ドキュメントが消えた）旅には書き戻さない。
+  if (!trip.exists) return;
+  await tripRef.update({
+    likeCount: likes.data().count,
+    commentCount: comments.data().count,
+  });
+}
+
+export const syncTripLikeCount = onDocumentWritten(
+  { document: "sharedTrips/{tripId}/likes/{uid}", region: "us-central1" },
+  async (event) => {
+    await recountEngagement(event.params.tripId);
+  },
+);
+
+export const syncTripCommentCount = onDocumentWritten(
+  { document: "sharedTrips/{tripId}/comments/{commentId}", region: "us-central1" },
+  async (event) => {
+    await recountEngagement(event.params.tripId);
   },
 );

@@ -33,6 +33,9 @@ export interface UnifiedTrip {
   journalMarkdown: string | null;
   /** 旅の動画（MP4）のURL。未作成なら`null`。 */
   tripVideoURL: string | null;
+  /** 公開データに書かれたいいね・コメントの件数（まだ無ければ`null`）。 */
+  likeCount: number | null;
+  commentCount: number | null;
 }
 
 /** 御朱印・投稿写真を時空旅ごとにまとめる（旅ごとに全件を絞り込み直さないため）。 */
@@ -94,6 +97,8 @@ export function fromWalkTrip(
     journalTitle: trip.journalTitle,
     journalMarkdown: trip.journalMarkdown,
     tripVideoURL: trip.tripVideoURL,
+    likeCount: null,
+    commentCount: null,
   };
 }
 
@@ -119,5 +124,7 @@ export function fromSharedTrip(trip: SharedTrip): UnifiedTrip {
     journalTitle: trip.journalTitle,
     journalMarkdown: trip.journalMarkdown,
     tripVideoURL: trip.tripVideoURL,
+    likeCount: trip.likeCount,
+    commentCount: trip.commentCount,
   };
 }

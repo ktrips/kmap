@@ -12,6 +12,8 @@ export function parseSharedTripDocument(id: string, data: DocumentData): SharedT
     ownerDisplayName: data.ownerDisplayName ?? null,
     stampPhotos: parsePhotos(data.stampPhotos),
     postPhotos: parsePhotos(data.postPhotos),
+    likeCount: typeof data.likeCount === "number" ? data.likeCount : null,
+    commentCount: typeof data.commentCount === "number" ? data.commentCount : null,
   };
 }
 

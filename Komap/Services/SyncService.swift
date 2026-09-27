@@ -852,6 +852,8 @@ struct RemoteSharedTrip: Identifiable {
         self.postPhotos = Self.parsePhotos(data["postPhotos"], labelKey: "placeName")
         self.travelJournalTitle = data["travelJournalTitle"] as? String
         self.travelJournalMarkdown = data["travelJournalMarkdown"] as? String
+        self.likeCount = data["likeCount"] as? Int
+        self.commentCount = data["commentCount"] as? Int
         if let lat = (data["latitudes"] as? [Double])?.first, let lon = (data["longitudes"] as? [Double])?.first {
             self.startCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         } else {
@@ -861,6 +863,9 @@ struct RemoteSharedTrip: Identifiable {
 
     /// 歩き始めた地点（リージョンの振り分けに使う）。
     let startCoordinate: CLLocationCoordinate2D?
+    /// いいね・コメントの件数（Cloud Functionsが書く）。まだ無い旅は`nil`で、その時は集計クエリで数える。
+    let likeCount: Int?
+    let commentCount: Int?
 
     /// この旅のリージョン。使った古地図があればその古地図の、無ければ歩き始めた地点のリージョン。
     var region: MapRegion {

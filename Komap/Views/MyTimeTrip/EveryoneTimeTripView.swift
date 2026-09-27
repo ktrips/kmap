@@ -105,9 +105,16 @@ struct EveryoneTimeTripView: View {
         await loadLikeCounts()
     }
 
-    /// 一覧の旅すべてのいいねの数を、集計クエリで並行して数える。
+    /// 一覧の旅のいいねの数。公開データに件数（Cloud Functionsが書く）がある旅はそれを使い、
+    /// まだ無い旅だけ集計クエリで並行して数える。
     private func loadLikeCounts() async {
-        let ids = trips.map(\.id)
+        var known: [String: Int] = [:]
+        for trip in trips {
+            if let likeCount = trip.likeCount { known[trip.id] = likeCount }
+        }
+        likeCounts = known
+        let ids = trips.filter { $0.likeCount == nil }.map(\.id)
+        guard !ids.isEmpty else { return }
         let counts = await withTaskGroup(of: (String, Int?).self) { group in
             for id in ids {
                 group.addTask { [syncService] in
@@ -120,7 +127,7 @@ struct EveryoneTimeTripView: View {
             }
             return result
         }
-        likeCounts = counts
+        likeCounts.merge(counts) { _, new in new }
     }
 
     /// リージョンごとに分けて、選んだ順番で並べた旅（旅の無いリージョンは出さない）。

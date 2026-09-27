@@ -71,12 +71,25 @@ function TripMetaLine({ trip, counts }: { trip: UnifiedTrip; counts: Engagement 
  */
 export function TripList({ trips, selectedId, onSelect }: Props) {
   const [sortOrder, setSortOrder] = useState<TripSortOrder>(loadSortOrder);
-  // いいね・コメントは公開中の旅にしか付かないため、公開中の旅の分だけ数える。
-  const sharedIds = useMemo(
-    () => trips.filter((trip) => trip.kind === "shared" || trip.isShared).map((trip) => trip.id),
+  // いいね・コメントは公開中の旅にしか付かない。公開データに件数（Cloud Functionsが書く）がある旅は
+  // それを使い、まだ無い旅だけ集計クエリで数える。
+  const idsToCount = useMemo(
+    () =>
+      trips
+        .filter((trip) => (trip.kind === "shared" || trip.isShared) && (trip.likeCount === null || trip.commentCount === null))
+        .map((trip) => trip.id),
     [trips],
   );
-  const engagement = useTripEngagementCountsMap(sharedIds);
+  const counted = useTripEngagementCountsMap(idsToCount);
+  const engagement = useMemo(() => {
+    const map = new Map(counted);
+    for (const trip of trips) {
+      if (trip.likeCount !== null && trip.commentCount !== null) {
+        map.set(trip.id, { likeCount: trip.likeCount, commentCount: trip.commentCount });
+      }
+    }
+    return map;
+  }, [counted, trips]);
 
   const groups = useMemo(() => {
     const byRegion = new Map<string, UnifiedTrip[]>();

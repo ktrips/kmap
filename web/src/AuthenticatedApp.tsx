@@ -54,9 +54,13 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const unifiedTrips = useMemo<UnifiedTrip[]>(() => {
     const stampsByTrip = groupByWalkRoute(stamps);
     const photoPostsByTrip = groupByWalkRoute(photoPosts);
-    const ownUnified = ownTrips.map((trip) =>
-      fromWalkTrip(trip, stampsByTrip.get(trip.id) ?? [], photoPostsByTrip.get(trip.id) ?? [], sharedTripIDs.has(trip.id)),
-    );
+    const sharedByID = new Map(sharedTrips.map((trip) => [trip.id, trip]));
+    const ownUnified = ownTrips.map((trip) => {
+      const unified = fromWalkTrip(trip, stampsByTrip.get(trip.id) ?? [], photoPostsByTrip.get(trip.id) ?? [], sharedTripIDs.has(trip.id));
+      // 自分の公開中の旅は、公開データにあるいいね・コメントの件数を使う。
+      const shared = sharedByID.get(trip.id);
+      return shared ? { ...unified, likeCount: shared.likeCount, commentCount: shared.commentCount } : unified;
+    });
     const ownIDs = new Set(ownUnified.map((trip) => trip.id));
     const othersShared = sharedTrips.filter((trip) => !ownIDs.has(trip.id)).map(fromSharedTrip);
     return [...ownUnified, ...othersShared].sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
