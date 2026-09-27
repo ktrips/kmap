@@ -219,7 +219,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         private var allOverlayKeys: [String] = []
         /// 前回重ねた時の古地図一覧の版と設定の値。同じなら、GPS更新のたびに約70枚分の
         /// キー文字列を作って比べる処理自体を省く。
-        private var allOverlaysSignature: (revision: Int, showGlobal: Bool)?
+        private var allOverlaysSignature: (revision: Int, region: String)?
         /// `applyAllOverlays`が呼ばれるたびに増やす世代番号。画像デコードが終わる前に
         /// 表示が切り替わった場合、古い世代の結果を`allOverlays`へ書き込まないようにする。
         private var allOverlaysGeneration = 0
@@ -313,7 +313,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         /// 「全ての古地図を表示」用に、渡された古地図すべてをグラウンドオーバーレイとして重ねる。
         /// 一度重ねたら（一覧が変わらない限り）作り直さず、初回だけ全体が収まるようカメラを合わせる。
         func applyAllOverlays(_ overlays: [HistoricalOverlayMap], checkpoints: [HistoricSite] = [], to mapView: GMSMapView) {
-            let signature = (revision: OldMapCatalog.revision, showGlobal: AppSettings.showGlobalMaps)
+            let signature = (revision: OldMapCatalog.revision, region: AppSettings.mapRegion.rawValue)
             if let allOverlaysSignature, allOverlaysSignature == signature, !allOverlays.isEmpty, currentOverlay == nil {
                 return
             }

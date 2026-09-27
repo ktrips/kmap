@@ -1,3 +1,4 @@
+import CoreLocation
 import FirebaseCore
 import FirebaseFirestore
 import Foundation
@@ -851,6 +852,21 @@ struct RemoteSharedTrip: Identifiable {
         self.postPhotos = Self.parsePhotos(data["postPhotos"], labelKey: "placeName")
         self.travelJournalTitle = data["travelJournalTitle"] as? String
         self.travelJournalMarkdown = data["travelJournalMarkdown"] as? String
+        if let lat = (data["latitudes"] as? [Double])?.first, let lon = (data["longitudes"] as? [Double])?.first {
+            self.startCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        } else {
+            self.startCoordinate = nil
+        }
+    }
+
+    /// 歩き始めた地点（リージョンの振り分けに使う）。
+    let startCoordinate: CLLocationCoordinate2D?
+
+    /// この旅のリージョン。使った古地図があればその古地図の、無ければ歩き始めた地点のリージョン。
+    var region: MapRegion {
+        if let overlayMap { return OldMapCatalog.region(of: overlayMap) }
+        if let startCoordinate { return MapRegion(containing: startCoordinate) }
+        return .japan
     }
 
     private static func parsePhotos(_ raw: Any?, labelKey: String) -> [RemoteSharedPhoto] {

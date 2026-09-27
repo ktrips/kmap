@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// 「マイ時空旅」の「みんなの時空旅」タブ。自分の記録も含め、公開済みの時空旅
-/// （`sharedTrips`）を開始日時が新しい順に、サムネイル付きの行で一覧表示する。
+/// （`sharedTrips`）を、リージョンごと（Europe → America → Japan → Asia）に分け、
+/// 選んだ順番（いいね順・日付順・距離順）で、サムネイル付きの行で一覧表示する。
 /// Web版の「みんなの時空旅」と同じデータを見る、閲覧専用の画面。
 struct EveryoneTimeTripView: View {
     @State private var trips: [RemoteSharedTrip] = []
@@ -9,6 +10,9 @@ struct EveryoneTimeTripView: View {
     @State private var errorMessage: String?
     @State private var selectedTrip: RemoteSharedTrip?
     @State private var leaderboard: [RemoteUserStats] = []
+    /// 旅ごとのいいねの数（いいね順に並べるために、一覧を読み込んだ後にまとめて数える）。
+    @State private var likeCounts: [String: Int] = [:]
+    @State private var sortOrder: TripSortOrder = AppSettings.tripSortOrder
 
     private let syncService = SyncService()
     private static let leaderboardLimit = 10
@@ -48,14 +52,30 @@ struct EveryoneTimeTripView: View {
                             LeaderboardSection(entries: leaderboard)
                                 .padding(.bottom, 20)
                         }
-                        ForEach(trips) { trip in
-                            SharedTripRow(trip: trip)
-                                .padding(.vertical, 8)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    selectedTrip = trip
-                                }
-                            Divider()
+                        Picker("並び順", selection: $sortOrder) {
+                            ForEach(TripSortOrder.allCases) { order in
+                                Text(order.title).tag(order)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.bottom, 8)
+                        .onChange(of: sortOrder) { _, newValue in
+                            AppSettings.tripSortOrder = newValue
+                        }
+
+                        ForEach(regionGroups, id: \.region) { group in
+                            Text("\(group.region.title)（\(group.region.subtitle)）")
+                                .font(.headline)
+                                .padding(.top, 12)
+                            ForEach(group.trips) { trip in
+                                SharedTripRow(trip: trip, likeCount: likeCounts[trip.id])
+                                    .padding(.vertical, 8)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedTrip = trip
+                                    }
+                                Divider()
+                            }
                         }
                     }
                     .padding()
@@ -82,6 +102,48 @@ struct EveryoneTimeTripView: View {
         }
         leaderboard = (try? await leaderboardResult) ?? []
         isLoading = false
+        await loadLikeCounts()
+    }
+
+    /// 一覧の旅すべてのいいねの数を、集計クエリで並行して数える。
+    private func loadLikeCounts() async {
+        let ids = trips.map(\.id)
+        let counts = await withTaskGroup(of: (String, Int?).self) { group in
+            for id in ids {
+                group.addTask { [syncService] in
+                    (id, try? await syncService.fetchEngagementCounts(tripID: id).likeCount)
+                }
+            }
+            var result: [String: Int] = [:]
+            for await (id, count) in group {
+                if let count { result[id] = count }
+            }
+            return result
+        }
+        likeCounts = counts
+    }
+
+    /// リージョンごとに分けて、選んだ順番で並べた旅（旅の無いリージョンは出さない）。
+    private var regionGroups: [(region: MapRegion, trips: [RemoteSharedTrip])] {
+        let grouped = Dictionary(grouping: trips, by: \.region)
+        return MapRegion.displayOrder.compactMap { region in
+            guard let items = grouped[region], !items.isEmpty else { return nil }
+            return (region, items.sorted(by: isOrderedBefore))
+        }
+    }
+
+    private func isOrderedBefore(_ a: RemoteSharedTrip, _ b: RemoteSharedTrip) -> Bool {
+        switch sortOrder {
+        case .likes:
+            let la = likeCounts[a.id] ?? 0, lb = likeCounts[b.id] ?? 0
+            if la != lb { return la > lb }
+            if a.startedAt != b.startedAt { return a.startedAt > b.startedAt }
+            return a.totalDistanceMeters > b.totalDistanceMeters
+        case .date:
+            return a.startedAt > b.startedAt
+        case .distance:
+            return a.totalDistanceMeters > b.totalDistanceMeters
+        }
     }
 }
 
@@ -150,6 +212,7 @@ private struct LeaderboardRow: View {
 /// （マイ時空旅内の他の一覧行と見た目のレベル感を揃えている）。
 private struct SharedTripRow: View {
     let trip: RemoteSharedTrip
+    var likeCount: Int? = nil
 
     private static let dateFormatter: DateFormatter = TripFormat.dateTimeFormatter
 
@@ -191,7 +254,7 @@ private struct SharedTripRow: View {
                 }
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                Text("\(distanceText) ・ 御朱印\(trip.stampPhotos.count)件 ・ 写真\(trip.postPhotos.count)件")
+                Text("\(distanceText) ・ 御朱印\(trip.stampPhotos.count)件 ・ 写真\(trip.postPhotos.count)件" + (likeCount.map { $0 > 0 ? " ・ ❤️ \($0)" : "" } ?? ""))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

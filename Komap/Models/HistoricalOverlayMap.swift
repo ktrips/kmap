@@ -342,7 +342,7 @@ enum OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 35.678, longitude: 139.724)
     )
 
-    // 「Komap Global」向けの古地図。東京の実測図・古地図風画像とは異なり、
+    // Europeリージョンの古地図。東京の実測図・古地図風画像とは異なり、
     // 各都市の旧市街の地形（運河環・島々・城壁など）を象った完全オリジナルイラストで、
     // 「御朱印」の代わりに紋章（クレスト）風のチェックポイントを集める体験にしている
     // （紋章の意匠は`HistoricSiteCatalog`各エントリの`crestSymbolName`/`crestTintHex`、
@@ -400,11 +400,14 @@ enum OldMapCatalog {
 
     /// アプリ起動時・記録開始時などにデフォルトで選ぶ古地図。「設定」の
     /// 「古地図のデフォルト」で選んだものを`AppSettings.defaultOverlayMapID`から読み、
-    /// 未設定・削除済みなら同梱の「江戸城周辺」にフォールバックする。
-    static var defaultOverlay: HistoricalOverlayMap {
-        guard let overlay = resolve(id: AppSettings.defaultOverlayMapID),
-              !isHiddenBySettings(overlay) else { return edoCastle }
-        return overlay
+    /// 未設定・削除済み・選んでいるリージョンの外なら、そのリージョンの最初の古地図
+    /// （Japanなら同梱の「江戸城周辺」）にする。リージョンに古地図が1枚も無ければ`nil`。
+    static var defaultOverlay: HistoricalOverlayMap? {
+        if let overlay = resolve(id: AppSettings.defaultOverlayMapID), !isHiddenBySettings(overlay) {
+            return overlay
+        }
+        if !isHiddenBySettings(edoCastle) { return edoCastle }
+        return visibleIncludingCustom.first
     }
 
     /// 古地図選択シートでの分類（`OldMapPickerSheet`のセクション分けに使う）。
@@ -412,11 +415,8 @@ enum OldMapCatalog {
         case historicSites = "旧跡・名所巡り"
         case kaido = "街道巡り"
         case animePilgrimage = "アニメ・映画聖地巡礼"
-        /// 「Komap Global」向けの古地図（東京版とは別の、海外都市の旧市街コース）。
-        /// 東京の分類（旧跡・街道・聖地巡礼）とは別枠になるよう、あえて末尾の独立した
-        /// セクションにしている（`OldMapPickerSheet`は`Category.allCases`の順に
-        /// セクションを並べるだけなので、他の分類と混ざらない）。
-        case global = "🌍 Komap Global（海外の旧市街）"
+        /// 海外都市の旧市街コース（Europeのアムステルダム・ヘルシンキ・ストックホルム・タリン）。
+        case oldTowns = "旧市街巡り"
     }
 
     private static let categoryByID: [String: Category] = [
@@ -434,10 +434,10 @@ enum OldMapCatalog {
         kiminonaSeichi.id: .animePilgrimage,
         ghibliSeichi.id: .animePilgrimage,
         tokyoToilet.id: .animePilgrimage,
-        amsterdam.id: .global,
-        helsinki.id: .global,
-        stockholm.id: .global,
-        tallinn.id: .global,
+        amsterdam.id: .oldTowns,
+        helsinki.id: .oldTowns,
+        stockholm.id: .oldTowns,
+        tallinn.id: .oldTowns,
     ]
 
     /// この古地図が属する分類。同梱リストにない（ユーザーが検索して追加した）古地図は`nil`。
@@ -445,19 +445,27 @@ enum OldMapCatalog {
         categoryByID[overlay.id]
     }
 
-    /// 「設定」の「Komap Global（海外の旧市街）を表示」がオフのため、選択肢・全地図表示などから
-    /// 外す古地図か。過去の記録や御朱印からIDで引く（`resolve`・`overlay(withID:)`）分には影響しない。
+    /// 古地図が属するリージョン（地図の中心の位置で決める。追加した古地図も同じ）。
+    static func region(of overlay: HistoricalOverlayMap) -> MapRegion {
+        MapRegion(containing: overlay.center)
+    }
+
+    /// 「設定」で選んでいるリージョンの外にあるため、選択肢・全地図表示などから外す古地図か。
+    /// 過去の記録や御朱印からIDで引く（`resolve`・`overlay(withID:)`）分には影響しない。
     static func isHiddenBySettings(_ overlay: HistoricalOverlayMap) -> Bool {
-        isHiddenBySettings(overlayID: overlay.id)
+        region(of: overlay) != AppSettings.mapRegion
     }
 
     static func isHiddenBySettings(overlayID: String) -> Bool {
-        !AppSettings.showGlobalMaps && categoryByID[overlayID] == .global
+        guard let overlay = overlay(withID: overlayID) else { return false }
+        return isHiddenBySettings(overlay)
     }
 
-    /// 古地図選択シートに並べる分類（設定で非表示にしている分類を除く）。
+    /// 古地図選択シートに並べる分類（選んでいるリージョンの古地図が1枚も無い分類を除く）。
     static var visibleCategories: [Category] {
-        Category.allCases.filter { $0 != .global || AppSettings.showGlobalMaps }
+        Category.allCases.filter { category in
+            (allByCategory[category] ?? []).contains { !isHiddenBySettings($0) }
+        }
     }
 
     /// `allIncludingCustom`から、設定で非表示にしている古地図を除いたもの。
@@ -466,17 +474,16 @@ enum OldMapCatalog {
     /// 「全ての古地図を表示」中は歩行のGPS更新のたびに参照されるため、設定の値ごとに
     /// 絞り込んだ結果を覚えておく（`allIncludingCustom`が作り直される時に一緒に捨てる）。
     static var visibleIncludingCustom: [HistoricalOverlayMap] {
-        let showGlobal = AppSettings.showGlobalMaps
-        if let visibleCache, visibleCache.showGlobal == showGlobal {
+        let region = AppSettings.mapRegion
+        if let visibleCache, visibleCache.region == region {
             return visibleCache.overlays
         }
-        let overlays = allIncludingCustom
-        let visible = showGlobal ? overlays : overlays.filter { !isHiddenBySettings($0) }
-        visibleCache = (showGlobal, visible)
+        let visible = allIncludingCustom.filter { self.region(of: $0) == region }
+        visibleCache = (region, visible)
         return visible
     }
 
-    private static var visibleCache: (showGlobal: Bool, overlays: [HistoricalOverlayMap])?
+    private static var visibleCache: (region: MapRegion, overlays: [HistoricalOverlayMap])?
 
     /// 古地図の一覧（同梱＋追加＋管理者の上書き）が変わるたびに増える番号。地図画面は、
     /// この番号と設定の値が前回と同じなら、全地図の重ね直しの判定自体を省く。
@@ -546,5 +553,70 @@ enum OldMapCatalog {
         guard let id else { return nil }
         let resolvedID = mergedIntoID[id] ?? id
         return overlay(withID: resolvedID)
+    }
+}
+
+/// 「設定」で選ぶ古地図のリージョン。選んだリージョンの古地図だけを、古地図の選択肢・全地図表示・
+/// 現在地からの古地図選択・御朱印一覧に出す。古地図の中心の位置で自動的に振り分ける。
+enum MapRegion: String, CaseIterable, Identifiable {
+    case japan, europe, asia, america
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .japan: return "Japan"
+        case .europe: return "Europe"
+        case .asia: return "Asia"
+        case .america: return "America"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .japan: return "日本"
+        case .europe: return "ヨーロッパ"
+        case .asia: return "アジア・その他"
+        case .america: return "南北アメリカ"
+        }
+    }
+
+    /// 位置からリージョンを決める（日本 → ヨーロッパ → 南北アメリカの範囲に入らなければアジア）。
+    init(containing coordinate: CLLocationCoordinate2D) {
+        let lat = coordinate.latitude, lon = coordinate.longitude
+        if (24...46).contains(lat) && (122...154).contains(lon) {
+            self = .japan
+        } else if (34...72).contains(lat) && (-25...45).contains(lon) {
+            self = .europe
+        } else if (-170 ... -30).contains(lon) {
+            self = .america
+        } else {
+            self = .asia
+        }
+    }
+}
+
+extension MapRegion {
+    /// 「みんなの旅」「みんなの古地図」（Webも同じ）で、リージョンごとに分けて並べる時の順番。
+    static let displayOrder: [MapRegion] = [.europe, .america, .japan, .asia]
+}
+
+/// 「みんなの旅」を各リージョンの中で並べる順番（Webの`tripSort.ts`と同じ選択肢）。
+enum TripSortOrder: String, CaseIterable, Identifiable {
+    /// いいねの多い順（同じ数なら日付の新しい順、さらに距離の長い順）。
+    case likes
+    /// 日付の新しい順。
+    case date
+    /// 歩いた距離の長い順。
+    case distance
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .likes: return "いいね順"
+        case .date: return "日付順"
+        case .distance: return "距離順"
+        }
     }
 }

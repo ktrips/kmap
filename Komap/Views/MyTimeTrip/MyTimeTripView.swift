@@ -534,7 +534,7 @@ struct MyTimeTripView: View {
 
     private func prepareAndShowShareSheet() {
         isPreparingShare = true
-        // 設定で非表示にしている古地図（Komap Global）の御朱印は、件数・名前とも数えない。
+        // 設定で選んでいるリージョンの外にある古地図の御朱印は、件数・名前とも数えない。
         let sites = HistoricSiteCatalog.visibleIncludingCustom
         let hiddenSiteIDs = Set(HistoricSiteCatalog.allIncludingCustom.map(\.id)).subtracting(sites.map(\.id))
         let renderer = ImageRenderer(

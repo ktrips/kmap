@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 「Komap Global」のチェックポイントで、御朱印（`seal.fill`）の代わりに表示する
+/// Europeリージョン（海外の旧市街）のチェックポイントで、御朱印（`seal.fill`）の代わりに表示する
 /// 紋章（クレスト）風バッジ。SFシンボル + 地の彩色（tincture）の組み合わせだけで表現する
 /// 軽量な仕組みで、`HistoricSite`ごとの専用画像は用意していない。
 struct CrestBadge {

@@ -88,7 +88,12 @@ struct OldMapPickerSheet: View {
     var onRequestSearch: () -> Void = {}
 
     /// 追加した古地図の一覧。編集・削除の後に読み直す。
-    @State private var customOverlays: [HistoricalOverlayMap] = CustomOverlayMapStore.all()
+    @State private var customOverlays: [HistoricalOverlayMap] = Self.customOverlaysInRegion()
+
+    /// 自分で追加した古地図のうち、「設定」で選んでいるリージョンのもの。
+    private static func customOverlaysInRegion() -> [HistoricalOverlayMap] {
+        CustomOverlayMapStore.all().filter { !OldMapCatalog.isHiddenBySettings($0) }
+    }
     @State private var detailOverlay: HistoricalOverlayMap?
     /// 「みんなの古地図」（クラウドで公開されているもの）。一覧の最下部に出す。
     @State private var sharedMaps: [RemoteOverlayMap] = []
@@ -132,8 +137,16 @@ struct OldMapPickerSheet: View {
                     .listRowBackground(Color.clear)
                 }
 
+                if OldMapCatalog.visibleCategories.isEmpty && customOverlays.isEmpty {
+                    Section {
+                        Text("\(AppSettings.mapRegion.title)（\(AppSettings.mapRegion.subtitle)）の古地図はまだありません。「新地図」から作るか、「設定」の「リージョン」で別の地域を選んでください。")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 ForEach(OldMapCatalog.visibleCategories, id: \.self) { category in
-                    Section(category.rawValue) {
+                    Section("\(category.rawValue)（\(AppSettings.mapRegion.title)）") {
                         ForEach(overlays(in: category)) { overlay in
                             overlayRow(for: overlay)
                         }
@@ -195,7 +208,7 @@ struct OldMapPickerSheet: View {
 
     /// 詳細画面（編集を含む）を閉じた後、一覧と、表示中の古地図を最新の内容に読み直す。
     private func refreshAfterDetail() {
-        customOverlays = CustomOverlayMapStore.all()
+        customOverlays = Self.customOverlaysInRegion()
         if let selected = selectedOverlay,
            let latest = OldMapCatalog.overlay(withID: selected.id),
            latest.title != selected.title || latest.imageFileName != selected.imageFileName {
@@ -208,9 +221,14 @@ struct OldMapPickerSheet: View {
     @ViewBuilder
     private var sharedMapsSection: some View {
         let others = sharedMaps.filter { $0.ownerUserID != authService.userID }
-        if !others.isEmpty {
-            Section("みんなの古地図") {
-                ForEach(others.prefix(10)) { remote in
+        // みんなの古地図は、リージョンごと（Europe → America → Japan → Asia）に分け、新しい順に並べる。
+        let grouped = Dictionary(grouping: others) { MapRegion(containing: $0.center) }
+        let groups = MapRegion.displayOrder.compactMap { region in
+            grouped[region].map { (region, $0.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }) }
+        }
+        ForEach(groups, id: \.0) { region, maps in
+            Section("みんなの古地図（\(region.title)）") {
+                ForEach(maps.prefix(10)) { remote in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(remote.title).font(.body)
@@ -233,6 +251,10 @@ struct OldMapPickerSheet: View {
                         .accessibilityLabel("追加する")
                     }
                 }
+            }
+        }
+        if !others.isEmpty {
+            Section {
                 NavigationLink {
                     SharedOverlayMapsView { overlay in selectImported(overlay) }
                 } label: {

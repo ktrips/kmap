@@ -10,7 +10,14 @@ enum AppSettings {
     private static let allowAddingNewMapContentKey = "allowAddingNewMapContent"
     private static let aiProviderKey = "aiProvider"
     private static let defaultOverlayMapIDKey = "defaultOverlayMapID"
-    static let showGlobalMapsKey = "showGlobalMaps"
+    static let mapRegionKey = "mapRegion"
+    static let tripSortOrderKey = "tripSortOrder"
+
+    /// 「みんなの旅」の並び順（いいね順・日付順・距離順）。未設定時はいいね順。
+    static var tripSortOrder: TripSortOrder {
+        get { UserDefaults.standard.string(forKey: tripSortOrderKey).flatMap(TripSortOrder.init(rawValue:)) ?? .likes }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: tripSortOrderKey) }
+    }
     private static let cameraLinkHostKey = "cameraLinkHost"
     private static let printerLinkHostKey = "printerLinkHost"
     private static let printerSyncStampsKey = "printerSyncStamps"
@@ -68,13 +75,12 @@ enum AppSettings {
         set { UserDefaults.standard.set(newValue, forKey: allowAddingNewMapContentKey) }
     }
 
-    /// 「設定」の「Komap Global（海外の旧市街）を表示」。オフの間は、アムステルダム・
-    /// ヘルシンキなど海外の古地図とそのチェックポイントを、古地図の選択肢・全地図表示・
-    /// 現在地からの古地図選択・御朱印一覧から外す（`OldMapCatalog.isHiddenBySettings`）。
-    /// 未設定時は`false`（表示しない）。
-    static var showGlobalMaps: Bool {
-        get { UserDefaults.standard.bool(forKey: showGlobalMapsKey) }
-        set { UserDefaults.standard.set(newValue, forKey: showGlobalMapsKey) }
+    /// 「設定」の「リージョン」。選んだリージョン（Japan・Europe・Asia・America）の古地図と
+    /// そのチェックポイントだけを、古地図の選択肢・全地図表示・現在地からの古地図選択・
+    /// 御朱印一覧に出す（`OldMapCatalog.isHiddenBySettings`）。未設定時はJapan。
+    static var mapRegion: MapRegion {
+        get { UserDefaults.standard.string(forKey: mapRegionKey).flatMap(MapRegion.init(rawValue:)) ?? .japan }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: mapRegionKey) }
     }
 
     /// 「設定」の「AI設定」で選ぶ、物語生成に使うデフォルトのAIプロバイダー。未設定時はOpenAI。

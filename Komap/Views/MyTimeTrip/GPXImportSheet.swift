@@ -11,7 +11,7 @@ struct GPXImportSheet: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var authService: AuthService
 
-    @State private var selectedOverlayID: String = OldMapCatalog.defaultOverlay.id
+    @State private var selectedOverlayID: String = OldMapCatalog.defaultOverlay?.id ?? OldMapCatalog.edoCastle.id
     @State private var isPresentingFileImporter = false
     @State private var isImporting = false
     @State private var errorMessage: String?

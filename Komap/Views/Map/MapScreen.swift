@@ -17,9 +17,9 @@ struct MapScreen: View {
     /// 「設定」画面で見た目を変えたらこのマップ画面（常時マウントされたまま）の
     /// 現在地マークにもすぐ反映されるようにする（`cameraLinkHostRaw`と同じ理由）。
     @AppStorage("currentLocationIconStyle") private var currentLocationIconStyleRaw: String = CurrentLocationIconStyle.blueDot.rawValue
-    /// `AppSettings.showGlobalMaps`と同じキー。設定で切り替えた時に、全地図表示の古地図・
+    /// `AppSettings.mapRegion`と同じキー。設定でリージョンを切り替えた時に、全地図表示の古地図・
     /// チェックポイントとWatchへ送る古地図の一覧を作り直すために監視する。
-    @AppStorage(AppSettings.showGlobalMapsKey) private var showGlobalMaps = false
+    @AppStorage(AppSettings.mapRegionKey) private var mapRegionRaw = MapRegion.japan.rawValue
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var mapSession: MapSessionState
     @Environment(\.modelContext) private var modelContext
@@ -475,7 +475,7 @@ struct MapScreen: View {
             recomputeActiveCheckpoints()
             showOldMapForWalkingIfNeeded()
         }
-        .onChange(of: showGlobalMaps) { _, _ in
+        .onChange(of: mapRegionRaw) { _, _ in
             recomputeActiveCheckpoints()
             syncWatchState()
         }

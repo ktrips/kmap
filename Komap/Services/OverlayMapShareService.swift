@@ -6,6 +6,14 @@ import UIKit
 
 /// クラウドで公開されている、誰かが作った古地図1件分（`sharedOverlayMaps/{id}`）。
 struct RemoteOverlayMap: Identifiable {
+    /// 地図の中心（リージョンの振り分けに使う）。
+    var center: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(
+            latitude: (southWest.latitude + northEast.latitude) / 2,
+            longitude: (southWest.longitude + northEast.longitude) / 2
+        )
+    }
+
     let id: String
     let ownerUserID: String
     let ownerDisplayName: String?

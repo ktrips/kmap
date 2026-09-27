@@ -820,7 +820,7 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 35.6516, longitude: 139.7213)
         ),
 
-        // Komap Global — アムステルダム旧市街（中世〜黄金時代）
+        // Europe — アムステルダム旧市街（中世〜黄金時代）
         // 御朱印の代わりに、紋章（地・彩色・図形の紋章学ルールに沿ったクレスト）を集める。
         // 実際のバッジ描画は`CrestBadgeCatalog.badge(for:)`（IDで引く）を参照。
         HistoricSite(
@@ -880,7 +880,7 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 52.3744, longitude: 4.8981)
         ),
 
-        // Komap Global — ヘルシンキ旧市街（帝政期）
+        // Europe — ヘルシンキ旧市街（帝政期）
         HistoricSite(
             id: "helsinki-senate-square",
             overlayMapID: OldMapCatalog.helsinki.id,
@@ -938,7 +938,7 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 60.182, longitude: 24.9134)
         ),
 
-        // Komap Global — ストックホルム旧市街（ガムラスタン）
+        // Europe — ストックホルム旧市街（ガムラスタン）
         HistoricSite(
             id: "stockholm-storkyrkan",
             overlayMapID: OldMapCatalog.stockholm.id,
@@ -996,7 +996,7 @@ enum HistoricSiteCatalog {
             coordinate: CLLocationCoordinate2D(latitude: 59.3231, longitude: 18.0728)
         ),
 
-        // Komap Global — タリン旧市街（ハンザ同盟）
+        // Europe — タリン旧市街（ハンザ同盟）
         HistoricSite(
             id: "tallinn-raekoja-plats",
             overlayMapID: OldMapCatalog.tallinn.id,
@@ -1068,7 +1068,7 @@ enum HistoricSiteCatalog {
     private static var cachedAll: [HistoricSite]?
     private static var cachedByOverlayID: [String: [HistoricSite]]?
     private static var cachedByID: [String: HistoricSite]?
-    private static var visibleCache: (showGlobal: Bool, sites: [HistoricSite])?
+    private static var visibleCache: (region: MapRegion, sites: [HistoricSite])?
 
     static func invalidateCache() {
         cachedAll = nil
@@ -1089,16 +1089,15 @@ enum HistoricSiteCatalog {
         return combined
     }
 
-    /// `allIncludingCustom`から、「設定」で非表示にしている古地図（Komap Global）の
+    /// `allIncludingCustom`から、「設定」で選んでいるリージョンの外にある古地図の
     /// チェックポイントを除いたもの。全地図表示・御朱印一覧に使う。
     static var visibleIncludingCustom: [HistoricSite] {
-        let showGlobal = AppSettings.showGlobalMaps
-        if let visibleCache, visibleCache.showGlobal == showGlobal {
+        let region = AppSettings.mapRegion
+        if let visibleCache, visibleCache.region == region {
             return visibleCache.sites
         }
-        let sites = allIncludingCustom
-        let visible = showGlobal ? sites : sites.filter { !OldMapCatalog.isHiddenBySettings(overlayID: $0.overlayMapID) }
-        visibleCache = (showGlobal, visible)
+        let visible = allIncludingCustom.filter { !OldMapCatalog.isHiddenBySettings(overlayID: $0.overlayMapID) }
+        visibleCache = (region, visible)
         return visible
     }
 
