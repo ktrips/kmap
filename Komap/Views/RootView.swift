@@ -22,7 +22,7 @@ struct RootView: View {
         // あれば受け取れる状態にする（`friendRequests`の`toUID`を自分のuidで確定させる）。
         .task(id: authService.userID) {
             // Web版でも Plus の特典（Kindle本の全文）を使えるよう、サインインしたアカウントに購入を記録する。
-            await plusStore.setSignedInUser(authService.userID)
+            await plusStore.setSignedInUser(authService.userID, email: authService.email)
             guard let userID = authService.userID, let email = authService.email else { return }
             await syncService.claimFriendRequestsAddressedToMe(userID: userID, email: email)
         }

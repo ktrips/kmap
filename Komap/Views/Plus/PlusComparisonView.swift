@@ -212,6 +212,11 @@ struct PlusComparisonView: View {
 
     private var memberSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if plusStore.isAdminGrant && !plusStore.hasPurchase {
+                Label("管理者のアカウントのため、購入しなくても Plus の機能を使えます。", systemImage: "person.badge.key")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
             if let expirationDate = plusStore.expirationDate {
                 Text(plusStore.willAutoRenew
                      ? "次回の更新日: \(expirationDate.formatted(date: .long, time: .omitted))"
@@ -236,10 +241,12 @@ struct PlusComparisonView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Button("サブスクリプションを管理") {
-                isShowingManageSubscriptions = true
+            if plusStore.hasPurchase {
+                Button("サブスクリプションを管理") {
+                    isShowingManageSubscriptions = true
+                }
+                .font(.subheadline)
             }
-            .font(.subheadline)
         }
     }
 

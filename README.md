@@ -748,6 +748,10 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
 無料で使った場所・旅はKeychainに記録し（`PlusFreeUsage`）、アプリを入れ直しても回数は戻らない。
 一度作った場所の詳細・旅の動画は、無料でもいつでも見返せる。
 
+管理者（`kenichiyoshida13@gmail.com`）でサインインしている間は、購入しなくても Plus として扱う
+（iOS: `PlusStore.isAdminGrant`、Web の Kindle本の全文: `getKindleFullText` がFirebase Authの検証済みメールで判定。
+アドレスは `AuthService.adminEmail`・`functions/src/adminEmail.ts`）。
+
 **App Store Connect の設定**
 
 1. サブスクリプショングループ「Komap Plus」を作り、次の2つを登録する。

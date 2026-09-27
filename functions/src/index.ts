@@ -7,6 +7,7 @@ import * as admin from "firebase-admin";
 import jwt from "jsonwebtoken";
 import * as crypto from "node:crypto";
 import { normalizePEMPrivateKey } from "./pem";
+import { ADMIN_EMAIL } from "./adminEmail";
 
 admin.initializeApp();
 setGlobalOptions({ region: "asia-northeast1", maxInstances: 10 });
@@ -226,13 +227,6 @@ async function inviteToTestFlight(params: {
  * サインイン済みユーザー本人のメールアドレスにだけ、TestFlightの外部テスト招待を送る
  * （なりすまし防止のため、リクエストで渡されたメールではなく`request.auth`のメールを使う）。
  */
-/**
- * 管理者レポート（`getAdminFunnelReport`）の利用を許可するメールアドレス。
- * 個人開発の1人プロジェクトのため、複数管理者を想定した仕組み（Firestoreの
- * 管理者フラグなど）は導入せず、固定のメールアドレス比較で十分とした。
- */
-const ADMIN_EMAIL = "kenichiyoshida13@gmail.com";
-
 /**
  * `getAdminFunnelReport`の集計結果を、関数インスタンス内に一定時間だけ
  * キャッシュしておく（Cloud Functionsのウォームインスタンスはモジュール

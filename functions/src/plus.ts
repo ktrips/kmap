@@ -5,6 +5,7 @@ import * as admin from "firebase-admin";
 import jwt from "jsonwebtoken";
 import * as crypto from "node:crypto";
 import { normalizePEMPrivateKey } from "./pem";
+import { ADMIN_EMAIL } from "./adminEmail";
 
 /**
  * Komap Plus（iOSアプリの自動更新サブスクリプション）の購入状態を、Apple の
@@ -224,7 +225,10 @@ export const getKindleFullText = onCall(
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) return { status: "not-plus" as const };
-    if (!(await isPlusNow(uid))) return { status: "not-plus" as const };
+    // 管理者は購入しなくても Plus として扱う（iOSアプリの`PlusStore.isAdminGrant`と同じ判定）。
+    const token = request.auth?.token;
+    const isAdmin = token?.email === ADMIN_EMAIL && token?.email_verified === true;
+    if (!isAdmin && !(await isPlusNow(uid))) return { status: "not-plus" as const };
 
     const file = admin.storage().bucket().file(KINDLE_FULL_TEXT_PATH);
     const [exists] = await file.exists();

@@ -94,7 +94,10 @@ final class PlusStore: ObservableObject {
     static let kindleWebURL = URL(string: "https://komap.ktrips.net/?book=1")!
 
     @Published private(set) var products: [Product] = []
-    @Published private(set) var isPlus: Bool = UserDefaults.standard.bool(forKey: PlusStore.cachedIsPlusKey)
+    /// App Store で Plus を購入していて、期限内かどうか。
+    @Published private(set) var hasPurchase: Bool = UserDefaults.standard.bool(forKey: PlusStore.cachedIsPlusKey)
+    /// 管理者（`AuthService.adminEmail`）でサインイン中なら、購入しなくても Plus として扱う。
+    @Published private(set) var isAdminGrant = false
     @Published private(set) var currentProductID: String?
     @Published private(set) var expirationDate: Date?
     @Published private(set) var willAutoRenew = true
@@ -109,6 +112,9 @@ final class PlusStore: ObservableObject {
     private var originalTransactionID: UInt64?
     /// サインイン中のアカウント（`RootView`から`setSignedInUser`で渡す）。
     private var signedInUserID: String?
+
+    /// 今 Plus の機能を使えるか（購入済み、または管理者）。
+    var isPlus: Bool { hasPurchase || isAdminGrant }
 
     /// 年額プラン（比較ページでおすすめとして先頭に出す）。
     var yearlyProduct: Product? { products.first { $0.id == Self.yearlyProductID } }
@@ -158,11 +164,11 @@ final class PlusStore: ObservableObject {
             }
         }
 
-        isPlus = active != nil
+        hasPurchase = active != nil
         currentProductID = active?.productID
         expirationDate = active?.expirationDate
         originalTransactionID = active?.originalID
-        UserDefaults.standard.set(isPlus, forKey: Self.cachedIsPlusKey)
+        UserDefaults.standard.set(hasPurchase, forKey: Self.cachedIsPlusKey)
 
         if let product = products.first(where: { $0.id == active?.productID }),
            let statuses = try? await product.subscription?.status,
@@ -179,8 +185,10 @@ final class PlusStore: ObservableObject {
     }
 
     /// サインイン・サインアウトのたびに呼ぶ。サインインしたら、そのアカウントに Plus の購入を記録する。
-    func setSignedInUser(_ userID: String?) async {
+    /// 管理者のアカウントなら、購入しなくても Plus になる（Web版では Cloud Function 側で同じ判定をする）。
+    func setSignedInUser(_ userID: String?, email: String?) async {
         signedInUserID = userID
+        isAdminGrant = userID != nil && email?.lowercased() == AuthService.adminEmail
         await syncToServer()
     }
 
@@ -221,7 +229,7 @@ final class PlusStore: ObservableObject {
         do {
             try await AppStore.sync()
             await refreshEntitlements()
-            if !isPlus {
+            if !hasPurchase {
                 errorMessage = "このApple IDでは、有効な Komap Plus の購入が見つかりませんでした。"
             }
         } catch {
