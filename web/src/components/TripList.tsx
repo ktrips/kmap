@@ -1,34 +1,14 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { UnifiedTrip } from "../types/unifiedTrip";
 import { distanceLabel, tripDateFormatter as dateFormatter } from "../lib/format";
 import { findOldMap } from "../lib/oldMapCatalog";
 import { useTripEngagementCountsMap } from "../lib/useTripEngagementCounts";
-import {
-  compareTrips,
-  REGION_LABEL,
-  REGION_ORDER,
-  SORT_LABEL,
-  tripRegion,
-  type TripSortOrder,
-} from "../lib/tripRegion";
+import { compareTrips, REGION_LABEL, REGION_ORDER, tripRegion } from "../lib/tripRegion";
 
 interface Props {
   trips: UnifiedTrip[];
   selectedId: string | null;
   onSelect: (trip: UnifiedTrip) => void;
-}
-
-const SORT_STORAGE_KEY = "komap-trip-sort";
-const SORT_ORDERS: TripSortOrder[] = ["likes", "date", "distance"];
-
-function loadSortOrder(): TripSortOrder {
-  try {
-    const saved = localStorage.getItem(SORT_STORAGE_KEY);
-    if (saved === "likes" || saved === "date" || saved === "distance") return saved;
-  } catch {
-    // 保存できない環境（プライベートブラウズなど）では既定のいいね順にする。
-  }
-  return "likes";
 }
 
 interface Engagement {
@@ -67,10 +47,9 @@ function TripMetaLine({ trip, counts }: { trip: UnifiedTrip; counts: Engagement 
 /**
  * 「時空旅」タブの一覧。自分の時空旅と、他ユーザーが公開した時空旅を一緒に並べる。
  * リージョンごと（Europe → America → Japan → Asia）に分け、各リージョンの中は
- * 選んだ順番（いいね順・日付順・距離順）で並べる（iOSアプリの「みんなの旅」と同じ）。
+ * いいねの多い順（同じ数なら日付の新しい順）に並べる。
  */
 export function TripList({ trips, selectedId, onSelect }: Props) {
-  const [sortOrder, setSortOrder] = useState<TripSortOrder>(loadSortOrder);
   // いいね・コメントは公開中の旅にしか付かない。公開データに件数（Cloud Functionsが書く）がある旅は
   // それを使い、まだ無い旅だけ集計クエリで数える。
   const idsToCount = useMemo(
@@ -99,21 +78,12 @@ export function TripList({ trips, selectedId, onSelect }: Props) {
       if (list) list.push(trip);
       else byRegion.set(region, [trip]);
     }
-    const compare = compareTrips(sortOrder, (id) => engagement.get(id)?.likeCount ?? 0);
+    const compare = compareTrips("likes", (id) => engagement.get(id)?.likeCount ?? 0);
     return REGION_ORDER.filter((region) => byRegion.has(region)).map((region) => ({
       region,
       trips: [...(byRegion.get(region) ?? [])].sort(compare),
     }));
-  }, [trips, sortOrder, engagement]);
-
-  const changeSortOrder = (order: TripSortOrder) => {
-    setSortOrder(order);
-    try {
-      localStorage.setItem(SORT_STORAGE_KEY, order);
-    } catch {
-      // 保存できなくても、今の表示の並び替えはそのまま行う。
-    }
-  };
+  }, [trips, engagement]);
 
   if (trips.length === 0) {
     return (
@@ -128,19 +98,6 @@ export function TripList({ trips, selectedId, onSelect }: Props) {
 
   return (
     <div className="trip-list">
-      <div className="trip-sort" role="group" aria-label="並び順">
-        {SORT_ORDERS.map((order) => (
-          <button
-            key={order}
-            type="button"
-            className={`trip-sort-button ${order === sortOrder ? "is-active" : ""}`}
-            aria-pressed={order === sortOrder}
-            onClick={() => changeSortOrder(order)}
-          >
-            {SORT_LABEL[order]}
-          </button>
-        ))}
-      </div>
       {groups.map(({ region, trips: regionTrips }) => (
         <section key={region} className="trip-region">
           <h3 className="trip-region-title">{REGION_LABEL[region]}</h3>

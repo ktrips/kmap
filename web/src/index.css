@@ -286,15 +286,6 @@ code {
   border-bottom: 1px solid var(--color-border);
 }
 
-.public-intro-headline {
-  text-align: center;
-}
-
-.public-intro h1 {
-  margin: 0 0 8px;
-  font-size: 1.68rem;
-}
-
 .public-intro-presence {
   display: inline-flex;
   align-items: center;
@@ -318,11 +309,47 @@ code {
 
 .public-intro-cta {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 10px;
-  max-width: 420px;
+  max-width: 520px;
   margin: 0 auto;
+}
+
+.public-intro-cta .google-button-large {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* サインインボタンの右に横一列で並べる「今◯人が時空旅中」。2行にして幅を抑える。 */
+.public-intro-presence--compact {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+/* ヘッダーのアイコンの右の見出し。 */
+.public-header-headline {
+  margin: 0;
+  font-size: 1.3rem;
+  white-space: nowrap;
+}
+
+/* 公開ページのタブ（みんなの時空旅・古地図・使い方）は、常に横一列に収める。 */
+.sidebar-tabs--public .sidebar-tab {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 6px;
+  white-space: nowrap;
+}
+
+.sidebar-tabs--public .sidebar-tab--howto {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  color: var(--color-brown-deep);
 }
 
 .google-button-large {
@@ -380,30 +407,6 @@ code {
 .old-map-note {
   margin: 10px 0 0;
   font-size: 0.85rem;
-}
-
-.trip-sort {
-  display: flex;
-  gap: 6px;
-  padding: 10px 12px 2px;
-}
-
-.trip-sort-button {
-  flex: 1;
-  padding: 5px 0;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-card);
-  color: var(--color-brown-deep);
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.trip-sort-button.is-active {
-  background: var(--color-brown-deep);
-  border-color: var(--color-brown-deep);
-  color: #fff;
-  font-weight: 700;
 }
 
 .trip-region-title {
@@ -1299,6 +1302,21 @@ code {
      圧迫するため、アプリ名（テキスト）は省いてアイコン＋一覧ボタンだけにする。 */
   .brand-eyebrow {
     display: none;
+  }
+  .public-intro {
+    padding: 14px 16px;
+  }
+  .public-intro-cta .google-button-large {
+    padding: 12px 10px;
+  }
+  .public-intro-cta .google-button-bullet {
+    font-size: 0.68rem;
+  }
+  .public-header-headline {
+    font-size: 1.15rem;
+  }
+  .sidebar-tabs--public .sidebar-tab {
+    font-size: 0.78rem;
   }
 }
 

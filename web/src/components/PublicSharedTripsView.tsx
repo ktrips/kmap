@@ -71,14 +71,20 @@ export function PublicSharedTripsView({
   // ため、代わりに「旅を選んでいる時」に出す。
   const showLoginHeaderButton = isMobile ? !isSidebarOpen : selectedTrip !== null;
 
-  // 見出し・Googleサインインの案内。モバイルではこれまで通りヘッダーの下（一覧の上）に
-  // 表示するが、モバイルでない時はヘッダー直下には出さず、代わりに右側の表示ペインの
+  // Googleサインインの案内（見出しはヘッダーのアイコンの右に置く）。モバイルではヘッダーの下
+  // （一覧の上）に表示するが、モバイルでない時はヘッダー直下には出さず、代わりに右側の表示ペインの
   // 「リストから、時空旅を選んでください。」の上（＝何も選んでいない時だけ）に表示する。
+  // 「今◯人が時空旅中」は、サインインボタンのすぐ右に横一列で並べる。
+  const presenceBadge =
+    activeVisitorCount !== null && activeVisitorCount > 0 ? (
+      <p className="public-intro-presence public-intro-presence--compact">
+        🕐 今{activeVisitorCount}人が
+        <br />
+        時空旅中
+      </p>
+    ) : null;
   const introContent = (
     <div className="public-intro">
-      <div className="public-intro-headline">
-        <h1>そうだ、時空旅しよう</h1>
-      </div>
       {isFirebaseConfigured && (
         <div className="public-intro-cta">
           <button
@@ -96,6 +102,7 @@ export function PublicSharedTripsView({
               </span>
             )}
           </button>
+          {presenceBadge}
         </div>
       )}
       {error && <p className="error-text">{error}</p>}
@@ -115,9 +122,7 @@ export function PublicSharedTripsView({
             <img src="/app-icon.png" alt="Komap" className="app-header-icon" />
           </button>
           <p className="brand-eyebrow">Komap 古地図巡り</p>
-          {isSidebarOpen && activeVisitorCount !== null && activeVisitorCount > 0 && (
-            <p className="public-intro-presence">🕐 今{activeVisitorCount}人が時空旅中</p>
-          )}
+          {isSidebarOpen && <h1 className="public-header-headline">そうだ、時空旅しよう</h1>}
           {!isSidebarOpen && (
             <button
               type="button"
@@ -129,7 +134,7 @@ export function PublicSharedTripsView({
             </button>
           )}
         </div>
-        {showLoginHeaderButton ? (
+        {showLoginHeaderButton && (
           <button
             type="button"
             className="login-header-button"
@@ -137,10 +142,6 @@ export function PublicSharedTripsView({
             disabled={isSigningIn}
           >
             {isSigningIn ? "サインイン中..." : "ログイン"}
-          </button>
-        ) : (
-          <button type="button" className="howto-header-button" onClick={() => setIsHowToOpen(true)}>
-            📖 使い方
           </button>
         )}
       </header>
@@ -157,7 +158,7 @@ export function PublicSharedTripsView({
       <div className="app-body is-public">
         {isSidebarOpen && (
           <aside className="app-sidebar">
-            <div className="sidebar-tabs">
+            <div className="sidebar-tabs sidebar-tabs--public">
               <button
                 className={`sidebar-tab ${sidebarTab === "trips" ? "is-active" : ""}`}
                 onClick={() => setSidebarTab("trips")}
@@ -169,6 +170,9 @@ export function PublicSharedTripsView({
                 onClick={() => setSidebarTab("maps")}
               >
                 古地図
+              </button>
+              <button type="button" className="sidebar-tab sidebar-tab--howto" onClick={() => setIsHowToOpen(true)}>
+                📖 使い方
               </button>
             </div>
             {sidebarTab === "trips" ? (
