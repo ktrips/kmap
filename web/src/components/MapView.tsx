@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useGoogleMaps } from "../lib/useGoogleMaps";
+import { toDisplay } from "../lib/mapDisplayCoordinate";
 import type { SavedPlace } from "../types/place";
 
 interface Props {
@@ -35,7 +36,7 @@ export function MapView({ places, selectedId, onSelect }: Props) {
 
     places.forEach((place) => {
       const marker = new google.maps.Marker({
-        position: { lat: place.latitude, lng: place.longitude },
+        position: toDisplay({ lat: place.latitude, lng: place.longitude }),
         map,
         title: place.title,
       });
@@ -45,7 +46,7 @@ export function MapView({ places, selectedId, onSelect }: Props) {
 
     if (places.length > 0) {
       const bounds = new google.maps.LatLngBounds();
-      places.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
+      places.forEach((place) => bounds.extend(toDisplay({ lat: place.latitude, lng: place.longitude })));
       map.fitBounds(bounds, 64);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,7 +56,7 @@ export function MapView({ places, selectedId, onSelect }: Props) {
     if (!isLoaded || !mapRef.current || !selectedId) return;
     const place = places.find((p) => p.id === selectedId);
     if (place) {
-      mapRef.current.panTo({ lat: place.latitude, lng: place.longitude });
+      mapRef.current.panTo(toDisplay({ lat: place.latitude, lng: place.longitude }));
     }
   }, [isLoaded, selectedId, places]);
 

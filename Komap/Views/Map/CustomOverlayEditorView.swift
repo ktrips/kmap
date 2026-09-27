@@ -309,7 +309,7 @@ private struct OverlayEditorMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> GMSMapView {
         let mapView = GMSMapView()
         mapView.delegate = context.coordinator
-        let bounds = GMSCoordinateBounds(coordinate: overlay.southWest, coordinate: overlay.northEast)
+        let bounds = GMSCoordinateBounds(coordinate: MapDisplayCoordinate.toDisplay(overlay.southWest), coordinate: MapDisplayCoordinate.toDisplay(overlay.northEast))
         let groundOverlay = GMSGroundOverlay(bounds: bounds, icon: overlay.image)
         groundOverlay.opacity = 0.7
         groundOverlay.map = mapView
@@ -327,7 +327,7 @@ private struct OverlayEditorMapView: UIViewRepresentable {
         if coordinator.shownImageFileName != overlay.imageFileName {
             coordinator.shownImageFileName = overlay.imageFileName
             coordinator.groundOverlay?.map = nil
-            let bounds = GMSCoordinateBounds(coordinate: overlay.southWest, coordinate: overlay.northEast)
+            let bounds = GMSCoordinateBounds(coordinate: MapDisplayCoordinate.toDisplay(overlay.southWest), coordinate: MapDisplayCoordinate.toDisplay(overlay.northEast))
             let replacement = GMSGroundOverlay(bounds: bounds, icon: overlay.image)
             replacement.opacity = 0.7
             replacement.map = mapView
@@ -341,7 +341,7 @@ private struct OverlayEditorMapView: UIViewRepresentable {
         coordinator.shownIDs = ids
         coordinator.markers.forEach { $0.map = nil }
         coordinator.markers = checkpoints.map { site in
-            let marker = GMSMarker(position: site.coordinate)
+            let marker = GMSMarker(position: MapDisplayCoordinate.toDisplay(site.coordinate))
             marker.title = site.name
             marker.icon = GMSMarker.markerImage(with: .shuiro)
             marker.userData = site.id
@@ -360,7 +360,8 @@ private struct OverlayEditorMapView: UIViewRepresentable {
         var shownImageFileName: String?
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
-            onTapMap(coordinate)
+            // 地図上の座標（中国本土では GCJ-02）を、保存するデータと同じ WGS84 に戻す。
+            onTapMap(MapDisplayCoordinate.fromDisplay(coordinate))
         }
 
         func mapView(_ mapView: GMSMapView, didTap marker: GMSMarker) -> Bool {

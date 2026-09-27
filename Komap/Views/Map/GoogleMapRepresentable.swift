@@ -101,8 +101,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
     func makeUIView(context: Context) -> GMSMapView {
         let initialCamera = GMSCameraPosition.camera(
-            withLatitude: overlayMap?.center.latitude ?? 35.6812,
-            longitude: overlayMap?.center.longitude ?? 139.767,
+            withTarget: MapDisplayCoordinate.toDisplay(overlayMap?.center ?? CLLocationCoordinate2D(latitude: 35.6812, longitude: 139.767)),
             zoom: 15
         )
         let mapView = GMSMapView()
@@ -165,7 +164,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
         if let request = moveCameraRequest, context.coordinator.lastHandledMoveRequestID != request.id {
             context.coordinator.lastHandledMoveRequestID = request.id
-            mapView.animate(to: GMSCameraPosition.camera(withTarget: request.coordinate, zoom: request.zoom ?? mapView.camera.zoom))
+            mapView.animate(to: GMSCameraPosition.camera(withTarget: MapDisplayCoordinate.toDisplay(request.coordinate), zoom: request.zoom ?? mapView.camera.zoom))
         }
 
         context.coordinator.applyCurrentLocationMarker(
@@ -348,7 +347,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             // 既存のオーバーレイに後から`.icon`だけ差し替えると描画に反映されない
             // ことがあるため、画像が用意できたらオーバーレイ自体を作り直す。
             allOverlays = uniqueMaps.map { overlayMap in
-                let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+                let bounds = GMSCoordinateBounds(coordinate: MapDisplayCoordinate.toDisplay(overlayMap.southWest), coordinate: MapDisplayCoordinate.toDisplay(overlayMap.northEast))
                 let overlay = GMSGroundOverlay(bounds: bounds, icon: nil)
                 overlay.bearing = overlayMap.bearing
                 overlay.opacity = 0.75
@@ -363,7 +362,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 // 上限を超えた分は画像を読み込まない（枠だけのオーバーレイのまま）。
                 // チェックポイントのマーカーは`checkpoints`に含まれる全古地図分そのまま描画される。
                 guard index < Self.maxSimultaneousAllOverlayImages else { continue }
-                let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+                let bounds = GMSCoordinateBounds(coordinate: MapDisplayCoordinate.toDisplay(overlayMap.southWest), coordinate: MapDisplayCoordinate.toDisplay(overlayMap.northEast))
                 let bearing = overlayMap.bearing
                 let cacheKey = newKeys[index]
                 if let cached = Self.downsampledImageCache[cacheKey] {
@@ -404,15 +403,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             var combinedBounds: GMSCoordinateBounds?
             for overlayMap in overlays {
-                combinedBounds = combinedBounds?.includingCoordinate(overlayMap.southWest).includingCoordinate(overlayMap.northEast)
-                    ?? GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+                combinedBounds = combinedBounds?.includingCoordinate(MapDisplayCoordinate.toDisplay(overlayMap.southWest)).includingCoordinate(MapDisplayCoordinate.toDisplay(overlayMap.northEast))
+                    ?? GMSCoordinateBounds(coordinate: MapDisplayCoordinate.toDisplay(overlayMap.southWest), coordinate: MapDisplayCoordinate.toDisplay(overlayMap.northEast))
             }
             // 古地図の位置合わせは仮座標のため、古地図の範囲だけでカメラを合わせると
             // チェックポイントが画面外に出てしまうことがある。単一の古地図表示時と同様、
             // チェックポイントの座標も収まるようにする。
             for checkpoint in checkpoints {
-                combinedBounds = combinedBounds?.includingCoordinate(checkpoint.coordinate)
-                    ?? GMSCoordinateBounds(coordinate: checkpoint.coordinate, coordinate: checkpoint.coordinate)
+                combinedBounds = combinedBounds?.includingCoordinate(MapDisplayCoordinate.toDisplay(checkpoint.coordinate))
+                    ?? GMSCoordinateBounds(coordinate: MapDisplayCoordinate.toDisplay(checkpoint.coordinate), coordinate: MapDisplayCoordinate.toDisplay(checkpoint.coordinate))
             }
             if let combinedBounds {
                 mapView.moveCamera(GMSCameraUpdate.fit(combinedBounds, withPadding: 24))
@@ -473,8 +472,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 currentOverlay?.map = nil
 
                 let bounds = GMSCoordinateBounds(
-                    coordinate: overlayMap.southWest,
-                    coordinate: overlayMap.northEast
+                    coordinate: MapDisplayCoordinate.toDisplay(overlayMap.southWest),
+                    coordinate: MapDisplayCoordinate.toDisplay(overlayMap.northEast)
                 )
                 let overlayID = overlayMap.id
                 // フル解像度（3000px超のことがある）の画像をそのまま縮小すると、
@@ -526,9 +525,9 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 let ownCheckpoints = checkpoints.filter { $0.overlayMapID == overlayMap.id }
                 var fitBounds: GMSCoordinateBounds
                 if let first = ownCheckpoints.first {
-                    fitBounds = GMSCoordinateBounds(coordinate: first.coordinate, coordinate: first.coordinate)
+                    fitBounds = GMSCoordinateBounds(coordinate: MapDisplayCoordinate.toDisplay(first.coordinate), coordinate: MapDisplayCoordinate.toDisplay(first.coordinate))
                     for checkpoint in ownCheckpoints.dropFirst() {
-                        fitBounds = fitBounds.includingCoordinate(checkpoint.coordinate)
+                        fitBounds = fitBounds.includingCoordinate(MapDisplayCoordinate.toDisplay(checkpoint.coordinate))
                     }
                 } else {
                     fitBounds = bounds
@@ -623,7 +622,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         }
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
-            onTap(coordinate)
+            // 地図上の座標（中国本土では GCJ-02）を、アプリのデータと同じ WGS84 に戻して渡す。
+            onTap(MapDisplayCoordinate.fromDisplay(coordinate))
         }
 
         /// カメラが動き始めた時に呼ばれる。`gesture`が`true`の時だけ、指でのドラッグ・ピンチ操作
@@ -647,7 +647,10 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         func mapView(_ mapView: GMSMapView, idleAt position: GMSCameraPosition) {
             let region = mapView.projection.visibleRegion()
             let bounds = GMSCoordinateBounds(region: region)
-            onVisibleBoundsChange(OldMapSearchBounds(southWest: bounds.southWest, northEast: bounds.northEast))
+            onVisibleBoundsChange(OldMapSearchBounds(
+                southWest: MapDisplayCoordinate.fromDisplay(bounds.southWest),
+                northEast: MapDisplayCoordinate.fromDisplay(bounds.northEast)
+            ))
             if let lastOverlayRefreshZoom,
                abs(position.zoom - lastOverlayRefreshZoom) < overlayRefreshZoomThreshold {
                 return
@@ -758,7 +761,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 savedPolylinePairs.forEach { $0.remove() }
                 savedPolylinePairs = saved.map { coordinates in
                     let path = GMSMutablePath()
-                    Self.smoothedTrailCoordinates(coordinates).forEach { path.add($0) }
+                    Self.smoothedTrailCoordinates(coordinates).forEach { path.add(MapDisplayCoordinate.toDisplay($0)) }
                     return makeTrailPair(path: path, style: isRecording ? .faded : .saved, on: mapView)
                 }
                 isSavedTrailDimmed = isRecording
@@ -794,7 +797,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             // 1回あたりの計算量が増えないようにするため）。
             if previousCount < 3 || liveTrailMutablePath == nil || live.count < previousCount {
                 let path = GMSMutablePath()
-                Self.smoothedTrailCoordinates(live).forEach { path.add($0) }
+                Self.smoothedTrailCoordinates(live).forEach { path.add(MapDisplayCoordinate.toDisplay($0)) }
                 liveTrailMutablePath = path
                 if let liveTrailPair {
                     liveTrailPair.setPath(path)
@@ -812,16 +815,16 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             for index in (previousCount - 1)..<(live.count - 1) {
                 let p0 = live[index]
                 let p1 = live[index + 1]
-                path.add(CLLocationCoordinate2D(
+                path.add(MapDisplayCoordinate.toDisplay(CLLocationCoordinate2D(
                     latitude: p0.latitude * 0.75 + p1.latitude * 0.25,
                     longitude: p0.longitude * 0.75 + p1.longitude * 0.25
-                ))
-                path.add(CLLocationCoordinate2D(
+                )))
+                path.add(MapDisplayCoordinate.toDisplay(CLLocationCoordinate2D(
                     latitude: p0.latitude * 0.25 + p1.latitude * 0.75,
                     longitude: p0.longitude * 0.25 + p1.longitude * 0.75
-                ))
+                )))
             }
-            path.add(live[live.count - 1])
+            path.add(MapDisplayCoordinate.toDisplay(live[live.count - 1]))
             liveTrailPair?.setPath(path)
         }
 
@@ -911,7 +914,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
 
             var addedNewMarkers = false
             for site in checkpoints where checkpointMarkers[site.id] == nil {
-                let marker = GMSMarker(position: site.coordinate)
+                let marker = GMSMarker(position: MapDisplayCoordinate.toDisplay(site.coordinate))
                 marker.title = site.name
                 marker.userData = site
                 marker.icon = Self.checkpointIcon
@@ -994,7 +997,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 // 無い時（アプリ起動直後など）はメインスレッドをブロックしてカクつきの
                 // 原因になる。先にプレースホルダーのマーカーを即座に置き、実際の画像は
                 // バックグラウンドで読み込んでから差し替える。
-                let marker = GMSMarker(position: post.coordinate)
+                let marker = GMSMarker(position: MapDisplayCoordinate.toDisplay(post.coordinate))
                 marker.icon = Self.photoPostPlaceholderIcon
                 marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
                 marker.userData = post
@@ -1036,13 +1039,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             style: CurrentLocationIconStyle,
             to mapView: GMSMapView
         ) {
-            guard let coordinate else {
+            guard let rawCoordinate = coordinate else {
                 currentLocationMarker?.map = nil
                 currentLocationMarker = nil
                 headingMarker?.map = nil
                 headingMarker = nil
                 return
             }
+            // 地図の背景（中国本土では GCJ-02）に合わせた位置に描く。
+            let coordinate = MapDisplayCoordinate.toDisplay(rawCoordinate)
 
             if let marker = currentLocationMarker {
                 marker.position = coordinate

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useGoogleMaps } from "../lib/useGoogleMaps";
+import { toDisplay } from "../lib/mapDisplayCoordinate";
 import type { OldMapEntry } from "../lib/oldMapCatalog";
 import type { HistoricSiteEntry } from "../lib/historicSiteCatalog";
 
@@ -35,7 +36,8 @@ export function TripMapView({ latitudes, longitudes, oldMap, checkpoints = [] }:
   useEffect(() => {
     if (!isLoaded || !containerRef.current) return;
 
-    const path = latitudes.map((lat, i) => ({ lat, lng: longitudes[i] }));
+    // 中国本土では背景の地図（GCJ-02）に合わせて描く（iOSと同じ変換）。
+    const path = latitudes.map((lat, i) => toDisplay({ lat, lng: longitudes[i] }));
     if (path.length === 0) return;
 
     // 時空旅を選び直すたびにMapインスタンスを作り直すと、古いインスタンスが
@@ -64,7 +66,7 @@ export function TripMapView({ latitudes, longitudes, oldMap, checkpoints = [] }:
     }
     checkpointMarkersRef.current = checkpoints.map((checkpoint) => {
       const marker = new google.maps.Marker({
-        position: checkpoint.coordinate,
+        position: toDisplay(checkpoint.coordinate),
         map,
         title: checkpoint.name,
       });
@@ -76,11 +78,13 @@ export function TripMapView({ latitudes, longitudes, oldMap, checkpoints = [] }:
     });
 
     if (oldMap?.imageUrl && oldMap.southWest && oldMap.northEast) {
+      const sw = toDisplay(oldMap.southWest);
+      const ne = toDisplay(oldMap.northEast);
       overlayRef.current = new google.maps.GroundOverlay(oldMap.imageUrl, {
-        south: oldMap.southWest.lat,
-        west: oldMap.southWest.lng,
-        north: oldMap.northEast.lat,
-        east: oldMap.northEast.lng,
+        south: sw.lat,
+        west: sw.lng,
+        north: ne.lat,
+        east: ne.lng,
       });
       overlayRef.current.setOpacity(opacity);
       overlayRef.current.setMap(map);

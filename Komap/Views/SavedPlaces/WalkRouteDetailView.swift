@@ -548,7 +548,7 @@ struct WalkRouteDetailView: View {
         defer { isGeneratingVideo = false }
 
         let path = route.coordinates
-        let points = path.map { mapView.projection.point(for: $0) }
+        let points = path.map { mapView.projection.point(for: MapDisplayCoordinate.toDisplay($0)) }
 
         // 写真（投稿写真・御朱印の写真）を、それぞれ軌跡上の一番近い点に対応させる。
         func nearestIndex(to coordinate: CLLocationCoordinate2D) -> Int {
@@ -997,7 +997,7 @@ struct WalkRouteMapView: UIViewRepresentable {
         mapView.settings.rotateGestures = false
 
         if let overlayMap {
-            let bounds = GMSCoordinateBounds(coordinate: overlayMap.southWest, coordinate: overlayMap.northEast)
+            let bounds = GMSCoordinateBounds(coordinate: MapDisplayCoordinate.toDisplay(overlayMap.southWest), coordinate: MapDisplayCoordinate.toDisplay(overlayMap.northEast))
             let overlay = GMSGroundOverlay(bounds: bounds, icon: overlayMap.image)
             overlay.opacity = overlayOpacity
             overlay.map = mapView
@@ -1005,7 +1005,7 @@ struct WalkRouteMapView: UIViewRepresentable {
 
         if path.count >= 2 {
             let gmsPath = GMSMutablePath()
-            path.forEach { gmsPath.add($0) }
+            path.forEach { gmsPath.add(MapDisplayCoordinate.toDisplay($0)) }
 
             let border = GMSPolyline(path: gmsPath)
             border.strokeColor = .walkedTrailBorder
@@ -1021,7 +1021,7 @@ struct WalkRouteMapView: UIViewRepresentable {
         }
 
         for site in checkpoints {
-            let marker = GMSMarker(position: site.coordinate)
+            let marker = GMSMarker(position: MapDisplayCoordinate.toDisplay(site.coordinate))
             marker.title = site.name
             marker.icon = GMSMarker.markerImage(with: .shuiro)
             marker.opacity = collectedSiteIDs.contains(site.id) ? 1.0 : 0.6
@@ -1029,7 +1029,7 @@ struct WalkRouteMapView: UIViewRepresentable {
         }
 
         var pathBounds: GMSCoordinateBounds?
-        for coordinate in path {
+        for coordinate in path.map(MapDisplayCoordinate.toDisplay) {
             pathBounds = pathBounds?.includingCoordinate(coordinate)
                 ?? GMSCoordinateBounds(coordinate: coordinate, coordinate: coordinate)
         }
