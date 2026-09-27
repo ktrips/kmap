@@ -66,7 +66,7 @@ struct LinkedDevicesSettingsView: View {
         } header: {
             Text("カメラ連携")
         } footer: {
-            Text("同じWi-Fi上で写真を撮れるURL（例: M5Stackなどのカメラ端末）を設定すると、御朱印・写真投稿の画面に「連携カメラで撮る」が追加されます。")
+            Text("同じWi-Fi上のカメラ（M5Stackなど）のURLを設定すると、御朱印・写真の画面に「連携カメラで撮る」が出ます。")
         }
     }
 
@@ -107,7 +107,7 @@ struct LinkedDevicesSettingsView: View {
         } header: {
             Text("プリンター連携")
         } footer: {
-            Text("同じWi-Fi上で写真を受け取れるプリンターのホスト名／IP（パスは不要）を設定すると、チェックをつけた種類の写真が撮影・追加のたびに自動で転送されるほか、御朱印・投稿写真の詳細画面に表示される「連携プリント」ボタンから、後で見返した写真をその場で転送することもできます。大きさ・画質・ファイル形式（JPEG／PNG）・白黒の設定は転送する写真にだけ適用され、端末やクラウドに保存される写真は変わりません。\n「転送方式」が「写真データを直接送信」の場合はPOST <ホスト>/api/print/photoへmultipart/form-data（フィールド名photo）で画像を送ります。「写真のURLを渡す」の場合は、画像を一度アップロードしてGET <ホスト>/api/print/photo/url?url=<画像のURL>を呼びます（サインインが必要です）。")
+            Text("同じWi-Fi上のプリンターのホスト名／IPを設定すると、撮った写真を自動で送れます。御朱印・写真の詳細の「連携プリント」からも送れます。大きさ・画質などは送る写真だけに適用されます。\n送信先: 「直接送信」はPOST <ホスト>/api/print/photo（multipart、フィールド名photo）、「URLを渡す」はGET <ホスト>/api/print/photo/url?url=<画像のURL>（サインインが必要）。")
         }
     }
 
@@ -143,7 +143,7 @@ struct LinkedDevicesSettingsView: View {
         } header: {
             Text("テストプリント")
         } footer: {
-            Text("上で設定した連携プリンターへ、入力したURLのQRコードを試しに送信します。プリンターの電源・Wi-Fi接続・URLの設定を確認してから実行してください。")
+            Text("入力したURLのQRコードを、プリンターに試しに送ります。")
         }
     }
 

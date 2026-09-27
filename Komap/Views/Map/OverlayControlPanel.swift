@@ -111,7 +111,7 @@ struct OldMapPickerSheet: View {
                             Text("\(region.title)（\(region.subtitle)）").tag(region)
                         }
                     } label: {
-                        Label("リージョン", systemImage: "globe.asia.australia")
+                        Label("地域を選択", systemImage: "globe.asia.australia")
                     }
                     .pickerStyle(.menu)
                     .onChange(of: region) { _, newValue in

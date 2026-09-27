@@ -1053,6 +1053,92 @@ enum HistoricSiteCatalog {
             summary: "トームペアの崖の上から、赤い屋根の下町と教会の尖塔、その先のバルト海を見渡す展望台。紋章はティール地に銀の遠眼鏡。",
             coordinate: CLLocationCoordinate2D(latitude: 59.4377, longitude: 24.7422)
         ),
+        // Europe — パリ・モンマルトル（芸術家の家めぐり）
+        HistoricSite(
+            id: "paris-bateau-lavoir",
+            overlayMapID: OldMapCatalog.paris.id,
+            name: "洗濯船（バトー・ラヴォワール）",
+            summary: "ピカソが暮らし『アヴィニョンの娘たち』を描いた、古い木造のアトリエ長屋。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8861, longitude: 2.3375)
+        ),
+        HistoricSite(
+            id: "paris-van-gogh",
+            overlayMapID: OldMapCatalog.paris.id,
+            name: "ゴッホの家（ルピック通り54番地）",
+            summary: "1886〜88年、ゴッホが弟テオと暮らしたアパルトマン。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8865, longitude: 2.3339)
+        ),
+        HistoricSite(
+            id: "paris-musee-montmartre",
+            overlayMapID: OldMapCatalog.paris.id,
+            name: "モンマルトル美術館（ルノワールのアトリエ）",
+            summary: "ルノワールがアトリエを構え、ヴァラドンとユトリロの母子も暮らした館。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.888, longitude: 2.3406)
+        ),
+        HistoricSite(
+            id: "paris-moulin-galette",
+            overlayMapID: OldMapCatalog.paris.id,
+            name: "ムーラン・ド・ラ・ギャレット",
+            summary: "ルノワールの名画に描かれた、風車のある野外のダンスホール。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8877, longitude: 2.3363)
+        ),
+        HistoricSite(
+            id: "paris-lapin-agile",
+            overlayMapID: OldMapCatalog.paris.id,
+            name: "ラパン・アジル",
+            summary: "ピカソやユトリロら、貧しい芸術家たちが集ったキャバレー。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8886, longitude: 2.34)
+        ),
+        HistoricSite(
+            id: "paris-moulin-rouge",
+            overlayMapID: OldMapCatalog.paris.id,
+            name: "ムーラン・ルージュ",
+            summary: "ロートレックがポスターと踊り子を描いた、赤い風車のキャバレー。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8841, longitude: 2.3324)
+        ),
+        // Europe — ロンドン（シェイクスピアの時代）
+        HistoricSite(
+            id: "london-globe",
+            overlayMapID: OldMapCatalog.london.id,
+            name: "グローブ座",
+            summary: "シェイクスピアの劇団が建てた円形劇場（今の建物は1997年の復元）。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5081, longitude: -0.0972)
+        ),
+        HistoricSite(
+            id: "london-rose",
+            overlayMapID: OldMapCatalog.london.id,
+            name: "ローズ座",
+            summary: "テムズ南岸で最初期の劇場の一つ。シェイクスピアの初期の作品が上演された。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5074, longitude: -0.0939)
+        ),
+        HistoricSite(
+            id: "london-southwark-cathedral",
+            overlayMapID: OldMapCatalog.london.id,
+            name: "サザーク大聖堂",
+            summary: "シェイクスピアの弟エドマンドが眠り、劇作家の記念碑がある大聖堂。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5061, longitude: -0.0896)
+        ),
+        HistoricSite(
+            id: "london-bridge",
+            overlayMapID: OldMapCatalog.london.id,
+            name: "ロンドン橋",
+            summary: "当時は橋の上に家や店が建ち並び、南の門には反逆者の首がさらされた。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.508, longitude: -0.0877)
+        ),
+        HistoricSite(
+            id: "london-st-pauls",
+            overlayMapID: OldMapCatalog.london.id,
+            name: "セント・ポール大聖堂",
+            summary: "当時の境内には本屋が並び、シェイクスピアの戯曲も売られていた（今の聖堂は大火の後の再建）。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5138, longitude: -0.0985)
+        ),
+        HistoricSite(
+            id: "london-tower",
+            overlayMapID: OldMapCatalog.london.id,
+            name: "ロンドン塔",
+            summary: "王の城塞であり牢獄。『リチャード三世』などの舞台にもなった。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5082, longitude: -0.0762)
+        ),
         // 北京・紫禁城と内城（清代）
         HistoricSite(
             id: "beijing-forbidden-city",

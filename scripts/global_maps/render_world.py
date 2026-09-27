@@ -28,6 +28,8 @@ BOUNDS = {
     "mexico": (19.425, -99.1478, 19.445, -99.1266),
     "cusco": (-13.527, -71.9895, -13.504, -71.9659),
     "buenosaires": (-34.626, -58.389, -34.597, -58.354),
+    "paris": (48.880, 2.3290, 48.892, 2.3472),
+    "london": (51.4990, -0.1080, 51.5208, -0.0730),
 }
 
 CHECKPOINTS = {
@@ -43,6 +45,8 @@ CHECKPOINTS = {
     "mexico": [(19.4326, -99.1332), (19.4344, -99.1331), (19.4351, -99.1314), (19.4355, -99.1413), (19.4373, -99.1339)],
     "cusco": [(-13.5168, -71.9788), (-13.5203, -71.9751), (-13.5157, -71.9765), (-13.5152, -71.9742), (-13.5068, -71.9802)],
     "buenosaires": [(-34.6084, -58.3722), (-34.6089, -58.3737), (-34.6205, -58.3718), (-34.6011, -58.3832), (-34.6037, -58.3816)],
+    "paris": [(48.8861, 2.3375), (48.8865, 2.3339), (48.8880, 2.3406), (48.8877, 2.3363), (48.8886, 2.3400), (48.8841, 2.3324)],
+    "london": [(51.5081, -0.0972), (51.5074, -0.0939), (51.5061, -0.0896), (51.5080, -0.0877), (51.5138, -0.0985), (51.5082, -0.0762)],
 }
 
 
@@ -195,7 +199,74 @@ def border_stripes(colors):
     return draw
 
 
+def border_art_nouveau(line, leaf, bg):
+    """アール・ヌーヴォーの、しなやかにうねる蔓と葉（ミュシャのポスターの縁取り風）。"""
+    def draw(d, band, pal):
+        d.rectangle([6, 6, S - 7, S - 7], outline=bg, width=band - 12)
+        amp = band * 0.22
+        for horiz, fixed in ((True, band / 2), (True, S - band / 2), (False, band / 2), (False, S - band / 2)):
+            pts = []
+            for t in range(0, S + 1, 8):
+                off = amp * math.sin(t / 55)
+                pts.append((t, fixed + off) if horiz else (fixed + off, t))
+            d.line(pts, fill=line, width=4)
+            for t in range(40, S, 110):
+                off = amp * math.sin(t / 55)
+                cx, cy = (t, fixed + off) if horiz else (fixed + off, t)
+                d.ellipse([cx - 9, cy - 5, cx + 9, cy + 5] if horiz else [cx - 5, cy - 9, cx + 5, cy + 9], fill=leaf, outline=line)
+        for (x, y) in ((band / 2, band / 2), (S - band / 2, band / 2), (band / 2, S - band / 2), (S - band / 2, S - band / 2)):
+            d.ellipse([x - 16, y - 16, x + 16, y + 16], fill=leaf, outline=line, width=3)
+    return draw
+
+
+def border_tudor(rose, bg):
+    """テューダー朝の、バラを並べた帯と組紐（ストラップワーク）。"""
+    def draw(d, band, pal):
+        d.rectangle([6, 6, S - 7, S - 7], outline=bg, width=band - 12)
+        r = (band - 18) / 2
+        for i in range(int(r) + 10, S, int(r * 3)):
+            for (x, y) in ((i, band / 2), (i, S - band / 2), (band / 2, i), (S - band / 2, i)):
+                tudor_rose(d, x, y, r, rose, pal["ink"])
+        d.rectangle([band - 10, band - 10, S - band + 9, S - band + 9], outline=pal["ink"], width=2)
+    return draw
+
+
+def tudor_rose(d, cx, cy, r, red, ink):
+    for i in range(5):
+        a = -math.pi / 2 + i * math.tau / 5
+        px, py = cx + r * 0.55 * math.cos(a), cy + r * 0.55 * math.sin(a)
+        d.ellipse([px - r * 0.48, py - r * 0.48, px + r * 0.48, py + r * 0.48], fill=red, outline=ink)
+    for i in range(5):
+        a = -math.pi / 2 + math.pi / 5 + i * math.tau / 5
+        px, py = cx + r * 0.3 * math.cos(a), cy + r * 0.3 * math.sin(a)
+        d.ellipse([px - r * 0.28, py - r * 0.28, px + r * 0.28, py + r * 0.28], fill=(246, 242, 232), outline=ink)
+    d.ellipse([cx - r * 0.16, cy - r * 0.16, cx + r * 0.16, cy + r * 0.16], fill=rgb("d9a42a"), outline=ink)
+
+
 # ---------------------------------------------------------------- 題名の枠の紋章
+
+def emblem_palette():
+    """画家のパレットと絵筆。"""
+    def draw(d, x, y, size, pal):
+        cx, cy = x + size / 2, y + size / 2
+        d.ellipse([x + 6, y + size * 0.15, x + size - 6, y + size * 0.85], fill=(236, 214, 170), outline=pal["ink"], width=3)
+        d.ellipse([cx + size * 0.12, cy + size * 0.05, cx + size * 0.28, cy + size * 0.2], fill=(246, 240, 226), outline=pal["ink"])
+        for k, c in enumerate([rgb("b8302a"), rgb("e0b030"), rgb("2f5fa8"), rgb("3f7d4a"), rgb("8a4a9a")]):
+            a = math.radians(200 + k * 32)
+            px, py = cx + size * 0.28 * math.cos(a), cy + size * 0.22 * math.sin(a)
+            d.ellipse([px - 11, py - 11, px + 11, py + 11], fill=c)
+        d.line([(x + size * 0.2, y + size * 0.95), (x + size * 0.85, y + size * 0.1)], fill=rgb("6a4a2a"), width=7)
+        d.polygon([(x + size * 0.85, y + size * 0.1), (x + size * 0.92, y + size * 0.02), (x + size * 0.8, y + size * 0.14)], fill=pal["ink"])
+    return draw
+
+
+def emblem_tudor_rose():
+    def draw(d, x, y, size, pal):
+        tudor_rose(d, x + size / 2, y + size / 2, size * 0.46, rgb("b8302a"), pal["ink"])
+    return draw
+
+
+
 
 def emblem_seal(text):
     """中国の朱印（四文字を2x2で白抜き）。"""
@@ -416,6 +487,26 @@ def extra_angkor(img, proj, pal, rng, green):
         d.polygon([(x + dx - 14, y + 30), (x + dx, y + 30 - h), (x + dx + 14, y + 30)], fill=rgb("c9a468"), outline=pal["ink"], width=2)
 
 
+def extra_london(img, proj, pal, rng):
+    """テムズ川の渡し舟（ウェリー）と帆船、南岸の劇場（グローブ座・ローズ座）の小さな円形の絵。"""
+    water = R.water_mask(R.load("london"), proj)
+    warr = np.array(water) > 0
+    spots = []
+    for _ in range(6000):
+        if len(spots) >= 5:
+            break
+        x, y = int(rng.integers(200, S - 200)), int(rng.integers(200, S - 200))
+        if warr[y - 50:y + 40, x - 70:x + 70].mean() > 0.97 and all(abs(x - a) > 260 or abs(y - b) > 140 for a, b in spots):
+            spots.append((x, y))
+            R.ship(img, x, y, 34, rgb("5a3a22"), (242, 236, 222), pal["ink"], flag=rgb("b8302a"), flag2=(246, 246, 240))
+    d = ImageDraw.Draw(img)
+    for lat, lon in ((51.5081, -0.0972), (51.5074, -0.0939)):
+        x, y = proj(lat, lon)
+        for r, fill in ((34, (236, 222, 190)), (20, (200, 180, 140))):
+            d.ellipse([x - r, y - r, x + r, y + r], fill=fill, outline=pal["ink"], width=3)
+        d.polygon([(x - 8, y - 34), (x, y - 50), (x + 8, y - 34)], fill=rgb("b8302a"), outline=pal["ink"])
+
+
 def extra_cusco(img, proj, pal, rng):
     mountains(img, pal, rng, snow=False, top=True, height=130, color=(158, 146, 110))
 
@@ -522,6 +613,26 @@ STYLES = {
         title=[("QOSQO", "Trattatello.ttf", 110, "accent", 6), ("CUZCO · ANNO MDCL", "Copperplate.ttc", 34, "ink", 4),
                ("クスコ（インカ帝国の都）", "jpr", 38, "ink", 0), ("KOMAP · AMERICA", "Didot.ttc", 22, "ink", 8)],
         emblem=emblem_sun(16, rgb("d9a42a"), wavy=False), accent=rgb("a8322a"), bar=(300, "300 m"), extra=extra_cusco,
+    ),
+    "paris": dict(
+        pal=dict(paper=(242, 234, 214), green=(150, 168, 120), ink=rgb("33283a"), road=(248, 242, 228),
+                 road_casing=rgb("a8969e"), water=rgb("a9bfc4"), water_line=rgb("4a5e66")),
+        buildings=[rgb("dcc8a6"), rgb("d4b8c4"), (238, 230, 216)], building_outline=rgb("9a8a8a"), road_scale=0.85,
+        shore=(3, 7, 18),
+        border=border_art_nouveau(rgb("6a5a3a"), rgb("a8b88a"), (238, 228, 206)), band=48,
+        title=[("MONTMARTRE", "Didot.ttc", 96, "accent", 8), ("Paris · 1900 · Les ateliers des artistes", "Didot.ttc", 30, "ink", 1),
+               ("パリ・モンマルトル（芸術家の家めぐり）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_palette(), accent=rgb("8a4a6a"), bar=(200, "200 m"),
+    ),
+    "london": dict(
+        pal=dict(paper=(238, 228, 200), green=(146, 158, 104), ink=rgb("2a241e"), road=(244, 234, 212),
+                 road_casing=rgb("7a624a"), water=rgb("9cb2ae"), water_line=rgb("3e5650")),
+        buildings=[rgb("b06a4a"), rgb("c9a878"), rgb("8a6a50")], building_outline=rgb("4a3222"), road_scale=1.0,
+        shore=(6, 7, 16),
+        border=border_tudor(rgb("b8302a"), (236, 226, 200)), band=48,
+        title=[("LONDINUM", "Trattatello.ttf", 104, "accent", 4), ("Anno Domini MDC · the age of Shakespeare", "Didot.ttc", 30, "ink", 1),
+               ("ロンドン（シェイクスピアの時代）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_tudor_rose(), accent=rgb("8a2a24"), bar=(300, "300 m"), extra=extra_london,
     ),
     "buenosaires": dict(
         pal=dict(paper=(240, 232, 212), green=(148, 162, 108), ink=rgb("22262e"), road=(246, 240, 226),

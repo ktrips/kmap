@@ -71,6 +71,22 @@ enum CrestBadgeCatalog {
         "tallinn-toomkirik": CrestBadge(symbolName: "cross.fill", tint: azure),
         "tallinn-katariina-kaik": CrestBadge(symbolName: "hammer.fill", tint: sable),
         "tallinn-kohtuotsa": CrestBadge(symbolName: "binoculars.fill", tint: teal),
+
+        // パリ・モンマルトル（芸術家の家めぐり）
+        "paris-bateau-lavoir": CrestBadge(symbolName: "paintpalette.fill", tint: azure),
+        "paris-van-gogh": CrestBadge(symbolName: "sun.max.fill", tint: goldBright),
+        "paris-musee-montmartre": CrestBadge(symbolName: "paintbrush.pointed.fill", tint: gules),
+        "paris-moulin-galette": CrestBadge(symbolName: "music.note", tint: azure),
+        "paris-lapin-agile": CrestBadge(symbolName: "star.fill", tint: sable),
+        "paris-moulin-rouge": CrestBadge(symbolName: "theatermasks.fill", tint: gules),
+
+        // ロンドン（シェイクスピアの時代）
+        "london-globe": CrestBadge(symbolName: "theatermasks.fill", tint: gules),
+        "london-rose": CrestBadge(symbolName: "star.fill", tint: gules),
+        "london-southwark-cathedral": CrestBadge(symbolName: "cross.fill", tint: azure),
+        "london-bridge": CrestBadge(symbolName: "building.2.fill", tint: sable),
+        "london-st-pauls": CrestBadge(symbolName: "book.fill", tint: azure),
+        "london-tower": CrestBadge(symbolName: "crown.fill", tint: sable),
     ]
 
     static func badge(for siteID: String) -> CrestBadge? {

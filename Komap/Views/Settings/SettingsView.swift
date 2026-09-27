@@ -121,7 +121,7 @@ struct SettingsView: View {
             Text("アカウント / Web連携")
         } footer: {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Googleでサインインすると、保存した地点・私の時空旅（歩いたルート）がクラウドへ同期され、Googleアカウントでログインした際に見られるようになります。")
+                Text("サインインすると、保存した地点と時空旅がクラウドに同期され、Webでも見られます。")
 
                 if authService.isSignedIn {
                     Group {
@@ -151,7 +151,7 @@ struct SettingsView: View {
 
     private var overlayOpacitySection: some View {
         Section {
-            Picker("リージョン", selection: $mapRegion) {
+            Picker("地域", selection: $mapRegion) {
                 ForEach(MapRegion.allCases) { region in
                     Text("\(region.title)（\(region.subtitle)）").tag(region)
                 }
@@ -192,7 +192,7 @@ struct SettingsView: View {
         } header: {
             Text("古地図のデフォルト")
         } footer: {
-            Text("「現在地」は、現在地を含む古地図を自動で選びます。「全地図」は全ての古地図を重ねて表示します。マップ画面下部のスライダーでその場で変えた濃度は、ここでは変わりません。「リージョン」で選んだ地域（Japan・Europe・Asia・America）の古地図だけを、古地図の選択・全地図・御朱印一覧に表示します。")
+            Text("「地域」で選んだ地域の古地図だけが表示されます。「現在地」は現在地を含む古地図を、「全地図」はすべての古地図を表示します。")
         }
     }
 
@@ -215,7 +215,7 @@ struct SettingsView: View {
         } header: {
             Text("記録の自動制御")
         } footer: {
-            Text("気づかずGPSが回りっぱなしにならないよう、動きがなくなると自動で一時停止し（動き出すと再開）、8時間で自動終了します。")
+            Text("動きがないと自動で一時停止し（歩き出すと再開）、8時間で記録を終えます。")
         }
     }
 
@@ -250,7 +250,7 @@ struct SettingsView: View {
         } header: {
             Text("現在地マークの見た目")
         } footer: {
-            Text("歩いている時、地図上の自分の位置に表示するマークです。御朱印のマーカーは朱色のピンのため見分けられます。")
+            Text("歩いている時に、地図上の自分の位置に出すマークです。")
         }
     }
 
@@ -268,7 +268,7 @@ struct SettingsView: View {
         } header: {
             Text("写真の加工")
         } footer: {
-            Text("写真を撮影・追加するたびに、選んだ加工が自動で適用されます。")
+            Text("撮影・追加した写真に自動でかけます。")
         }
     }
 
@@ -288,7 +288,7 @@ struct SettingsView: View {
         } header: {
             Text("アドバンス設定")
         } footer: {
-            Text("AI設定（OpenAI・Google・Anthropic、新しい地図の追加、Google Maps）、カメラ・プリンター連携など。")
+            Text("AI、カメラ・プリンターとの連携など。")
         }
     }
 

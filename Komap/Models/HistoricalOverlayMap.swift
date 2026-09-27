@@ -350,7 +350,7 @@ enum OldMapCatalog {
 
     static let amsterdam = HistoricalOverlayMap(
         id: "amsterdam-medieval",
-        title: "アムステルダム旧市街（中世〜黄金時代）",
+        title: "アムステルダム旧市街（オランダ）",
         era: "中世〜17世紀（オランダ黄金時代）",
         summary: "ダム広場を中心に扇状に広がる運河環（グラフテンゴルデル）と、IJ湾から世界へ漕ぎ出したVOC（東インド会社）の記憶をたどる、オランダ黄金時代の古地図です。",
         imageAssetName: "OldMap_Amsterdam",
@@ -360,7 +360,7 @@ enum OldMapCatalog {
 
     static let helsinki = HistoricalOverlayMap(
         id: "helsinki-old-town",
-        title: "ヘルシンキ旧市街（帝政期）",
+        title: "ヘルシンキ旧市街（フィンランド）",
         era: "18〜19世紀（スウェーデン統治末期〜ロシア帝政期）",
         summary: "ヴァンター川河口の開拓地から、元老院広場を中心とした新古典様式の街並みへ。海上要塞スオメンリンナと港の市場までをめぐります。",
         imageAssetName: "OldMap_Helsinki",
@@ -370,7 +370,7 @@ enum OldMapCatalog {
 
     static let stockholm = HistoricalOverlayMap(
         id: "stockholm-old-town",
-        title: "ストックホルム旧市街（ガムラスタン）",
+        title: "ストックホルム旧市街（スウェーデン）",
         era: "13世紀〜近世（ガムラスタン成立期）",
         summary: "メーラレン湖とバルト海が出会う島々に築かれた都。旧市街ガムラスタン・王家の眠るリッダーホルメン・王宮・造船の島をめぐります。",
         imageAssetName: "OldMap_Stockholm",
@@ -380,12 +380,34 @@ enum OldMapCatalog {
 
     static let tallinn = HistoricalOverlayMap(
         id: "tallinn-old-town",
-        title: "タリン旧市街（ハンザ同盟）",
+        title: "タリン旧市街（エストニア）",
         era: "13〜16世紀（ハンザ同盟の時代）",
         summary: "城壁と見張り塔に守られたハンザ同盟の商都。トームペアの丘・ヴィル門・聖オレフ教会・港を守る太っちょマルガレータ塔をめぐります。",
         imageAssetName: "OldMap_Tallinn",
         southWest: CLLocationCoordinate2D(latitude: 59.436, longitude: 24.736),
         northEast: CLLocationCoordinate2D(latitude: 59.444, longitude: 24.752)
+    )
+
+    // Europe（西ヨーロッパ）の古地図。OpenStreetMapのデータから、パリはアール・ヌーヴォー、
+    // ロンドンはテューダー朝の様式で描いたオリジナル画像（`scripts/global_maps/render_world.py`）。
+    static let paris = HistoricalOverlayMap(
+        id: "paris-montmartre",
+        title: "パリ・モンマルトル（芸術家の家めぐり）",
+        era: "1900年頃（ベル・エポック）",
+        summary: "ピカソ、ゴッホ、ルノワール、ロートレックらが暮らし、描いた丘の街。アトリエや名画の舞台となったダンスホール、キャバレーをめぐります。",
+        imageAssetName: "OldMap_Paris",
+        southWest: CLLocationCoordinate2D(latitude: 48.88, longitude: 2.329),
+        northEast: CLLocationCoordinate2D(latitude: 48.892, longitude: 2.3472)
+    )
+
+    static let london = HistoricalOverlayMap(
+        id: "london-shakespeare",
+        title: "ロンドン（シェイクスピアの時代）",
+        era: "1600年頃（エリザベス1世〜ジェームズ1世）",
+        summary: "シェイクスピアが芝居を書き、演じたテムズ川のほとり。南岸の劇場街からロンドン橋、セント・ポール大聖堂、ロンドン塔までをめぐります。",
+        imageAssetName: "OldMap_London",
+        southWest: CLLocationCoordinate2D(latitude: 51.499, longitude: -0.108),
+        northEast: CLLocationCoordinate2D(latitude: 51.5208, longitude: -0.073)
     )
 
     // Asia・Americaリージョンの古地図。OpenStreetMapの現在の地図データ（海岸線・水面・通り・建物・城壁）を
@@ -518,7 +540,7 @@ enum OldMapCatalog {
         tokaido, nakasendo, ginzaKabukiza,
         oyamaKaido,
         kiminonaSeichi, ghibliSeichi, tokyoToilet,
-        amsterdam, helsinki, stockholm, tallinn,
+        amsterdam, helsinki, stockholm, tallinn, paris, london,
         beijing, xian, lhasa, angkor, delhi, isfahan, jerusalem,
         boston, newYork, mexicoCity, cusco, buenosAires,
     ]
@@ -540,8 +562,10 @@ enum OldMapCatalog {
         case historicSites = "旧跡・名所巡り"
         case kaido = "街道巡り"
         case animePilgrimage = "アニメ・映画聖地巡礼"
-        /// 海外都市の旧市街コース（Europeのアムステルダム・ヘルシンキ・ストックホルム・タリン）。
-        case oldTowns = "旧市街巡り"
+        /// Europeの北欧・バルト海沿岸の旧市街（アムステルダム・ヘルシンキ・ストックホルム・タリン）。
+        case oldTowns = "北欧旧市街巡り"
+        /// Europeの西ヨーロッパ（パリの芸術家の家めぐり・シェイクスピアの時代のロンドン）。
+        case westernEurope = "西ヨーロッパ"
         /// Asiaの古都・聖地（北京・西安・ラサ・アンコール・デリー・イスファハーン・エルサレム）。
         case ancientCapitals = "古都・聖地巡り"
         /// Americaの歴史地区（ボストン・ニューヨーク・メキシコシティ・クスコ・ブエノスアイレス）。
@@ -567,6 +591,8 @@ enum OldMapCatalog {
         helsinki.id: .oldTowns,
         stockholm.id: .oldTowns,
         tallinn.id: .oldTowns,
+        paris.id: .westernEurope,
+        london.id: .westernEurope,
         beijing.id: .ancientCapitals,
         xian.id: .ancientCapitals,
         lhasa.id: .ancientCapitals,

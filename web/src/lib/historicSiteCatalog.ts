@@ -160,6 +160,20 @@ export const HISTORIC_SITE_CATALOG: HistoricSiteEntry[] = [
   { id: "ginza-old-shimbashi-station", name: "旧新橋停車場跡", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6658, lng: 139.7616 } },
   { id: "ginza-hamarikyu-gardens", name: "浜離宮恩賜庭園", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6597, lng: 139.7636 } },
   { id: "ginza-daimon", name: "大門", overlayMapID: "ginza-kabukiza", coordinate: { lat: 35.6564, lng: 139.7566 } },
+  // パリ・モンマルトル（芸術家の家めぐり）
+  { id: "paris-bateau-lavoir", name: "洗濯船（バトー・ラヴォワール）", overlayMapID: "paris-montmartre", coordinate: { lat: 48.8861, lng: 2.3375 } },
+  { id: "paris-van-gogh", name: "ゴッホの家（ルピック通り54番地）", overlayMapID: "paris-montmartre", coordinate: { lat: 48.8865, lng: 2.3339 } },
+  { id: "paris-musee-montmartre", name: "モンマルトル美術館（ルノワールのアトリエ）", overlayMapID: "paris-montmartre", coordinate: { lat: 48.888, lng: 2.3406 } },
+  { id: "paris-moulin-galette", name: "ムーラン・ド・ラ・ギャレット", overlayMapID: "paris-montmartre", coordinate: { lat: 48.8877, lng: 2.3363 } },
+  { id: "paris-lapin-agile", name: "ラパン・アジル", overlayMapID: "paris-montmartre", coordinate: { lat: 48.8886, lng: 2.34 } },
+  { id: "paris-moulin-rouge", name: "ムーラン・ルージュ", overlayMapID: "paris-montmartre", coordinate: { lat: 48.8841, lng: 2.3324 } },
+  // ロンドン（シェイクスピアの時代）
+  { id: "london-globe", name: "グローブ座", overlayMapID: "london-shakespeare", coordinate: { lat: 51.5081, lng: -0.0972 } },
+  { id: "london-rose", name: "ローズ座", overlayMapID: "london-shakespeare", coordinate: { lat: 51.5074, lng: -0.0939 } },
+  { id: "london-southwark-cathedral", name: "サザーク大聖堂", overlayMapID: "london-shakespeare", coordinate: { lat: 51.5061, lng: -0.0896 } },
+  { id: "london-bridge", name: "ロンドン橋", overlayMapID: "london-shakespeare", coordinate: { lat: 51.508, lng: -0.0877 } },
+  { id: "london-st-pauls", name: "セント・ポール大聖堂", overlayMapID: "london-shakespeare", coordinate: { lat: 51.5138, lng: -0.0985 } },
+  { id: "london-tower", name: "ロンドン塔", overlayMapID: "london-shakespeare", coordinate: { lat: 51.5082, lng: -0.0762 } },
   // 北京・紫禁城と内城（清代）
   { id: "beijing-forbidden-city", name: "紫禁城（故宮）", overlayMapID: "beijing-qing", coordinate: { lat: 39.9163, lng: 116.3908 } },
   { id: "beijing-tiananmen", name: "天安門", overlayMapID: "beijing-qing", coordinate: { lat: 39.9075, lng: 116.391 } },

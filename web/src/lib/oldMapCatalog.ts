@@ -140,7 +140,7 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   // Komap Global（東京版とは別の、海外都市の旧市街コース）
   {
     id: "amsterdam-medieval",
-    title: "アムステルダム旧市街（中世〜黄金時代）",
+    title: "アムステルダム旧市街（オランダ）",
     era: "中世〜17世紀（オランダ黄金時代）",
     imageUrl: "/old-maps/old_map_amsterdam.jpg",
     southWest: { lat: 52.36, lng: 4.883 },
@@ -148,7 +148,7 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
   {
     id: "helsinki-old-town",
-    title: "ヘルシンキ旧市街（帝政期）",
+    title: "ヘルシンキ旧市街（フィンランド）",
     era: "18〜19世紀（スウェーデン統治末期〜ロシア帝政期）",
     imageUrl: "/old-maps/old_map_helsinki.jpg",
     southWest: { lat: 60.141, lng: 24.886 },
@@ -156,7 +156,7 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
   {
     id: "stockholm-old-town",
-    title: "ストックホルム旧市街（ガムラスタン）",
+    title: "ストックホルム旧市街（スウェーデン）",
     era: "13世紀〜近世（ガムラスタン成立期）",
     imageUrl: "/old-maps/old_map_stockholm.jpg",
     southWest: { lat: 59.317, lng: 18.063 },
@@ -164,11 +164,28 @@ export const OLD_MAP_CATALOG: OldMapEntry[] = [
   },
   {
     id: "tallinn-old-town",
-    title: "タリン旧市街（ハンザ同盟）",
+    title: "タリン旧市街（エストニア）",
     era: "13〜16世紀（ハンザ同盟の時代）",
     imageUrl: "/old-maps/old_map_tallinn.jpg",
     southWest: { lat: 59.436, lng: 24.736 },
     northEast: { lat: 59.444, lng: 24.752 },
+  },
+  // Europe（西ヨーロッパ）
+  {
+    id: "paris-montmartre",
+    title: "パリ・モンマルトル（芸術家の家めぐり）",
+    era: "1900年頃（ベル・エポック）",
+    imageUrl: "/old-maps/old_map_paris.jpg",
+    southWest: { lat: 48.88, lng: 2.329 },
+    northEast: { lat: 48.892, lng: 2.3472 },
+  },
+  {
+    id: "london-shakespeare",
+    title: "ロンドン（シェイクスピアの時代）",
+    era: "1600年頃（エリザベス1世〜ジェームズ1世）",
+    imageUrl: "/old-maps/old_map_london.jpg",
+    southWest: { lat: 51.499, lng: -0.108 },
+    northEast: { lat: 51.5208, lng: -0.073 },
   },
   // Asia・America（OpenStreetMapをもとに各地域の古地図の様式で描いたオリジナル画像）
   {
