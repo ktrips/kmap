@@ -74,14 +74,10 @@ export function PublicSharedTripsView({
   // Googleサインインの案内（見出しはヘッダーのアイコンの右に置く）。モバイルではヘッダーの下
   // （一覧の上）に表示するが、モバイルでない時はヘッダー直下には出さず、代わりに右側の表示ペインの
   // 「リストから、時空旅を選んでください。」の上（＝何も選んでいない時だけ）に表示する。
-  // 「今◯人が時空旅中」は、サインインボタンのすぐ右に横一列で並べる。
+  // 「今◯人が時空旅中」は、サインインボタンの中の「Googleでサインイン」のすぐ右に置く。
   const presenceBadge =
     activeVisitorCount !== null && activeVisitorCount > 0 ? (
-      <p className="public-intro-presence public-intro-presence--compact">
-        🕐 今{activeVisitorCount}人が
-        <br />
-        時空旅中
-      </p>
+      <span className="google-button-presence">🕐 今{activeVisitorCount}人が時空旅中</span>
     ) : null;
   const introContent = (
     <div className="public-intro">
@@ -96,13 +92,15 @@ export function PublicSharedTripsView({
               "サインイン中..."
             ) : (
               <span className="google-button-content">
-                <span className="google-button-title">Googleでサインイン</span>
+                <span className="google-button-title-row">
+                  <span className="google-button-title">Googleでサインイン</span>
+                  {presenceBadge}
+                </span>
                 <span className="google-button-bullet">・みんなの時空旅(古地図・御朱印)を見れる！</span>
                 <span className="google-button-bullet">・iOSアプリダウンロードで自分で旅を作れる！</span>
               </span>
             )}
           </button>
-          {presenceBadge}
         </div>
       )}
       {error && <p className="error-text">{error}</p>}

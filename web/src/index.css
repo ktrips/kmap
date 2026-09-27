@@ -286,19 +286,6 @@ code {
   border-bottom: 1px solid var(--color-border);
 }
 
-.public-intro-presence {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 0 8px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: #fdf2e3;
-  color: var(--color-brown-deep);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
 .public-intro > p {
   margin: 0 auto 14px;
   color: #5b5044;
@@ -309,26 +296,28 @@ code {
 
 .public-intro-cta {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  max-width: 520px;
+  max-width: 420px;
   margin: 0 auto;
 }
 
-.public-intro-cta .google-button-large {
-  flex: 1 1 auto;
-  min-width: 0;
+/* サインインボタンの1行目：「Googleでサインイン」と、そのすぐ右の「今◯人が時空旅中」。 */
+.google-button-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-/* サインインボタンの右に横一列で並べる「今◯人が時空旅中」。2行にして幅を抑える。 */
-.public-intro-presence--compact {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 6px 10px;
-  border-radius: 12px;
+.google-button-presence {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
   font-size: 0.72rem;
-  line-height: 1.35;
-  text-align: center;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* ヘッダーのアイコンの右の見出し。 */
@@ -1309,8 +1298,8 @@ code {
   .public-intro-cta .google-button-large {
     padding: 12px 10px;
   }
-  .public-intro-cta .google-button-bullet {
-    font-size: 0.68rem;
+  .public-intro-cta .google-button-title {
+    font-size: 1.05rem;
   }
   .public-header-headline {
     font-size: 1.15rem;
