@@ -92,8 +92,9 @@ struct WalkRouteDetailView: View {
     /// シェア画像を作る時に、既に画面表示されているこの地図をそのままスナップショットする。
     @State private var mapViewForSharing: GMSMapView?
     @State private var isGeneratingVideo = false
-    /// 無料の1本を使い切った後に動画を作ろうとした時、Komap Plus の比較ページを開く。
-    @State private var isShowingPlusForVideo = false
+    /// 無料の1本を使い切った後に動画を作ろうとした時・旅日記を作ろうとした時（Plus のみ）に、
+    /// Komap Plus の比較ページを開く。
+    @State private var plusPaywallReason: PlusFeature?
     @EnvironmentObject private var plusStore: PlusStore
     @State private var videoErrorMessage: String?
     /// 作成済みの動画（再生し直す時は作り直さず使い回す）。
@@ -277,8 +278,8 @@ struct WalkRouteDetailView: View {
                 TripVideoPlayerSheet(videoURL: videoURL)
             }
         }
-        .sheet(isPresented: $isShowingPlusForVideo) {
-            PlusComparisonView(reason: .tripVideo)
+        .sheet(item: $plusPaywallReason) { reason in
+            PlusComparisonView(reason: reason)
         }
         .sheet(isPresented: $isShowingJournal) {
             TravelJournalView(
@@ -548,7 +549,7 @@ struct WalkRouteDetailView: View {
         // 旅の動画は、無料では1本（1つの旅）まで。同じ旅の作り直しは何度でもできる。
         let videoItemID = route.id.uuidString
         guard plusStore.canUse(.tripVideo, itemID: videoItemID) else {
-            isShowingPlusForVideo = true
+            plusPaywallReason = .tripVideo
             return
         }
         guard let mapView = mapViewForSharing, let base = captureMapSnapshot() else {
@@ -677,7 +678,7 @@ struct WalkRouteDetailView: View {
                         }
                         .frame(maxWidth: .infinity)
                     } else {
-                        Label("旅日記を作成する", systemImage: "sparkles")
+                        Label("旅日記を作成する", systemImage: plusStore.isPlus ? "sparkles" : "lock.fill")
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -689,6 +690,11 @@ struct WalkRouteDetailView: View {
 
     /// AIに、この時間旅の内容から旅日記を生成してもらい、成功したら保存・同期する。
     private func generateJournal() async {
+        // AIの旅日記は Komap Plus の機能（作成済みの旅日記は無料でも読める）。
+        guard plusStore.isPlus else {
+            plusPaywallReason = .travelJournal
+            return
+        }
         isGeneratingJournal = true
         journalErrorMessage = nil
         do {

@@ -12,6 +12,8 @@ enum PlusFeature: String, Identifiable {
     case placeDetail
     /// 旅の動画の作成。
     case tripVideo
+    /// AIの旅日記の作成（作成済みの旅日記は無料でも読める）。
+    case travelJournal
     /// 初めて旅を保存した時に、一度だけ比較ページを見せる。
     case firstTrip
 
@@ -23,7 +25,7 @@ enum PlusFeature: String, Identifiable {
         switch self {
         case .placeDetail: return 3
         case .tripVideo: return 1
-        case .photo, .firstTrip: return 0
+        case .photo, .travelJournal, .firstTrip: return 0
         }
     }
 
@@ -36,6 +38,8 @@ enum PlusFeature: String, Identifiable {
             return "場所の詳細は、無料で\(freeLimit)か所まで読めます。Plus なら、どの場所でも昔の出来事を読めます。"
         case .tripVideo:
             return "旅の動画は、無料で\(freeLimit)本まで作れます。Plus なら、すべての旅を動画にできます。"
+        case .travelJournal:
+            return "AIの旅日記は Komap Plus の機能です。巡った御朱印や写真、感想から、その日の旅を一編の日記にまとめます。"
         case .firstTrip:
             return "初めての時空旅、おつかれさまでした。Plus なら、写真や動画でこの旅をもっと残せます。"
         }

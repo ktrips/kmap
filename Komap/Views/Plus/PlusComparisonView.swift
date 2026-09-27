@@ -34,6 +34,7 @@ struct PlusComparisonView: View {
             Row(title: "写真の追加（投稿・御朱印）", free: "—", plus: "✓"),
             Row(title: "場所の詳細（AIの解説）", free: "3か所まで\n（残り\(detailLeft)）", plus: "無制限"),
             Row(title: "旅の動画の作成", free: "1本まで\n（残り\(videoLeft)）", plus: "無制限"),
+            Row(title: "AIの旅日記", free: "—", plus: "✓"),
             Row(title: "Kindle本「Komapの作り方」", free: "冒頭約10ページ", plus: "全文（Web）"),
         ]
     }
@@ -78,7 +79,7 @@ struct PlusComparisonView: View {
                 Text(reason.paywallMessage)
                     .font(.subheadline)
             } else if !plusStore.isPlus {
-                Text("歩くことと御朱印集めは無料のまま。Plus なら、写真・場所の詳細・旅の動画で、時空旅をもっと深く残せます。")
+                Text("歩くことと御朱印集めは無料のまま。Plus なら、写真・場所の詳細・旅の動画・AIの旅日記で、時空旅をもっと深く残せます。")
                     .font(.subheadline)
             }
         }

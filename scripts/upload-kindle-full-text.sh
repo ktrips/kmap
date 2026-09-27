@@ -5,13 +5,14 @@
 # Plus かどうかを確かめてから本文を返す。
 #
 # 使い方: scripts/upload-kindle-full-text.sh [原稿ファイル]
-#   原稿ファイルを省略すると docs/GeoGameAppWithGoogleMap.md を使う。
+#   原稿ファイルを省略すると private/kindle/GeoGameAppWithGoogleMap.md を使う。
+#   原稿は公開リポジトリには置かない（private/ は .gitignore 済み）。手元の原稿をここに置いてから実行する。
 # 事前に `gcloud auth login` と、Firebaseプロジェクト（komapprj）の権限が必要。
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-SOURCE="${1:-docs/GeoGameAppWithGoogleMap.md}"
+SOURCE="${1:-private/kindle/GeoGameAppWithGoogleMap.md}"
 BUCKET="gs://komapprj.firebasestorage.app"
 
 if [ ! -f "$SOURCE" ]; then

@@ -34,7 +34,7 @@
 | 写真・動画 | 御朱印・投稿写真の撮影と加工（セピアなど）、旅の動画（MP4）、共有カード画像 |
 | 共有・Web | Googleサインインでのクラウド同期、旅の公開と短縮URL、Webでの閲覧（サインイン不要）、いいね・コメント、管理者レポート、TestFlightへの自動招待 |
 | 連携機器 | 同じWi-Fi上の連携カメラ・連携プリンター（M5Stackなど）で撮影・プリント |
-| Komap Plus | 月額480円／年額3,800円のサブスクリプション。無料版は歩く・御朱印集め・ポイントまで。Plusで写真の追加、場所の詳細（無料は3か所まで）、旅の動画（無料は1本まで）、Kindle本の全文（Web、無料は冒頭約10ページ） |
+| Komap Plus | 月額480円／年額3,800円のサブスクリプション。無料版は歩く・御朱印集め・ポイントまで。Plusで写真の追加、場所の詳細（無料は3か所まで）、旅の動画（無料は1本まで）、AIの旅日記、Kindle本の全文（Web、無料は冒頭約10ページ） |
 
 ### 技術上のポイント
 
@@ -381,7 +381,7 @@ flowchart LR
   表示し、左右のスワイプ（Webは矢印ボタン・矢印キーも）で前後のポイントへ移れる
   （iOS: `JournalPointPagerSheet`、Web: `PhotoLightbox`）
 - サイドバー下部に「Komapの作り方 Kindle（一部無料）」ボタンがあり、Kindle原稿
-  （`docs/GeoGameAppWithGoogleMap.md`）の冒頭部分だけを切り出したプレビュー
+  （原稿の全文はリポジトリに置いていない）の冒頭部分だけを切り出したプレビュー
   （`web/public/kindle-preview.md`）をその場で読める。プレビュー内・サイドバー最下部
   （「この続きはKindle本で」）の両方にAmazonの購入リンクを設置している
 - 時空旅一覧はコンパクトな2行表示（1行目：旅名＋古地図名＋公開マーク、
@@ -439,8 +439,9 @@ web/                         # Webアプリ本体（Vite + React）
 docs/
   CHANGELOG.md                # 主な機能追加・変更の更新履歴
   PERFORMANCE.md              # パフォーマンス改善・見つけた不具合・今後の候補のリスト
-  GeoGameAppWithGoogleMap.md  # 本アプリの開発・収益化手法をまとめたKindle向け原稿（Markdown）
-  Komap_週末リリースと収益化ガイド.docx # 上記原稿をKindleペーパーバック判型（8.27x10.11in）で書き出したWord版
+  Kindle_KDP出版マーケティング情報.md # Kindle本の出版用マーケティング情報
+  cover_assets/               # Kindle本の表紙画像
+private/                      # （.gitignore済み）Kindle本の原稿（全文）。公開リポジトリには置かない
 catalog/
   old_maps.json               # 同梱の古地図の一覧（iOS・Web共通の元データ。追加・変更はここだけ）
   historic_sites.json         # 同梱の史跡チェックポイントの一覧（同上）
@@ -741,6 +742,7 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
 - 地図画面の写真投稿ボタン、御朱印・投稿写真の「写真を追加／変更」「連携カメラ」（写真の追加は Plus のみ）
 - 無料の3か所を使い切った後に、まだ詳細を作っていない場所の詳細を開いた時
 - 無料の1本を使い切った後に、別の旅の動画を作ろうとした時
+- AIの旅日記を作ろうとした時（旅日記の作成は Plus のみ。作成済みの旅日記は無料でも読める）
 - 初めて旅を保存した時（一度だけ）
 
 無料で使った場所・旅はKeychainに記録し（`PlusFreeUsage`）、アプリを入れ直しても回数は戻らない。
@@ -773,7 +775,7 @@ firebase functions:secrets:set APPSTORE_IAP_PRIVATE_KEY   # .p8ファイルの�
 全文のアップロードとデプロイ:
 
 ```bash
-scripts/upload-kindle-full-text.sh   # docs/GeoGameAppWithGoogleMap.md を premium/kindle-full.md へ
+scripts/upload-kindle-full-text.sh   # private/kindle/GeoGameAppWithGoogleMap.md を premium/kindle-full.md へ
 firebase deploy --only functions
 ```
 

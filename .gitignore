@@ -32,3 +32,8 @@ Config/Secrets.xcconfig
 
 # Salesforce DX tooling metadata (auto-generated locally)
 .sfdx/
+
+# Kindle本の原稿（全文）。公開リポジトリには置かない。Web版の全文は
+# scripts/upload-kindle-full-text.sh で Firebase Storage（premium/kindle-full.md）に上げ、
+# Komap Plus の人にだけ Cloud Function が返す。無料で読める冒頭部分は web/public/kindle-preview.md。
+/private/
