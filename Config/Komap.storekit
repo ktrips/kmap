@@ -1,10 +1,18 @@
 {
-  "identifier": "F3150A83-9865-4424-ABE9-CC0A87E8C94D",
+  "appPolicies": {
+    "eula": "",
+    "policies": [
+      {
+        "locale": "ja",
+        "policyText": "",
+        "policyURL": ""
+      }
+    ]
+  },
+  "identifier": "4F3A9C1E",
   "nonRenewingSubscriptions": [],
   "products": [],
   "settings": {
-    "_applicationInternalID": "",
-    "_developerTeamID": "N5H836M425",
     "_failTransactionsEnabled": false,
     "_locale": "ja",
     "_storefront": "JPN",
@@ -12,20 +20,19 @@
   },
   "subscriptionGroups": [
     {
-      "id": "27FA5387-D535-426C-AF15-D49F7E7462AC",
+      "id": "21800001",
       "localizations": [],
       "name": "Komap Plus",
       "subscriptions": [
         {
           "adHocOffers": [],
           "codeOffers": [],
-          "winbackOffers": [],
           "displayPrice": "3800",
           "familyShareable": false,
           "groupNumber": 1,
-          "internalID": "3286414455",
+          "internalID": "6740000001",
           "introductoryOffer": {
-            "internalID": "2355083115",
+            "internalID": "6740000011",
             "numberOfPeriods": 1,
             "paymentMode": "free",
             "subscriptionPeriod": "P1W"
@@ -40,19 +47,19 @@
           "productID": "com.komap.Komap.plus.yearly",
           "recurringSubscriptionPeriod": "P1Y",
           "referenceName": "Komap Plus 年額",
-          "subscriptionGroupID": "27FA5387-D535-426C-AF15-D49F7E7462AC",
-          "type": "RecurringSubscription"
+          "subscriptionGroupID": "21800001",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
         },
         {
           "adHocOffers": [],
           "codeOffers": [],
-          "winbackOffers": [],
           "displayPrice": "480",
           "familyShareable": false,
           "groupNumber": 1,
-          "internalID": "3388766947",
+          "internalID": "6740000002",
           "introductoryOffer": {
-            "internalID": "3782855666",
+            "internalID": "6740000012",
             "numberOfPeriods": 1,
             "paymentMode": "free",
             "subscriptionPeriod": "P1W"
@@ -67,8 +74,9 @@
           "productID": "com.komap.Komap.plus.monthly",
           "recurringSubscriptionPeriod": "P1M",
           "referenceName": "Komap Plus 月額",
-          "subscriptionGroupID": "27FA5387-D535-426C-AF15-D49F7E7462AC",
-          "type": "RecurringSubscription"
+          "subscriptionGroupID": "21800001",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
         }
       ]
     }
