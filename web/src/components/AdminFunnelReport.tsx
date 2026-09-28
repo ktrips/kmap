@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useAdminFunnelReport } from "../lib/useAdminFunnelReport";
 
 /**
@@ -7,7 +7,8 @@ import { useAdminFunnelReport } from "../lib/useAdminFunnelReport";
  * データは既存のFirestore（Firebase Authのユーザー数・walkRoutes・stamps・
  * sharedTrips）から`getAdminFunnelReport`が集計したものを使う。
  */
-export function AdminFunnelReport() {
+/** `children`は、レポートの下に並べる管理者用の操作（プロモユーザーの登録など）。 */
+export function AdminFunnelReport({ children }: { children?: ReactNode }) {
   const { report, isLoading, errorMessage, load } = useAdminFunnelReport();
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export function AdminFunnelReport() {
           </table>
         </>
       )}
+      {children}
     </div>
   );
 }

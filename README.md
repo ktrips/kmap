@@ -753,6 +753,11 @@ Appleから「TestFlightでKomapをテストするよう招待されました」
 （iOS: `PlusStore.isAdminGrant`、Web の Kindle本の全文: `getKindleFullText` がFirebase Authの検証済みメールで判定。
 アドレスは `AuthService.adminEmail`・`functions/src/adminEmail.ts`）。
 
+管理者は、Webの右上のアカウントメニュー →「管理者レポート」の「Komap Plus のプロモユーザー」で、
+購入しなくても Plus を使える人をメールアドレスで登録・削除できる（Firestore の `plusPromoUsers/{小文字のメールアドレス}`）。
+登録・削除・一覧は管理者だけ、本人は自分が登録されているかだけを読める（`firebase/firestore.rules`）。
+iOSアプリはサインイン・起動時に確かめ（`PlusStore.isPromoGrant`）、Webの Kindle本の全文は `getKindleFullText` が同じ判定をする。
+
 **App Store Connect の設定**
 
 1. サブスクリプショングループ「Komap Plus」を作り、次の2つを登録する。

@@ -216,6 +216,12 @@ async function isPlusNow(uid: string): Promise<boolean> {
   return refreshed?.isPlus === true;
 }
 
+/** 管理者がプロモユーザー（`plusPromoUsers/{小文字のメールアドレス}`）に登録しているか。 */
+async function isPromoUser(email: string): Promise<boolean> {
+  const snapshot = await admin.firestore().collection("plusPromoUsers").doc(email).get();
+  return snapshot.exists;
+}
+
 /**
  * Web版から呼ぶ。Plus の人には Kindle本の全文（Markdown）を返し、それ以外には
  * `not-plus`だけを返す（その場合、Web側は冒頭の無料部分だけを表示する）。
@@ -225,10 +231,12 @@ export const getKindleFullText = onCall(
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) return { status: "not-plus" as const };
-    // 管理者は購入しなくても Plus として扱う（iOSアプリの`PlusStore.isAdminGrant`と同じ判定）。
+    // 管理者と、管理者が登録したプロモユーザーは、購入しなくても Plus として扱う
+    // （iOSアプリの`PlusStore.isAdminGrant`・`isPromoGrant`と同じ判定）。
     const token = request.auth?.token;
-    const isAdmin = token?.email === ADMIN_EMAIL && token?.email_verified === true;
-    if (!isAdmin && !(await isPlusNow(uid))) return { status: "not-plus" as const };
+    const verifiedEmail = token?.email_verified === true ? token.email?.toLowerCase() : undefined;
+    const isGranted = verifiedEmail !== undefined && (verifiedEmail === ADMIN_EMAIL || (await isPromoUser(verifiedEmail)));
+    if (!isGranted && !(await isPlusNow(uid))) return { status: "not-plus" as const };
 
     const file = admin.storage().bucket().file(KINDLE_FULL_TEXT_PATH);
     const [exists] = await file.exists();

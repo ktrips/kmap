@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { AdminFunnelReport } from "./components/AdminFunnelReport";
+import { AdminPromoUsers } from "./components/AdminPromoUsers";
 import { Header } from "./components/Header";
 import { KindleBookModal, useKindleDeepLink } from "./components/KindleBookModal";
 import { MapView } from "./components/MapView";
@@ -174,7 +175,11 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
             ) : (
               <OldMapDetail map={selectedMap} />
             ))}
-          {tab === "admin" && isAdmin && <AdminFunnelReport />}
+          {tab === "admin" && isAdmin && (
+            <AdminFunnelReport>
+              <AdminPromoUsers user={user} />
+            </AdminFunnelReport>
+          )}
         </main>
       </div>
     </div>

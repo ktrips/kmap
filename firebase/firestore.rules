@@ -5,6 +5,14 @@ rules_version = '2';
 // Firebase Authenticationでサインインしたuidを使ってアクセスする。
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 管理者（Cloud Functions の`functions/src/adminEmail.ts`と同じアドレス）。
+    // `request.auth.token.email`はFirebase Authが検証した値のため、他人が名乗ることはできない。
+    function isAdmin() {
+      return request.auth != null
+             && request.auth.token.email_verified == true
+             && request.auth.token.email == 'kenichiyoshida13@gmail.com';
+    }
+
     match /users/{userId}/places/{placeId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
@@ -120,6 +128,22 @@ service cloud.firestore {
       allow create, update: if request.resource.data.keys().hasOnly(['lastSeen'])
                              && request.resource.data.lastSeen is timestamp;
       allow delete: if true;
+    }
+
+    // Komap Plus を購入せずに使える人（プロモユーザー）。文書IDは小文字のメールアドレス。
+    // 登録・削除・一覧は管理者だけ。本人は、自分が登録されているかだけを読める（iOSアプリが確かめる）。
+    match /plusPromoUsers/{email} {
+      allow read: if isAdmin()
+                    || (request.auth != null
+                        && request.auth.token.email_verified == true
+                        && request.auth.token.email.lower() == email);
+      allow create, update: if isAdmin()
+                              && request.resource.data.keys().hasOnly(['email', 'note', 'grantedAt', 'grantedBy'])
+                              && request.resource.data.email == email
+                              && email == email.lower()
+                              && request.resource.data.note is string
+                              && request.resource.data.note.size() <= 200;
+      allow delete: if isAdmin();
     }
 
     // 上記以外はすべて拒否（デフォルト拒否）

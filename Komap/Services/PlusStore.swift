@@ -1,5 +1,6 @@
 import CryptoKit
 import FirebaseCore
+import FirebaseFirestore
 import FirebaseFunctions
 import Foundation
 import StoreKit
@@ -81,7 +82,7 @@ enum PlusFreeUsage {
 
 /// Komap Plus（自動更新サブスクリプション）の購入・復元と、今 Plus かどうかの状態。
 ///
-/// 購入状態は StoreKit 2 の`Transaction.currentEntitlements`（端末で検証済みのもの）から判断する。
+/// 購入状態は StoreKit 2 の`StoreKit.Transaction.currentEntitlements`（端末で検証済みのもの）から判断する。
 /// サインイン中は、Web版でも Plus の特典（Kindle本の全文）を使えるよう、取引IDを
 /// Cloud Function（`syncPlusEntitlement`）へ送る。サーバー側は Apple に問い合わせて確かめる。
 @MainActor
@@ -98,6 +99,8 @@ final class PlusStore: ObservableObject {
     @Published private(set) var hasPurchase: Bool = UserDefaults.standard.bool(forKey: PlusStore.cachedIsPlusKey)
     /// 管理者（`AuthService.adminEmail`）でサインイン中なら、購入しなくても Plus として扱う。
     @Published private(set) var isAdminGrant = false
+    /// 管理者がプロモユーザー（`plusPromoUsers/{メールアドレス}`）に登録した人も、購入しなくても Plus として扱う。
+    @Published private(set) var isPromoGrant = false
     @Published private(set) var currentProductID: String?
     @Published private(set) var expirationDate: Date?
     @Published private(set) var willAutoRenew = true
@@ -113,8 +116,16 @@ final class PlusStore: ObservableObject {
     /// サインイン中のアカウント（`RootView`から`setSignedInUser`で渡す）。
     private var signedInUserID: String?
 
-    /// 今 Plus の機能を使えるか（購入済み、または管理者）。
-    var isPlus: Bool { hasPurchase || isAdminGrant }
+    /// 今 Plus の機能を使えるか（購入済み、管理者、またはプロモユーザー）。
+    var isPlus: Bool { hasPurchase || isAdminGrant || isPromoGrant }
+
+    /// 購入せずに Plus になっている理由（比較ページに表示する）。購入済みなら`nil`。
+    var grantDescription: String? {
+        guard !hasPurchase else { return nil }
+        if isAdminGrant { return "管理者のアカウントのため、購入しなくても Plus の機能を使えます。" }
+        if isPromoGrant { return "招待（プロモ）のアカウントのため、購入しなくても Plus の機能を使えます。" }
+        return nil
+    }
 
     /// 年額プラン（比較ページでおすすめとして先頭に出す）。
     var yearlyProduct: Product? { products.first { $0.id == Self.yearlyProductID } }
@@ -124,7 +135,7 @@ final class PlusStore: ObservableObject {
     func start() {
         guard updatesTask == nil else { return }
         updatesTask = Task { [weak self] in
-            for await result in Transaction.updates {
+            for await result in StoreKit.Transaction.updates {
                 guard let self else { return }
                 if case .verified(let transaction) = result {
                     await transaction.finish()
@@ -160,8 +171,8 @@ final class PlusStore: ObservableObject {
 
     /// 端末で検証済みの購入から、今 Plus かどうかを判断し直す。
     func refreshEntitlements() async {
-        var active: Transaction?
-        for await result in Transaction.currentEntitlements {
+        var active: StoreKit.Transaction?
+        for await result in StoreKit.Transaction.currentEntitlements {
             guard case .verified(let transaction) = result,
                   Self.productIDs.contains(transaction.productID),
                   transaction.revocationDate == nil,
@@ -197,6 +208,7 @@ final class PlusStore: ObservableObject {
     func setSignedInUser(_ userID: String?, email: String?) async {
         signedInUserID = userID
         isAdminGrant = userID != nil && email?.lowercased() == AuthService.adminEmail
+        isPromoGrant = await Self.isPromoUser(email: userID != nil ? email : nil)
         await syncToServer()
     }
 
@@ -284,6 +296,18 @@ final class PlusStore: ObservableObject {
         guard !isPlus else { return }
         PlusFreeUsage.recordUse(feature, itemID: itemID)
         objectWillChange.send()
+    }
+
+    /// 管理者がプロモユーザーに登録しているか。本人は自分の文書だけ読める（firestore.rules）。
+    /// 読めない・通信できない時は、プロモではないものとして扱う。
+    private static func isPromoUser(email: String?) async -> Bool {
+        guard let email = email?.lowercased(), !email.isEmpty, FirebaseApp.app() != nil else { return false }
+        do {
+            return try await Firestore.firestore().collection("plusPromoUsers").document(email).getDocument().exists
+        } catch {
+            print("Komap Plus のプロモ登録を確認できませんでした: \(error.localizedDescription)")
+            return false
+        }
     }
 
     /// Firebase の uid から作る、購入とアカウントを結び付けるためのUUID。

@@ -208,8 +208,8 @@ struct PlusComparisonView: View {
 
     private var memberSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if plusStore.isAdminGrant && !plusStore.hasPurchase {
-                Label("管理者のアカウントのため、購入しなくても Plus の機能を使えます。", systemImage: "person.badge.key")
+            if let grantDescription = plusStore.grantDescription {
+                Label(grantDescription, systemImage: "person.badge.key")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

@@ -629,6 +629,45 @@ code {
   border-bottom: none;
 }
 
+.admin-promo {
+  margin-top: 32px;
+}
+
+.admin-promo h3 {
+  margin: 0 0 6px;
+  color: var(--color-brown-deep);
+}
+
+.admin-promo-hint {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+}
+
+.admin-promo-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-promo-form input {
+  flex: 1 1 200px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.admin-promo-remove {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: none;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  color: #b8304a;
+  cursor: pointer;
+}
+
 .admin-report-count {
   font-weight: 700;
   color: var(--color-brown-deep);
