@@ -128,11 +128,7 @@ struct PlusComparisonView: View {
             )
 
             Button {
-                guard let product = plusStore.products.first(where: { $0.id == selectedProductID }) else {
-                    Task { await plusStore.loadProducts() }
-                    return
-                }
-                Task { await plusStore.purchase(product) }
+                Task { await plusStore.purchase(productID: selectedProductID) }
             } label: {
                 Group {
                     if plusStore.isPurchasing {

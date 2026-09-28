@@ -1,0 +1,80 @@
+{
+  "identifier": "F3150A83-9865-4424-ABE9-CC0A87E8C94D",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_applicationInternalID": "",
+    "_developerTeamID": "N5H836M425",
+    "_failTransactionsEnabled": false,
+    "_locale": "ja",
+    "_storefront": "JPN",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [
+    {
+      "id": "27FA5387-D535-426C-AF15-D49F7E7462AC",
+      "localizations": [],
+      "name": "Komap Plus",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "winbackOffers": [],
+          "displayPrice": "3800",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "3286414455",
+          "introductoryOffer": {
+            "internalID": "2355083115",
+            "numberOfPeriods": 1,
+            "paymentMode": "free",
+            "subscriptionPeriod": "P1W"
+          },
+          "localizations": [
+            {
+              "description": "写真・場所の詳細・旅の動画・AIの旅日記・Kindle本の全文",
+              "displayName": "Komap Plus 年額",
+              "locale": "ja"
+            }
+          ],
+          "productID": "com.komap.Komap.plus.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Komap Plus 年額",
+          "subscriptionGroupID": "27FA5387-D535-426C-AF15-D49F7E7462AC",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "winbackOffers": [],
+          "displayPrice": "480",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "3388766947",
+          "introductoryOffer": {
+            "internalID": "3782855666",
+            "numberOfPeriods": 1,
+            "paymentMode": "free",
+            "subscriptionPeriod": "P1W"
+          },
+          "localizations": [
+            {
+              "description": "写真・場所の詳細・旅の動画・AIの旅日記・Kindle本の全文",
+              "displayName": "Komap Plus 月額",
+              "locale": "ja"
+            }
+          ],
+          "productID": "com.komap.Komap.plus.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Komap Plus 月額",
+          "subscriptionGroupID": "27FA5387-D535-426C-AF15-D49F7E7462AC",
+          "type": "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
+}

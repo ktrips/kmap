@@ -95,6 +95,10 @@ targets:
         product: GoogleSignInSwift
       - target: "Komap Watch App"
         embed: true
+    scheme:
+      # Xcodeから実行した時は、App Store Connectに繋がずにローカルの商品（Komap Plus）で購入を試せる。
+      # TestFlight・App Storeのビルドには影響しない（App Store Connectの商品・Sandboxを使う）。
+      storeKitConfiguration: Config/Komap.storekit
 
   KomapWatchApp:
     name: "Komap Watch App"

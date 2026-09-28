@@ -142,6 +142,14 @@ final class PlusStore: ObservableObject {
         do {
             let loaded = try await Product.products(for: Self.productIDs)
             products = loaded.sorted { $0.price > $1.price }
+            // 商品IDが見つからなくても StoreKit はエラーにせず空の一覧を返すため、ここで理由を伝える
+            // （App Store Connect の商品が「提出準備完了」でない・有料App契約が未締結・
+            //   Xcode実行時に StoreKit 設定ファイル（Config/Komap.storekit）が選ばれていない、など）。
+            if products.isEmpty {
+                errorMessage = "App Store からプランの情報を取得できませんでした。時間をおいて、もう一度お試しください。"
+                return
+            }
+            errorMessage = nil
             if let subscription = yearlyProduct?.subscription ?? monthlyProduct?.subscription {
                 isEligibleForFreeTrial = await subscription.isEligibleForIntroOffer
             }
@@ -190,6 +198,22 @@ final class PlusStore: ObservableObject {
         signedInUserID = userID
         isAdminGrant = userID != nil && email?.lowercased() == AuthService.adminEmail
         await syncToServer()
+    }
+
+    /// 商品IDを指定して購入する。商品情報をまだ読み込めていなければ、読み込み直してから購入する。
+    func purchase(productID: String) async {
+        if products.isEmpty {
+            isPurchasing = true
+            await loadProducts()
+            isPurchasing = false
+        }
+        guard let product = products.first(where: { $0.id == productID }) else {
+            if errorMessage == nil {
+                errorMessage = "選んだプランが見つかりませんでした。時間をおいて、もう一度お試しください。"
+            }
+            return
+        }
+        await purchase(product)
     }
 
     /// 購入する。サインイン中なら、その購入がこのアカウントのものだとわかる印（appAccountToken）を付ける。

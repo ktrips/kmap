@@ -767,6 +767,13 @@ firebase functions:secrets:set APPSTORE_IAP_KEY_ID        # 例: 2X9R4HXF34
 firebase functions:secrets:set APPSTORE_IAP_PRIVATE_KEY   # .p8ファイルの中身を貼り付け
 ```
 
+**購入を試す**
+
+- Xcodeから実行した時は、スキームに設定した `Config/Komap.storekit`（ローカルの商品）で購入できる。
+  App Store Connectの設定がまだでも試せる（Xcodeの「Debug」→「StoreKit」→「Manage Transactions」で購入の取り消し・更新も試せる）。
+- TestFlight・App Storeのビルドは、App Store Connectの商品を使う。商品が「提出準備完了」になっていない、
+  または「ビジネス」の有料App契約が有効でないと、商品を取得できず比較ページに「プランの情報を取得できませんでした」と出る。
+
 **Web版の Kindle本の全文**
 
 - 誰でも、`web/public/kindle-preview.md`（冒頭約10ページ）を読める。
