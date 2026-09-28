@@ -38,7 +38,9 @@ export function OldMapList({ selectedId, onSelect }: Props) {
                     <img src={map.imageUrl} alt="" loading="lazy" />
                   </span>
                   <span className="trip-row-content">
-                    <span className="trip-row-title">{map.title}</span>
+                    <span className="trip-row-title">
+                      <span className="trip-row-title-text">{map.title}</span>
+                    </span>
                     <span className="trip-row-meta">
                       {map.era} ・ チェックポイント{sitesForOverlay(map.id).length}か所
                     </span>

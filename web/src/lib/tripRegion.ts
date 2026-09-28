@@ -14,6 +14,14 @@ export const REGION_LABEL: Record<MapRegion, string> = {
   america: "America（南北アメリカ）",
 };
 
+/** 時空旅の一覧で、旅の名前の横に小さく添える短い表記。 */
+export const REGION_SHORT_LABEL: Record<MapRegion, string> = {
+  japan: "Japan",
+  europe: "Europe",
+  asia: "Asia",
+  america: "America",
+};
+
 /** 位置からリージョンを決める（iOSの`MapRegion(containing:)`と同じ範囲）。 */
 export function regionOf(lat: number, lng: number): MapRegion {
   if (lat >= 24 && lat <= 46 && lng >= 122 && lng <= 154) return "japan";

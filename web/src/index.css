@@ -398,6 +398,18 @@ code {
   font-size: 0.85rem;
 }
 
+.trip-region-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #8a7c68;
+}
+
 .trip-region-title {
   margin: 0;
   padding: 12px 16px 0;
@@ -1170,10 +1182,22 @@ code {
 
 .trip-row-title {
   font-weight: 700;
-  display: block;
+  display: flex;
+  align-items: center;
+  min-width: 0;
   white-space: nowrap;
+}
+
+/* 旅の名前だけを省略し、横のリージョン・旅日記・公開のアイコンは常に見えるようにする。 */
+.trip-row-title-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.trip-row-title > .trip-region-badge,
+.trip-row-title > .trip-shared-icon {
+  flex-shrink: 0;
 }
 
 .trip-row-meta {
