@@ -1,4 +1,5 @@
 import { MERGED_INTO, OLD_MAP_DATA } from "./generated/catalogData";
+import type { HistoricSiteEntry } from "./historicSiteCatalog";
 
 /**
  * iOS側の `Komap/Models/HistoricalOverlayMap.swift` と対になる古地図カタログ。
@@ -21,6 +22,10 @@ export interface OldMapEntry {
    * この値があっても画像は回転させずに表示する（iOS版とは見た目が異なる点に注意）。
    */
   bearing?: number;
+  /** 個人が作って公開した古地図（`sharedOverlayMaps`）の作者名。同梱の古地図はundefined。 */
+  ownerDisplayName?: string | null;
+  /** 個人が作って公開した古地図のチェックポイント。同梱の古地図は`sitesForOverlay`で引く。 */
+  checkpoints?: HistoricSiteEntry[];
 }
 
 // 古地図の一覧は catalog/old_maps.json から生成した generated/catalogData.ts にある

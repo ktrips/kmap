@@ -14,12 +14,16 @@ export const REGION_LABEL: Record<MapRegion, string> = {
   america: "America（南北アメリカ）",
 };
 
-/** 時空旅の一覧で、旅の名前の横に小さく添える短い表記。 */
-export const REGION_SHORT_LABEL: Record<MapRegion, string> = {
-  japan: "Japan",
-  europe: "Europe",
-  asia: "Asia",
-  america: "America",
+/** 旅のリージョン。位置がわからない旅は`other`。 */
+export type TripRegion = MapRegion | "other";
+
+/** 時空旅の一覧で、旅の名前の横に小さく添える表記（`short`はモバイル用の1文字）。 */
+export const TRIP_REGION_BADGE: Record<TripRegion, { label: string; short: string }> = {
+  japan: { label: "Japan", short: "J" },
+  europe: { label: "Europe", short: "E" },
+  america: { label: "America", short: "U" },
+  asia: { label: "Asia", short: "A" },
+  other: { label: "Other", short: "O" },
 };
 
 /** 位置からリージョンを決める（iOSの`MapRegion(containing:)`と同じ範囲）。 */
@@ -41,7 +45,7 @@ export function oldMapRegion(map: OldMapEntry): MapRegion {
 }
 
 /** 旅のリージョン。使った古地図があればその古地図の、無ければ歩き始めた地点のリージョン。 */
-export function tripRegion(trip: UnifiedTrip): MapRegion {
+export function tripRegion(trip: UnifiedTrip): TripRegion {
   const map = findOldMap(trip.overlayMapID);
   if (map?.southWest && map.northEast) {
     return regionOf((map.southWest.lat + map.northEast.lat) / 2, (map.southWest.lng + map.northEast.lng) / 2);
@@ -49,7 +53,7 @@ export function tripRegion(trip: UnifiedTrip): MapRegion {
   if (trip.latitudes.length > 0 && trip.longitudes.length > 0) {
     return regionOf(trip.latitudes[0], trip.longitudes[0]);
   }
-  return "japan";
+  return "other";
 }
 
 /** 各リージョンの中での並び順（iOSの`TripSortOrder`と同じ）。 */

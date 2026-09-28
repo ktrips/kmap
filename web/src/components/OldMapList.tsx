@@ -6,26 +6,37 @@ import { oldMapRegion, REGION_LABEL, REGION_ORDER, VISIBLE_OLD_MAPS } from "../l
 interface Props {
   selectedId: string | null;
   onSelect: (map: OldMapEntry) => void;
+  /** 個人が作って公開した古地図（`useSharedOverlayMaps`）。一覧の最後に「みんなの古地図」として並べる。 */
+  sharedMaps?: OldMapEntry[];
+}
+
+/** 一覧の古地図の数（同梱の古地図＋個人が公開した古地図）。タブの「古地図（◯枚）」に使う。 */
+export function oldMapCount(sharedMaps: OldMapEntry[]): number {
+  return VISIBLE_OLD_MAPS.length + sharedMaps.length;
 }
 
 /**
  * 古地図の一覧。リージョンごと（Europe → America → Japan → Asia）に分けて並べる
- * （iOSアプリの「みんなの古地図」と同じ順番）。サインインしていなくても見られる。
+ * （iOSアプリの「みんなの古地図」と同じ順番）。個人が作って公開した古地図は、その後に
+ * 「みんなの古地図」としてまとめる。サインインしていなくても見られる。
  */
-export function OldMapList({ selectedId, onSelect }: Props) {
+export function OldMapList({ selectedId, onSelect, sharedMaps = [] }: Props) {
   const groups = useMemo(() => {
     return REGION_ORDER.map((region) => ({
-      region,
+      key: region,
+      title: REGION_LABEL[region],
       maps: VISIBLE_OLD_MAPS.filter((map) => oldMapRegion(map) === region),
     })).filter((group) => group.maps.length > 0);
   }, []);
+  const allGroups =
+    sharedMaps.length > 0 ? [...groups, { key: "shared", title: "みんなの古地図", maps: sharedMaps }] : groups;
 
   return (
     <div className="trip-list">
-      {groups.map(({ region, maps }) => (
-        <section key={region} className="trip-region">
+      {allGroups.map(({ key, title, maps }) => (
+        <section key={key} className="trip-region">
           <h3 className="trip-region-title">
-            {REGION_LABEL[region]}（{maps.length}枚）
+            {title}（{maps.length}枚）
           </h3>
           <ul className="place-list">
             {maps.map((map) => (
@@ -42,7 +53,13 @@ export function OldMapList({ selectedId, onSelect }: Props) {
                       <span className="trip-row-title-text">{map.title}</span>
                     </span>
                     <span className="trip-row-meta">
-                      {map.era} ・ チェックポイント{sitesForOverlay(map.id).length}か所
+                      {[
+                        map.era,
+                        `チェックポイント${(map.checkpoints ?? sitesForOverlay(map.id)).length}か所`,
+                        map.ownerDisplayName,
+                      ]
+                        .filter(Boolean)
+                        .join(" ・ ")}
                     </span>
                   </span>
                 </button>

@@ -3,7 +3,7 @@ import type { UnifiedTrip } from "../types/unifiedTrip";
 import { distanceLabel, tripDateFormatter as dateFormatter } from "../lib/format";
 import { findOldMap } from "../lib/oldMapCatalog";
 import { useTripEngagementCountsMap } from "../lib/useTripEngagementCounts";
-import { compareTrips, REGION_SHORT_LABEL, tripRegion } from "../lib/tripRegion";
+import { compareTrips, TRIP_REGION_BADGE, tripRegion } from "../lib/tripRegion";
 
 interface Props {
   trips: UnifiedTrip[];
@@ -91,6 +91,7 @@ export function TripList({ trips, selectedId, onSelect }: Props) {
       <ul className="place-list">
         {sortedTrips.map((trip) => {
           const oldMap = findOldMap(trip.overlayMapID);
+          const regionBadge = TRIP_REGION_BADGE[tripRegion(trip)];
           // 一覧の左に添えるサムネイル。旅の中の写真（投稿写真を優先、無ければ御朱印の
           // 写真）があればそれを、写真が1枚も無ければ代わりに歩いた古地図の画像を使う。
           const thumbnailUrl = trip.postPhotos[0]?.url ?? trip.stampPhotos[0]?.url ?? oldMap?.imageUrl ?? null;
@@ -109,7 +110,10 @@ export function TripList({ trips, selectedId, onSelect }: Props) {
                       {trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}
                       {oldMap && `（${oldMap.title}）`}
                     </span>
-                    <span className="trip-region-badge">{REGION_SHORT_LABEL[tripRegion(trip)]}</span>
+                    <span className="trip-region-badge" title={regionBadge.label}>
+                      <span className="trip-region-badge-long">{regionBadge.label}</span>
+                      <span className="trip-region-badge-short">{regionBadge.short}</span>
+                    </span>
                     {trip.journalMarkdown && (
                       <span className="trip-shared-icon" title="旅日記あり" aria-label="旅日記あり">
                         📖

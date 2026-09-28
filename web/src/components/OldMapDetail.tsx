@@ -16,7 +16,7 @@ export function OldMapDetail({ map }: Props) {
       </div>
     );
   }
-  const checkpoints = sitesForOverlay(map.id);
+  const checkpoints = map.checkpoints ?? sitesForOverlay(map.id);
   const center = {
     lat: (map.southWest.lat + map.northEast.lat) / 2,
     lng: (map.southWest.lng + map.northEast.lng) / 2,
@@ -30,7 +30,8 @@ export function OldMapDetail({ map }: Props) {
         </div>
         <p className="trip-meta-row">
           <span>🌍 {REGION_LABEL[oldMapRegion(map)]}</span>
-          <span>🕰 {map.era}</span>
+          {map.era && <span>🕰 {map.era}</span>}
+          {map.checkpoints && <span>✏️ {map.ownerDisplayName ?? "ユーザー"}が作成</span>}
           <span>📍 チェックポイント{checkpoints.length}か所</span>
         </p>
         {map.summary && <p className="trip-description-text">{map.summary}</p>}

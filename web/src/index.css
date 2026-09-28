@@ -410,6 +410,20 @@ code {
   color: #8a7c68;
 }
 
+/* モバイルでは、リージョンを1文字（J・E・U・A・O）で表示する。 */
+.trip-region-badge-short {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .trip-region-badge-long {
+    display: none;
+  }
+  .trip-region-badge-short {
+    display: inline;
+  }
+}
+
 .trip-region-title {
   margin: 0;
   padding: 12px 16px 0;

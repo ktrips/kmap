@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { OldMapDetail } from "./OldMapDetail";
-import { OldMapList } from "./OldMapList";
+import { OldMapList, oldMapCount } from "./OldMapList";
 import { TripDetail } from "./TripDetail";
 import type { OldMapEntry } from "../lib/oldMapCatalog";
 import { TripList } from "./TripList";
 import { HowToUseModal } from "./HowToUseModal";
 import { KindleBookModal, useKindleDeepLink } from "./KindleBookModal";
 import { usePresence } from "../lib/usePresence";
+import { useSharedOverlayMaps } from "../lib/useSharedOverlayMaps";
 import { useTripBrowser } from "../lib/useTripBrowser";
 import { fromSharedTrip, type UnifiedTrip } from "../types/unifiedTrip";
 import type { SharedTrip } from "../types/sharedTrip";
@@ -52,6 +53,7 @@ export function PublicSharedTripsView({
   } = useTripBrowser(trips);
   // 左の一覧で「みんなの時空旅」と「古地図」（リージョンごとの古地図一覧）を切り替える。
   const [sidebarTab, setSidebarTab] = useState<"trips" | "maps">("trips");
+  const sharedOverlayMaps = useSharedOverlayMaps();
   const [selectedMap, setSelectedMap] = useState<OldMapEntry | null>(null);
   const handleSelectTrip = (trip: UnifiedTrip) => {
     setSelectedMap(null);
@@ -167,7 +169,7 @@ export function PublicSharedTripsView({
                 className={`sidebar-tab ${sidebarTab === "maps" ? "is-active" : ""}`}
                 onClick={() => setSidebarTab("maps")}
               >
-                古地図
+                古地図（{oldMapCount(sharedOverlayMaps)}枚）
               </button>
               <button type="button" className="sidebar-tab sidebar-tab--howto" onClick={() => setIsHowToOpen(true)}>
                 📖 使い方
@@ -176,7 +178,7 @@ export function PublicSharedTripsView({
             {sidebarTab === "trips" ? (
               <TripList trips={trips} selectedId={selectedTripId} onSelect={handleSelectTrip} />
             ) : (
-              <OldMapList selectedId={selectedMap?.id ?? null} onSelect={handleSelectMap} />
+              <OldMapList selectedId={selectedMap?.id ?? null} onSelect={handleSelectMap} sharedMaps={sharedOverlayMaps} />
             )}
             <button type="button" className="sidebar-footer-button" onClick={() => setIsKindleOpen(true)}>
               📚 Komapの作り方 Kindle（一部無料）

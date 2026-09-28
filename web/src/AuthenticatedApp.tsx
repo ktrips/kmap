@@ -5,7 +5,7 @@ import { Header } from "./components/Header";
 import { KindleBookModal, useKindleDeepLink } from "./components/KindleBookModal";
 import { MapView } from "./components/MapView";
 import { OldMapDetail } from "./components/OldMapDetail";
-import { OldMapList } from "./components/OldMapList";
+import { OldMapList, oldMapCount } from "./components/OldMapList";
 import type { OldMapEntry } from "./lib/oldMapCatalog";
 import { PlaceDetail } from "./components/PlaceDetail";
 import { PlaceList } from "./components/PlaceList";
@@ -14,6 +14,7 @@ import { TripList } from "./components/TripList";
 import { usePhotoPosts } from "./lib/usePhotoPosts";
 import { usePlaces } from "./lib/usePlaces";
 import { useStamps } from "./lib/useStamps";
+import { useSharedOverlayMaps } from "./lib/useSharedOverlayMaps";
 import { useTripBrowser } from "./lib/useTripBrowser";
 import { useWalkRoutes } from "./lib/useWalkRoutes";
 import type { SharedTrip } from "./types/sharedTrip";
@@ -43,6 +44,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const { trips: ownTrips } = useWalkRoutes(user.uid);
   const { stamps } = useStamps(user.uid);
   const { photoPosts } = usePhotoPosts(user.uid);
+  const sharedOverlayMaps = useSharedOverlayMaps();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<SidebarTab>("trips");
   const [selectedMap, setSelectedMap] = useState<OldMapEntry | null>(null);
@@ -126,7 +128,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
                 className={`sidebar-tab ${tab === "maps" ? "is-active" : ""}`}
                 onClick={() => handleTabChange("maps")}
               >
-                古地図
+                古地図（{oldMapCount(sharedOverlayMaps)}枚）
               </button>
             </div>
             {tab === "trips" && (
@@ -134,7 +136,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
             )}
             {tab === "maps" && (
               <>
-                <OldMapList selectedId={selectedMap?.id ?? null} onSelect={handleSelectMap} />
+                <OldMapList selectedId={selectedMap?.id ?? null} onSelect={handleSelectMap} sharedMaps={sharedOverlayMaps} />
                 <section className="trip-region">
                   <h3 className="trip-region-title">保存した物語（{places.length}件）</h3>
                   <PlaceList places={places} selectedId={selectedId} onSelect={handleSelectPlace} />
