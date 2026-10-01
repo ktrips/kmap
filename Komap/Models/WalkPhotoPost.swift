@@ -35,6 +35,9 @@ final class WalkPhotoPost {
     /// `true`の間は、この時空旅が「みんなの時空旅」に公開されていても、
     /// この写真だけは公開データ（`sharedTrips/{id}`のpostPhotos）に含めない。
     var isHiddenFromSharing: Bool = false
+    /// この記録を保存したアカウント（Firebase の uid）。サインインしていない時に保存したものは`nil`。
+    /// 「マイ時空旅」「マイ御朱印」などには、今サインインしているアカウントのものだけを出す（`AccountOwned`）。
+    var ownerUserID: String?
 
     /// 1回の投稿で獲得できるポイント。
     static let pointsPerPost = 10

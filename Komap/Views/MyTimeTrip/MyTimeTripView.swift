@@ -8,9 +8,15 @@ struct MyTimeTripView: View {
     @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SavedPlace.createdAt, order: .reverse) private var places: [SavedPlace]
-    @Query(sort: \WalkRoute.startedAt, order: .reverse) private var walkRoutes: [WalkRoute]
-    @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var collectedStamps: [CollectedStamp]
-    @Query(sort: \WalkPhotoPost.postedAt, order: .reverse) private var photoPosts: [WalkPhotoPost]
+    @Query(sort: \WalkRoute.startedAt, order: .reverse) private var allWalkRoutes: [WalkRoute]
+    @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var allCollectedStamps: [CollectedStamp]
+    @Query(sort: \WalkPhotoPost.postedAt, order: .reverse) private var allPhotoPosts: [WalkPhotoPost]
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var walkRoutes: [WalkRoute] { allWalkRoutes.owned(by: authService.userID) }
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var collectedStamps: [CollectedStamp] { allCollectedStamps.owned(by: authService.userID) }
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var photoPosts: [WalkPhotoPost] { allPhotoPosts.owned(by: authService.userID) }
 
     private enum ContentTab: String, CaseIterable, Identifiable {
         case mine = "マイ時空旅"

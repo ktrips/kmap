@@ -119,6 +119,7 @@ struct GPXImportSheet: View {
             overlayMapID: selectedOverlayID,
             overlayOpacity: MapSessionState.defaultOverlayOpacity
         )
+        route.ownerUserID = authService.userID
         modelContext.insert(route)
         try? modelContext.save()
 

@@ -318,7 +318,9 @@ struct SettingsView: View {
             for place in places {
                 try await syncService.upload(place, userID: userID)
             }
-            let walkRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>())
+            // サインインより前に記録していたもの（持ち主のいない旅・御朱印・写真）を、このアカウントのものにしてから上げる。
+            AccountOwnership.adoptUnownedRecords(userID: userID, context: modelContext)
+            let walkRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>()).owned(by: userID)
             // 先にWebでの名前・感想の変更を取り込み、端末の古い値で上書きしないようにする。
             try? await syncService.pullWalkRouteDetails(into: walkRoutes, userID: userID)
             for route in walkRoutes {
@@ -365,10 +367,12 @@ struct SettingsView: View {
             let remoteStamps = try await syncService.fetchAllStamps(userID: userID)
             for remote in remoteStamps {
                 guard let remoteUUID = UUID(uuidString: remote.id), !localStampIDs.contains(remoteUUID) else { continue }
-                modelContext.insert(CollectedStamp(id: remoteUUID, siteID: remote.siteID, collectedAt: remote.collectedAt))
+                let stamp = CollectedStamp(id: remoteUUID, siteID: remote.siteID, collectedAt: remote.collectedAt)
+                stamp.ownerUserID = userID
+                modelContext.insert(stamp)
             }
 
-            let localRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>())
+            let localRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>()).owned(by: userID)
             try await syncService.pullWalkRouteDetails(into: localRoutes, userID: userID)
             try? modelContext.save()
         } catch {

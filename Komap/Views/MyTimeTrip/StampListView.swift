@@ -9,7 +9,10 @@ struct StampListView: View {
     var overlayMapID: String?
     var title: String?
 
-    @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var collectedStamps: [CollectedStamp]
+    @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var allCollectedStamps: [CollectedStamp]
+    @EnvironmentObject private var authService: AuthService
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var collectedStamps: [CollectedStamp] { allCollectedStamps.owned(by: authService.userID) }
 
     @State private var selectedStamp: StampSelection?
 
@@ -230,4 +233,5 @@ private struct CheckpointMapPreview: View {
         StampListView()
     }
     .modelContainer(for: [CollectedStamp.self], inMemory: true)
+    .environmentObject(AuthService())
 }

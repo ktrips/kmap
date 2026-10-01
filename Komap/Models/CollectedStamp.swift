@@ -20,6 +20,9 @@ final class CollectedStamp {
     /// `true`の間は、この時空旅が「みんなの時空旅」に公開されていても、
     /// この御朱印の写真だけは公開データに含めない。
     var isHiddenFromSharing: Bool = false
+    /// この記録を保存したアカウント（Firebase の uid）。サインインしていない時に保存したものは`nil`。
+    /// 「マイ時空旅」「マイ御朱印」などには、今サインインしているアカウントのものだけを出す（`AccountOwned`）。
+    var ownerUserID: String?
 
     /// 御朱印1件を獲得した時に得られるポイント。
     static let pointsPerStamp = 50

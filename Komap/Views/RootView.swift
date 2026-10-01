@@ -5,6 +5,7 @@ struct RootView: View {
     @StateObject private var mapSession = MapSessionState()
     @StateObject private var plusStore = PlusStore()
     private let syncService = SyncService()
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         Group {
@@ -23,6 +24,11 @@ struct RootView: View {
         .task(id: authService.userID) {
             // Web版でも Plus の特典（Kindle本の全文）を使えるよう、サインインしたアカウントに購入を記録する。
             await plusStore.setSignedInUser(authService.userID, email: authService.email)
+            // 持ち主の分からない端末の記録のうち、このアカウントのクラウドにもあるものを、このアカウントのものにする
+            // （「マイ時空旅」「マイ御朱印」には、サインイン中のアカウントのものだけを出すため）。
+            if let userID = authService.userID {
+                await AccountOwnership.claimCloudLinkedRecords(userID: userID, context: modelContext, syncService: syncService)
+            }
             guard let userID = authService.userID, let email = authService.email else { return }
             await syncService.claimFriendRequestsAddressedToMe(userID: userID, email: email)
         }

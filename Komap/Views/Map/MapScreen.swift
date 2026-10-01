@@ -26,9 +26,15 @@ struct MapScreen: View {
     /// Komap Plus の比較ページを開く理由（写真投稿を押した・初めて旅を保存した）。
     @State private var plusPaywallReason: PlusFeature?
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \WalkRoute.startedAt, order: .reverse) private var savedRoutes: [WalkRoute]
-    @Query private var collectedStamps: [CollectedStamp]
-    @Query private var photoPosts: [WalkPhotoPost]
+    @Query(sort: \WalkRoute.startedAt, order: .reverse) private var allSavedRoutes: [WalkRoute]
+    @Query private var allCollectedStamps: [CollectedStamp]
+    @Query private var allPhotoPosts: [WalkPhotoPost]
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var savedRoutes: [WalkRoute] { allSavedRoutes.owned(by: authService.userID) }
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var collectedStamps: [CollectedStamp] { allCollectedStamps.owned(by: authService.userID) }
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var photoPosts: [WalkPhotoPost] { allPhotoPosts.owned(by: authService.userID) }
 
     /// 古地図の選択メニューで直前に選ばれていた古地図のID。同じ古地図が選び直された
     /// 時だけオーバーレイの貼り直しリクエストを出すために使う（`mapSession.selectedOverlay`
@@ -1002,6 +1008,7 @@ struct MapScreen: View {
                 overlayMapID: mapSession.selectedOverlay?.id,
                 overlayOpacity: mapSession.overlayOpacity
             )
+            walkRoute.ownerUserID = authService.userID
             modelContext.insert(walkRoute)
             try? modelContext.save()
 
@@ -1087,6 +1094,7 @@ struct MapScreen: View {
             coordinate: coordinate,
             walkRouteID: sessionID
         )
+        post.ownerUserID = authService.userID
         modelContext.insert(post)
         watchConnectivity.notifyPhotoPosted(points: post.points)
 
@@ -1172,6 +1180,7 @@ struct MapScreen: View {
             overlayMapID: pending.overlayMapID,
             overlayOpacity: pending.overlayOpacity
         )
+        route.ownerUserID = authService.userID
         modelContext.insert(route)
         try? modelContext.save()
 
@@ -1219,6 +1228,7 @@ struct MapScreen: View {
         guard !cachedCollectedSiteIDs.contains(site.id) else { return }
 
         let stamp = CollectedStamp(siteID: site.id, walkRouteID: walkRouteID)
+        stamp.ownerUserID = authService.userID
         modelContext.insert(stamp)
         cachedCollectedSiteIDs.insert(site.id)
         newlyCollectedSite = site
@@ -1240,6 +1250,7 @@ struct MapScreen: View {
             guard current.distance(from: siteLocation) <= stampCollectionRadiusMeters else { continue }
 
             let stamp = CollectedStamp(siteID: site.id, walkRouteID: currentSessionID)
+            stamp.ownerUserID = authService.userID
             modelContext.insert(stamp)
             // `.onChange(of: collectedStamps.map(\.id))`によるキャッシュ更新は次回の
             // body再評価まで反映されない。GPS更新が短い間隔で連続すると、その反映より

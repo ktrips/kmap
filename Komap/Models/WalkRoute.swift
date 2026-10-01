@@ -45,6 +45,9 @@ final class WalkRoute {
     var travelJournalGeneratedAt: Date?
     /// 旅の動画（`TripVideoRenderer`で作ったMP4）をクラウドに上げた時の共有用リンク。未作成・未アップロードなら`nil`。
     var tripVideoURL: String?
+    /// この記録を保存したアカウント（Firebase の uid）。サインインしていない時に保存したものは`nil`。
+    /// 「マイ時空旅」「マイ御朱印」などには、今サインインしているアカウントのものだけを出す（`AccountOwned`）。
+    var ownerUserID: String?
 
     init(
         id: UUID = UUID(),

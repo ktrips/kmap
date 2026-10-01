@@ -298,6 +298,18 @@ struct SyncService {
     /// - Returns: 端末の記録を書き換えた件数。
     @MainActor
     @discardableResult
+    /// このアカウントのクラウドにある旅・御朱印・投稿写真のID。端末の記録の持ち主を決める（`AccountOwnership`）のに使う。
+    func fetchCloudRecordIDs(userID: String) async throws -> (routes: Set<UUID>, stamps: Set<UUID>, photoPosts: Set<UUID>) {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        async let routes = walkRoutesCollection(for: userID).getDocuments()
+        async let stamps = stampsCollection(for: userID).getDocuments()
+        async let posts = photoPostsCollection(for: userID).getDocuments()
+        func ids(_ snapshot: QuerySnapshot) -> Set<UUID> {
+            Set(snapshot.documents.compactMap { UUID(uuidString: $0.documentID) })
+        }
+        return try await (ids(routes), ids(stamps), ids(posts))
+    }
+
     func pullWalkRouteDetails(into routes: [WalkRoute], userID: String) async throws -> Int {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         let snapshot = try await walkRoutesCollection(for: userID).getDocuments()
@@ -513,7 +525,7 @@ struct SyncService {
     /// - Returns: 作り直した時空旅の件数。
     @MainActor
     func refreshAllSharedTrips(in context: ModelContext, userID: String, ownerDisplayName: String?) async -> Int {
-        let routes = ((try? context.fetch(FetchDescriptor<WalkRoute>())) ?? []).filter(\.isSharedPublicly)
+        let routes = ((try? context.fetch(FetchDescriptor<WalkRoute>())) ?? []).filter { $0.isSharedPublicly && $0.ownerUserID == userID }
         guard !routes.isEmpty else { return 0 }
         let allStamps = (try? context.fetch(FetchDescriptor<CollectedStamp>())) ?? []
         let allPosts = (try? context.fetch(FetchDescriptor<WalkPhotoPost>())) ?? []

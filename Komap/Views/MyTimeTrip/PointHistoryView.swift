@@ -6,9 +6,16 @@ import SwiftUI
 /// 歩いた距離（1kmあたり\(WalkRoute.pointsPerKilometer)pt）を、旅（`WalkRoute`）ごとにまとめて
 /// 新しい順に表示する。どの旅にも紐付かない（記録前に獲得した等の）古いデータは「その他」に集約する。
 struct PointHistoryView: View {
-    @Query(sort: \WalkPhotoPost.postedAt, order: .reverse) private var photoPosts: [WalkPhotoPost]
-    @Query(sort: \WalkRoute.startedAt, order: .reverse) private var walkRoutes: [WalkRoute]
-    @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var collectedStamps: [CollectedStamp]
+    @Query(sort: \WalkPhotoPost.postedAt, order: .reverse) private var allPhotoPosts: [WalkPhotoPost]
+    @Query(sort: \WalkRoute.startedAt, order: .reverse) private var allWalkRoutes: [WalkRoute]
+    @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var allCollectedStamps: [CollectedStamp]
+    @EnvironmentObject private var authService: AuthService
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var photoPosts: [WalkPhotoPost] { allPhotoPosts.owned(by: authService.userID) }
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var walkRoutes: [WalkRoute] { allWalkRoutes.owned(by: authService.userID) }
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var collectedStamps: [CollectedStamp] { allCollectedStamps.owned(by: authService.userID) }
 
     private var tripGroups: [TripPoints] {
         walkRoutes.compactMap { route in
@@ -183,4 +190,5 @@ private struct TripPointsCard: View {
         PointHistoryView()
     }
     .modelContainer(for: [WalkPhotoPost.self, WalkRoute.self, CollectedStamp.self], inMemory: true)
+    .environmentObject(AuthService())
 }
