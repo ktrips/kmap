@@ -61,33 +61,10 @@ struct PhotoStorageService {
         return try await ref.downloadURL()
     }
 
-    /// アップロード済みの画像を削除する（写真の差し替え・削除、共有解除時に使う）。
+    /// アップロード済みの画像を削除する（写真の差し替え・削除時に使う）。
     func delete(path: String) async {
         guard let storage else { return }
         try? await storage.reference().child(path).delete()
-    }
-
-    /// 指定したフォルダ配下の画像をすべて削除する。「みんなの時空旅」への公開を
-    /// 取り消した時、コピーしておいた共有写真を残さず消すために使う。
-    func deleteFolder(_ path: String) async {
-        guard let storage else { return }
-        guard let result = try? await storage.reference().child(path).listAll() else { return }
-        for item in result.items {
-            try? await item.delete()
-        }
-    }
-
-    /// 自分の画像（`users/{uid}/...`）を、みんなの時空旅で見られる公開パスへコピーする。
-    func copyToShared(from sourcePath: String, to destinationPath: String) async throws -> URL {
-        guard let storage else { throw StorageServiceError.firebaseNotConfigured }
-        let sourceRef = storage.reference().child(sourcePath)
-        let data = try await sourceRef.data(maxSize: 15 * 1024 * 1024)
-
-        let metadata = StorageMetadata()
-        metadata.contentType = "image/jpeg"
-        let destRef = storage.reference().child(destinationPath)
-        _ = try await destRef.putDataAsync(data, metadata: metadata)
-        return try await destRef.downloadURL()
     }
 
     /// スマートフォンで十分きれいに見える範囲（長辺1600px・JPEG品質72%程度）まで圧縮する。

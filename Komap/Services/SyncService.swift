@@ -75,10 +75,6 @@ struct SyncService {
         "users/\(userID)/photoPosts/\(postID.uuidString).jpg"
     }
 
-    private func sharedPhotoStoragePath(tripID: UUID, photoID: UUID) -> String {
-        "sharedPhotos/\(tripID.uuidString)/\(photoID.uuidString).jpg"
-    }
-
     /// 1件をアップロード（新規作成 or 上書き更新）する。
     func upload(_ place: SavedPlace, userID: String?) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
@@ -146,6 +142,8 @@ struct SyncService {
             "collectedAt": Timestamp(date: stamp.collectedAt),
             "photoURL": stamp.cloudPhotoURL as Any? ?? NSNull(),
             "walkRouteID": stamp.walkRouteID?.uuidString as Any? ?? NSNull(),
+            // 公開ページ（Cloud Functions が作る写真の一覧）で使う史跡名。
+            "siteName": HistoricSiteCatalog.site(withID: stamp.siteID)?.name ?? "御朱印",
         ]
         if let detail, !detail.isEmpty {
             data["detail"] = detail
@@ -187,19 +185,25 @@ struct SyncService {
         }
     }
 
-    /// 「みんなの時空旅」（`sharedTrips`。自分が公開したものも含む）を、
+    /// 「みんなの時空旅」（全ユーザーの公開中の旅。自分が公開したものも含む）を、
     /// 開始日時が新しい順に取得する。マップ画面の「マイ時空旅」タブから、
     /// 他ユーザーも含めた公開済み時空旅を時系列で一覧表示するために使う。
     func fetchAllSharedTrips(limit: Int = 60) async throws -> [RemoteSharedTrip] {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
 
-        let snapshot = try await sharedTripsCollection
+        // 旅の正本（`users/{uid}/walkRoutes`）のうち、公開中のものを全ユーザー分まとめて探す。
+        let snapshot = try await Firestore.firestore().collectionGroup("walkRoutes")
+            .whereField("isSharedPublicly", isEqualTo: true)
             .order(by: "startedAt", descending: true)
             .limit(to: limit)
             .getDocuments()
 
         return snapshot.documents.compactMap { document in
-            RemoteSharedTrip(id: document.documentID, data: document.data())
+            var data = document.data()
+            if data["ownerUserID"] == nil, let ownerUserID = document.reference.parent.parent?.documentID {
+                data["ownerUserID"] = ownerUserID
+            }
+            return RemoteSharedTrip(id: document.documentID, data: data)
         }
     }
 
@@ -367,148 +371,53 @@ struct SyncService {
         try await walkRoutesCollection(for: userID).document(walkRouteID.uuidString).delete()
     }
 
-    /// 「みんなの時空旅」への公開・非公開を切り替える。公開する場合は`sharedTrips/{id}`に
-    /// コピーを置き（自分の御朱印・投稿写真は`sharedPhotos/{tripId}/**`へ画像もコピーする）、
-    /// 非公開にする場合はそのドキュメントを削除する。
+    /// 「みんなの時空旅」への公開・非公開を切り替える。公開・非公開は旅の文書（`users/{uid}/walkRoutes/{id}`）の
+    /// `isSharedPublicly`だけで決まり、御朱印・投稿写真もその旅の公開状況に従う。公開ページ用の項目（写真の一覧・
+    /// 投稿者名・件数）は Cloud Functions（functions/src/sharedTrips.ts）が作る。公開する時は、旅の御朱印・
+    /// 投稿写真が写真ごとクラウドにそろっているよう、先に上げておく。
     func setPubliclyShared(
         _ route: WalkRoute,
         isShared: Bool,
         userID: String?,
-        ownerDisplayName: String?,
         stamps: [CollectedStamp] = [],
         photoPosts: [WalkPhotoPost] = [],
         checkpointDetails: [String: String] = [:]
     ) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         guard let userID else { throw SyncError.notSignedIn }
-
         if isShared {
-            // 御朱印（史跡チェックポイント）の写真と、自由投稿の写真は、Web側でも
-            // 分けて表示できるよう、それぞれ紐づく史跡名・地点名と、あれば説明文
-            // （旅日記と同じ内容の`detail`）も添えて公開する。
-            // 前回公開した時にコピー済みの写真は、元の写真が変わっていなければコピーし直さない
-            // （以前は名前の変更などで公開データを作り直すたびに、全写真をダウンロードして
-            // アップロードし直していた）。
-            let previousCopies = await existingSharedPhotoCopies(tripID: route.id)
-
-            var stampPhotos: [[String: Any]] = []
-            for stamp in stamps where stamp.photoFileName.map(StampPhotoStore.exists) == true && !stamp.isHiddenFromSharing {
-                let sourcePath = stampPhotoStoragePath(userID: userID, stampID: stamp.id)
-                let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: stamp.id)
-                // 写真をまだクラウドへ上げていなかった（サインイン前に撮った・通信に失敗した）
-                // 御朱印は、コピー元が無くて公開データから抜け落ちていた。先に上げてからコピーする。
-                if stamp.cloudPhotoURL == nil {
-                    _ = try? await uploadStampPhoto(stamp, userID: userID)
-                }
-                if let url = await sharedCopyURL(
-                    photoID: stamp.id, sourceURL: stamp.cloudPhotoURL,
-                    sourcePath: sourcePath, destinationPath: destPath, previousCopies: previousCopies
-                ) {
-                    let siteName = HistoricSiteCatalog.site(withID: stamp.siteID)?.name ?? "御朱印"
-                    stampPhotos.append([
-                        "url": url,
-                        "photoID": stamp.id.uuidString,
-                        "sourceURL": stamp.cloudPhotoURL ?? "",
-                        "siteName": siteName,
-                        "detail": checkpointDetails[stamp.siteID] ?? "",
-                    ])
-                }
-            }
-            var postPhotos: [[String: Any]] = []
-            for post in photoPosts where StampPhotoStore.exists(post.photoFileName) && !post.isHiddenFromSharing {
-                let sourcePath = photoPostStoragePath(userID: userID, postID: post.id)
-                let destPath = sharedPhotoStoragePath(tripID: route.id, photoID: post.id)
-                if post.cloudPhotoURL == nil {
-                    _ = try? await uploadPhotoPostImage(post, userID: userID)
-                }
-                if let url = await sharedCopyURL(
-                    photoID: post.id, sourceURL: post.cloudPhotoURL,
-                    sourcePath: sourcePath, destinationPath: destPath, previousCopies: previousCopies
-                ) {
-                    postPhotos.append([
-                        "url": url,
-                        "photoID": post.id.uuidString,
-                        "sourceURL": post.cloudPhotoURL ?? "",
-                        "placeName": post.displayTitle ?? "",
-                        "detail": post.storyBody ?? "",
-                    ])
-                }
-            }
-
-            // プライバシーのため、公開する名前はGoogleの表示名の先頭6文字だけにする。
-            let truncatedOwnerDisplayName = ownerDisplayName.map { String($0.prefix(6)) }
-
-            let data: [String: Any] = [
-                "ownerUserID": userID,
-                "ownerDisplayName": truncatedOwnerDisplayName as Any? ?? NSNull(),
-                "title": route.title as Any? ?? NSNull(),
-                "notes": route.notes as Any? ?? NSNull(),
-                "latitudes": route.latitudes,
-                "longitudes": route.longitudes,
-                "startedAt": Timestamp(date: route.startedAt),
-                "endedAt": route.endedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
-                "stepCount": route.stepCount as Any? ?? NSNull(),
-                "overlayMapID": route.overlayMapID as Any? ?? NSNull(),
-                "totalDistanceMeters": route.totalDistanceMeters,
-                "stampPhotos": stampPhotos,
-                "postPhotos": postPhotos,
-                "travelJournalTitle": route.travelJournalTitle as Any? ?? NSNull(),
-                "travelJournalMarkdown": route.travelJournalMarkdownWithVideoLink as Any? ?? NSNull(),
-                "tripVideoURL": route.tripVideoURL as Any? ?? NSNull(),
-                "travelJournalGeneratedAt": route.travelJournalGeneratedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
-            ]
-            try await sharedTripsCollection.document(route.id.uuidString).setData(data, merge: true)
-        } else {
-            try await unpublishSharedTrip(tripID: route.id)
+            await uploadTripContents(stamps: stamps, photoPosts: photoPosts, userID: userID, checkpointDetails: checkpointDetails)
         }
+        route.isSharedPublicly = isShared
+        try await upload(route, userID: userID)
     }
 
-    /// 「みんなの時空旅」から、idだけを指定して取り除く（コピーした写真ごと削除する）。
-    /// 非公開への切り替え、および公開中の時空旅そのものを削除する時に使う。
-    func unpublishSharedTrip(tripID: UUID) async throws {
-        // Firestoreのドキュメントを消す前に写真を削除する。ドキュメントを先に消すと
-        // Storageルールの書き込み判定（sharedTripsのownerUserID照合）が失敗するため。
-        await photoStorage.deleteFolder("sharedPhotos/\(tripID.uuidString)")
-        try await sharedTripsCollection.document(tripID.uuidString).delete()
-    }
-
-    /// 前回公開した時のコピー（`sharedTrips/{id}`の`stampPhotos`・`postPhotos`）を、写真IDごとに
-    /// 「コピー先のURL」と「コピーした時の元写真のURL」でまとめる。まだ公開していなければ空。
-    private func existingSharedPhotoCopies(tripID: UUID) async -> [String: (url: String, sourceURL: String)] {
-        guard let data = try? await sharedTripsCollection.document(tripID.uuidString).getDocument().data() else {
-            return [:]
+    /// 旅の御朱印・投稿写真を、写真ごとクラウドに上げる（まだ上がっていない写真があれば先に上げる）。
+    /// 御朱印には説明文（旅日記と同じ内容）も添える。公開中の旅なら、Cloud Functions が公開ページに反映する。
+    func uploadTripContents(
+        stamps: [CollectedStamp],
+        photoPosts: [WalkPhotoPost],
+        userID: String,
+        checkpointDetails: [String: String] = [:]
+    ) async {
+        for stamp in stamps {
+            if stamp.cloudPhotoURL == nil, stamp.photoFileName.map(StampPhotoStore.exists) == true {
+                _ = try? await uploadStampPhoto(stamp, userID: userID)
+            }
+            try? await upload(stamp, userID: userID, detail: checkpointDetails[stamp.siteID])
         }
-        var copies: [String: (url: String, sourceURL: String)] = [:]
-        for key in ["stampPhotos", "postPhotos"] {
-            for entry in data[key] as? [[String: Any]] ?? [] {
-                guard let photoID = entry["photoID"] as? String,
-                      let url = entry["url"] as? String,
-                      let sourceURL = entry["sourceURL"] as? String, !sourceURL.isEmpty
-                else { continue }
-                copies[photoID] = (url, sourceURL)
+        for post in photoPosts {
+            if post.cloudPhotoURL == nil, StampPhotoStore.exists(post.photoFileName) {
+                _ = try? await uploadPhotoPostImage(post, userID: userID)
+            } else {
+                try? await upload(post, userID: userID)
             }
         }
-        return copies
-    }
-
-    /// 公開用のコピーのURLを返す。前回コピーした時から元の写真（`sourceURL`）が変わっていなければ
-    /// そのコピーを使い回し、変わっていた・まだ無い時だけコピーし直す。
-    private func sharedCopyURL(
-        photoID: UUID,
-        sourceURL: String?,
-        sourcePath: String,
-        destinationPath: String,
-        previousCopies: [String: (url: String, sourceURL: String)]
-    ) async -> String? {
-        if let sourceURL, let previous = previousCopies[photoID.uuidString], previous.sourceURL == sourceURL {
-            return previous.url
-        }
-        return try? await photoStorage.copyToShared(from: sourcePath, to: destinationPath).absoluteString
     }
 
     /// 巡った御朱印スポットの説明文（既にAIで生成済みの`CheckpointStory`があればその本文、
     /// 無ければ史跡カタログの`summary`）を`siteID`ごとにまとめる。旅日記と同じ内容を
-    /// 公開データ（`sharedTrips`）の御朱印にも添えるために使う。新しいAI生成は行わない。
+    /// クラウドの御朱印（`users/{uid}/stamps`の`detail`）にも添えるために使う。新しいAI生成は行わない。
     @MainActor
     static func checkpointDetailTexts(for stamps: [CollectedStamp], in context: ModelContext) -> [String: String] {
         guard !stamps.isEmpty else { return [:] }
@@ -522,60 +431,6 @@ struct SyncService {
             details[siteID] = HistoricSiteCatalog.site(withID: siteID)?.summary
         }
         return details
-    }
-
-    /// 公開中の時空旅すべての公開データ（`sharedTrips`）を、端末の最新の内容で作り直す。
-    /// 公開データは公開した時点のコピーのため、その後に作った動画・生成した説明・追加した写真は、
-    /// 作り直すまでWebに出ない。「設定」のクラウド同期から呼ぶ。
-    /// - Returns: 作り直した時空旅の件数。
-    @MainActor
-    func refreshAllSharedTrips(in context: ModelContext, userID: String, ownerDisplayName: String?) async -> Int {
-        let routes = ((try? context.fetch(FetchDescriptor<WalkRoute>())) ?? []).filter { $0.isSharedPublicly && $0.ownerUserID == userID }
-        guard !routes.isEmpty else { return 0 }
-        let allStamps = (try? context.fetch(FetchDescriptor<CollectedStamp>())) ?? []
-        let allPosts = (try? context.fetch(FetchDescriptor<WalkPhotoPost>())) ?? []
-        var count = 0
-        for route in routes {
-            let stamps = allStamps.filter { $0.walkRouteID == route.id }.sorted { $0.collectedAt < $1.collectedAt }
-            let posts = allPosts.filter { $0.walkRouteID == route.id }.sorted { $0.postedAt < $1.postedAt }
-            do {
-                try await setPubliclyShared(
-                    route,
-                    isShared: true,
-                    userID: userID,
-                    ownerDisplayName: ownerDisplayName,
-                    stamps: stamps,
-                    photoPosts: posts,
-                    checkpointDetails: Self.checkpointDetailTexts(for: stamps, in: context)
-                )
-                count += 1
-            } catch {
-                continue
-            }
-        }
-        return count
-    }
-
-    /// 既に「みんなの時空旅」に公開済みの時空旅であれば、後から追加・変更した写真などの
-    /// 最新の内容を公開データにも反映する。公開していない時空旅であれば何もしない。
-    func resyncSharedTripIfNeeded(
-        _ route: WalkRoute,
-        userID: String?,
-        ownerDisplayName: String?,
-        stamps: [CollectedStamp],
-        photoPosts: [WalkPhotoPost],
-        checkpointDetails: [String: String] = [:]
-    ) async {
-        guard route.isSharedPublicly else { return }
-        try? await setPubliclyShared(
-            route,
-            isShared: true,
-            userID: userID,
-            ownerDisplayName: ownerDisplayName,
-            stamps: stamps,
-            photoPosts: photoPosts,
-            checkpointDetails: checkpointDetails
-        )
     }
 
     // MARK: - いいね・コメント（Webアプリと同じ`sharedTrips/{tripId}/likes`・`/comments`を共有）

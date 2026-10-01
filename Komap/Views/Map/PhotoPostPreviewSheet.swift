@@ -77,7 +77,6 @@ struct PhotoPostPageView: View {
     @State private var isPrintingToLinkedPrinter = false
     @State private var printMessage: String?
     @State private var isConfirmingDelete = false
-    @State private var isUpdatingVisibility = false
     @State private var editableUserTitle: String = ""
     @State private var isRegeneratingStory = false
     @State private var isShowingPhotoChange = false
@@ -107,8 +106,6 @@ struct PhotoPostPageView: View {
                     showsLinkedCamera: AppSettings.cameraLinkHost != nil,
                     showsPrint: post.photo != nil && AppSettings.printerLinkHost != nil,
                     isPrinting: isPrintingToLinkedPrinter,
-                    isHidden: post.isHiddenFromSharing,
-                    isUpdatingVisibility: isUpdatingVisibility,
                     showsRemoveActions: true,
                     isPhotoLocked: !plusStore.isPlus,
                     onChange: {
@@ -122,7 +119,6 @@ struct PhotoPostPageView: View {
                         }
                     },
                     onPrint: { Task { await printToLinkedPrinter() } },
-                    onToggleHidden: { Task { await toggleVisibility() } },
                     onDelete: { isConfirmingDelete = true }
                 )
 
@@ -223,7 +219,7 @@ struct PhotoPostPageView: View {
     }
 
     /// 写真を差し替える。「設定」で選んだ加工を適用し、連携プリンターが設定されていれば
-    /// そちらへも転送してから、サインイン中ならクラウドにも上げ直し、公開中の時空旅にも反映する。
+    /// そちらへも転送してから、サインイン中ならクラウドにも上げ直す（公開中の旅なら、Cloud Functions が反映する）。
     private func changePhoto(to rawImage: UIImage) async {
         isChangingPhoto = true
         defer { isChangingPhoto = false }
@@ -235,9 +231,6 @@ struct PhotoPostPageView: View {
         guard let userID = authService.userID else { return }
         try? await syncService.uploadPhotoPostImage(post, userID: userID)
         try? modelContext.save()
-        if let walkRouteID = post.walkRouteID {
-            await resyncSharedTripIfNeeded(walkRouteID: walkRouteID)
-        }
     }
 
     /// 「連携プリント」ボタンから、この投稿写真をその場で連携プリンターへ転送する。
@@ -254,54 +247,16 @@ struct PhotoPostPageView: View {
         }
     }
 
-    /// 「非公開にする」を切り替える。「みんなの時空旅」に公開中の時空旅であれば、
-    /// この写真だけを公開データから外す／戻すために公開データを作り直す。
-    private func toggleVisibility() async {
-        isUpdatingVisibility = true
-        defer { isUpdatingVisibility = false }
-        post.isHiddenFromSharing.toggle()
-        try? modelContext.save()
-        if let walkRouteID = post.walkRouteID {
-            await resyncSharedTripIfNeeded(walkRouteID: walkRouteID)
-        }
-    }
-
     /// この写真を削除する。端末に保存済みの画像ファイル・SwiftDataのレコードに加え、
-    /// クラウド（Firestore・Storage）側のコピーも削除し、公開中であれば公開データも作り直す。
+    /// クラウド（Firestore・Storage）側のコピーも削除する（公開中の旅なら、Cloud Functions が反映する）。
     private func deletePost() {
         let postID = post.id
-        let walkRouteID = post.walkRouteID
         let userID = authService.userID
         StampPhotoStore.delete(post.photoFileName)
         modelContext.delete(post)
         try? modelContext.save()
         onDelete()
-        Task {
-            await syncService.deletePhotoPost(id: postID, userID: userID)
-            if let walkRouteID {
-                await resyncSharedTripIfNeeded(walkRouteID: walkRouteID)
-            }
-        }
-    }
-
-    /// この写真が属する時空旅が既に「みんなの時空旅」に公開済みなら、最新の内容
-    /// （この写真の削除・非公開化を反映したもの）で公開データを作り直す。
-    private func resyncSharedTripIfNeeded(walkRouteID: UUID) async {
-        let routeDescriptor = FetchDescriptor<WalkRoute>(predicate: #Predicate { $0.id == walkRouteID })
-        guard let route = try? modelContext.fetch(routeDescriptor).first, route.isSharedPublicly else { return }
-
-        let stampsDescriptor = FetchDescriptor<CollectedStamp>(predicate: #Predicate { $0.walkRouteID == walkRouteID })
-        let postsDescriptor = FetchDescriptor<WalkPhotoPost>(predicate: #Predicate { $0.walkRouteID == walkRouteID })
-        let stamps = (try? modelContext.fetch(stampsDescriptor)) ?? []
-        let photoPosts = (try? modelContext.fetch(postsDescriptor)) ?? []
-
-        await syncService.resyncSharedTripIfNeeded(
-            route,
-            userID: authService.userID,
-            ownerDisplayName: authService.displayName,
-            stamps: stamps,
-            photoPosts: photoPosts
-        )
+        Task { await syncService.deletePhotoPost(id: postID, userID: userID) }
     }
 
     /// 場所の名前・AIの解説は一度取得したら`post`に保存し、以後は再取得しない。

@@ -529,8 +529,6 @@ struct WalkRouteDetailView: View {
             do {
                 try await syncService.uploadTripVideo(route, fileURL: fileURL, userID: authService.userID)
                 try? modelContext.save()
-                // 旅日記にリンクが載るので、公開中なら公開データも作り直す。
-                await resyncSharedTripIfNeeded()
             } catch {
                 videoErrorMessage = "動画のリンクを旅日記に載せられませんでした: \(error.localizedDescription)"
             }
@@ -708,9 +706,7 @@ struct WalkRouteDetailView: View {
             route.travelJournalMarkdown = journal.markdownBody
             route.travelJournalGeneratedAt = Date()
             try? modelContext.save()
-            await resyncSharedTripIfNeeded()
-            let userID = authService.userID
-            try? await syncService.upload(route, userID: userID)
+            try? await syncService.upload(route, userID: authService.userID)
         } catch {
             journalErrorMessage = error.localizedDescription
         }
@@ -769,54 +765,21 @@ struct WalkRouteDetailView: View {
         }
     }
 
-    /// この時間旅を削除する。公開中だった場合は「みんなの時空旅」からも取り除き、
-    /// クラウド側（`users/{uid}/walkRoutes/{id}`）のコピーも削除する。
+    /// この時間旅を削除する。クラウドの旅（`users/{uid}/walkRoutes/{id}`）も消すので、
+    /// 公開中だった場合も「みんなの時空旅」から見えなくなる。
     private func deleteRoute() {
         let routeID = route.id
-        let wasPublic = route.isSharedPublicly
         let userID = authService.userID
         modelContext.delete(route)
         try? modelContext.save()
         dismiss()
-        Task {
-            if wasPublic {
-                try? await syncService.unpublishSharedTrip(tripID: routeID)
-            }
-            try? await syncService.delete(walkRouteID: routeID, userID: userID)
-        }
+        Task { try? await syncService.delete(walkRouteID: routeID, userID: userID) }
     }
 
-    /// 既に「みんなの時空旅」に公開済みなら、名前・感想の変更を公開データにも反映する。
-    /// 名前・感想を変えた時、自分用の記録（`users/{uid}/walkRoutes`）と、公開中なら
-    /// 公開データの両方に反映する（Webの「My Trips」にも同じ内容が出るように）。
+    /// 名前・感想を変えた時、クラウドの旅（`users/{uid}/walkRoutes`）に反映する。
+    /// Webの「My Trips」にも、公開中なら「みんなの時空旅」にも、同じ内容が出る。
     private func syncEditedDetails() async {
         try? await syncService.upload(route, userID: authService.userID)
-        await resyncSharedTripIfNeeded()
-    }
-
-    private func resyncSharedTripIfNeeded() async {
-        let details = checkpointDetailTexts()
-        await syncService.resyncSharedTripIfNeeded(
-            route,
-            userID: authService.userID,
-            ownerDisplayName: authService.displayName,
-            stamps: stampsForRoute,
-            photoPosts: photoPostsForRoute,
-            checkpointDetails: details
-        )
-        await syncCheckpointDetailsToPrivateCloud(details: details)
-    }
-
-    /// 巡った御朱印の説明文を、公開・非公開に関わらず自分用のプライベート同期
-    /// （`users/{uid}/stamps`）にも書き込む。サインインしてWebの「My Trips」を
-    /// 見た時にも、御朱印の説明が（公開していない時空旅でも）表示されるようにするため。
-    private func syncCheckpointDetailsToPrivateCloud(details: [String: String]) async {
-        guard !details.isEmpty else { return }
-        let userID = authService.userID
-        for stamp in stampsForRoute {
-            guard let detail = details[stamp.siteID] else { continue }
-            try? await syncService.upload(stamp, userID: userID, detail: detail)
-        }
     }
 
     /// 現在の公開状態（公開・自分だけ・非表示の3段階）。
@@ -834,19 +797,15 @@ struct WalkRouteDetailView: View {
 
         let shouldBePublic = visibility == .publicShared
         if shouldBePublic != route.isSharedPublicly {
-            let details = checkpointDetailTexts()
             do {
                 try await syncService.setPubliclyShared(
                     route,
                     isShared: shouldBePublic,
                     userID: authService.userID,
-                    ownerDisplayName: authService.displayName,
                     stamps: stampsForRoute,
                     photoPosts: photoPostsForRoute,
-                    checkpointDetails: details
+                    checkpointDetails: checkpointDetailTexts()
                 )
-                route.isSharedPublicly = shouldBePublic
-                await syncCheckpointDetailsToPrivateCloud(details: details)
             } catch {
                 shareErrorMessage = "共有の変更に失敗しました: \(error.localizedDescription)"
                 isUpdatingShare = false

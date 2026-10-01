@@ -32,9 +32,6 @@ final class WalkPhotoPost {
     var storyUpdatedAt: Date?
     /// Firebase Storageへアップロード済みの画像URL。未アップロードなら`nil`。
     var cloudPhotoURL: String?
-    /// `true`の間は、この時空旅が「みんなの時空旅」に公開されていても、
-    /// この写真だけは公開データ（`sharedTrips/{id}`のpostPhotos）に含めない。
-    var isHiddenFromSharing: Bool = false
     /// この記録を保存したアカウント（Firebase の uid）。サインインしていない時に保存したものは`nil`。
     /// 「マイ時空旅」「マイ御朱印」などには、今サインインしているアカウントのものだけを出す（`AccountOwned`）。
     var ownerUserID: String?

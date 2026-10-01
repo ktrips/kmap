@@ -11,7 +11,7 @@ import { ADMIN_EMAIL } from "./adminEmail";
  * （firestore.rules で「本人、または`isSharedPublicly == true`なら誰でも読める」）。公開ページに必要な次の項目は、
  * ここ（Cloud Functions）が旅の文書に書き込む。クライアントは旅・御朱印・投稿写真を普段どおり保存するだけでよい。
  *
- * - `tripId`・`ownerUserID`・`ownerDisplayName`（Googleの表示名の先頭6文字）
+ * - `tripId`（旅のIDで探すため）・`ownerDisplayName`（Googleの表示名の先頭6文字）。持ち主のuidは文書の場所から分かる
  * - `stampPhotos`・`postPhotos`: その旅の御朱印・投稿写真（写真のある分。見られるかどうかは旅の公開状況だけで決まる）
  * - `likeCount`・`commentCount`: いいね・コメントの件数（いいね・コメントは`sharedTrips/{tripId}/likes|comments`）
  *
@@ -84,10 +84,13 @@ async function ownerDisplayName(uid: string): Promise<string | null> {
 async function refreshRoute(uid: string, tripId: string, data: admin.firestore.DocumentData): Promise<void> {
   const updates: Record<string, unknown> = {};
   if (data.tripId !== tripId) updates.tripId = tripId;
-  if (data.ownerUserID !== uid) updates.ownerUserID = uid;
   if (data.ownerDisplayName === undefined) updates.ownerDisplayName = await ownerDisplayName(uid);
 
   if (data.isSharedPublicly === true) {
+    // 公開した時点で件数を持たせる（クライアントは件数を数え直さず、旅の文書を読むだけで済む）。
+    if (typeof data.likeCount !== "number" || typeof data.commentCount !== "number") {
+      Object.assign(updates, await countEngagement(tripId));
+    }
     const photos = await buildPublicPhotos(uid, tripId);
     if (JSON.stringify(photos.stampPhotos) !== JSON.stringify(data.stampPhotos ?? [])) {
       updates.stampPhotos = photos.stampPhotos;
@@ -143,19 +146,20 @@ export const onPhotoPostWritten = onDocumentWritten(
  * いいね・コメントの件数を、旅の文書（`likeCount`・`commentCount`）に書く。
  * 増減の差分ではなく毎回数え直すので、取りこぼしや二重実行があっても正しい値に戻る。
  */
-async function recountEngagement(tripId: string): Promise<void> {
+async function countEngagement(tripId: string): Promise<{ likeCount: number; commentCount: number }> {
   const engagement = db().collection("sharedTrips").doc(tripId);
-  const [routes, likes, comments] = await Promise.all([
-    db().collectionGroup("walkRoutes").where("tripId", "==", tripId).limit(1).get(),
+  const [likes, comments] = await Promise.all([
     engagement.collection("likes").count().get(),
     engagement.collection("comments").count().get(),
   ]);
+  return { likeCount: likes.data().count, commentCount: comments.data().count };
+}
+
+async function recountEngagement(tripId: string): Promise<void> {
+  const routes = await db().collectionGroup("walkRoutes").where("tripId", "==", tripId).limit(1).get();
   const route = routes.docs[0];
   if (!route) return;
-  await route.ref.update({
-    likeCount: likes.data().count,
-    commentCount: comments.data().count,
-  });
+  await route.ref.update(await countEngagement(tripId));
 }
 
 export const syncTripLikeCount = onDocumentWritten(
@@ -189,10 +193,6 @@ export const migrateSharedTrips = onCall({ region: REGION, timeoutSeconds: 540 }
     const data = doc.data();
     const uid = data.ownerUserID as string | undefined;
     if (!uid || data.latitudes === undefined) continue; // いいね・コメントだけの（中身の無い）文書は飛ばす。
-    const [likes, comments] = await Promise.all([
-      doc.ref.collection("likes").count().get(),
-      doc.ref.collection("comments").count().get(),
-    ]);
     const route = routeRef(uid, doc.id);
     const existing = await route.get();
     const fromCopy = existing.exists
@@ -217,10 +217,8 @@ export const migrateSharedTrips = onCall({ region: REGION, timeoutSeconds: 540 }
         ...fromCopy,
         isSharedPublicly: true,
         tripId: doc.id,
-        ownerUserID: uid,
         ownerDisplayName: data.ownerDisplayName ?? null,
-        likeCount: likes.data().count,
-        commentCount: comments.data().count,
+        ...(await countEngagement(doc.id)),
       },
       { merge: true },
     );

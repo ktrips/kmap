@@ -1,14 +1,19 @@
-import { collection, getDocs, limit, orderBy, query, type DocumentData } from "firebase/firestore/lite";
+import { collectionGroup, getDocs, limit, orderBy, query, where, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore/lite";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { parseTripFields } from "./tripDocument";
 import type { SharedPhoto, SharedTrip } from "../types/sharedTrip";
 
-/** `sharedTrips/{id}`の1ドキュメントを`SharedTrip`に変換する。単発取得（`useSharedTripById`）とも共有する。 */
-export function parseSharedTripDocument(id: string, data: DocumentData): SharedTrip {
+/**
+ * 公開中の旅（`users/{uid}/walkRoutes/{id}`で`isSharedPublicly == true`のもの）の1件を`SharedTrip`に変換する。
+ * 投稿者名・写真の一覧・件数は Cloud Functions（functions/src/sharedTrips.ts）が旅の文書に書いている。
+ * 単発取得（`useSharedTripById`）とも共有する。
+ */
+export function parseSharedTripDocument(snapshot: QueryDocumentSnapshot<DocumentData>): SharedTrip {
+  const data = snapshot.data();
   return {
-    ...parseTripFields(id, data),
-    ownerUserID: data.ownerUserID ?? "",
+    ...parseTripFields(snapshot.id, data),
+    ownerUserID: data.ownerUserID ?? snapshot.ref.parent.parent?.id ?? "",
     ownerDisplayName: data.ownerDisplayName ?? null,
     stampPhotos: parsePhotos(data.stampPhotos),
     postPhotos: parsePhotos(data.postPhotos),
@@ -34,8 +39,8 @@ function parsePhotos(value: unknown): SharedPhoto[] {
 }
 
 /**
- * 全ユーザーが公開している「みんなの時空旅」（`sharedTrips`）の直近50件を読み込む。
- * サインインしていない訪問者でも見られる（Firestoreルールで`sharedTrips`は公開読み取り可）。
+ * 全ユーザーが公開している「みんなの時空旅」の直近50件を読み込む（全ユーザーの`walkRoutes`から公開中のものを探す）。
+ * サインインしていない訪問者でも見られる（Firestoreルールで、公開中の旅は誰でも読める）。
  *
  * 最初に読み込む量を減らすため、リアルタイム購読（完全版のFirestoreが必要）ではなく軽量版で1回読み、
  * タブに戻ってきた時（5分以上たっていれば）に読み直す。
@@ -57,10 +62,17 @@ export function useSharedTrips() {
       loadedAt = Date.now();
       setIsLoading(true);
       setError(null);
-      getDocs(query(collection(firestore, "sharedTrips"), orderBy("startedAt", "desc"), limit(50)))
+      getDocs(
+        query(
+          collectionGroup(firestore, "walkRoutes"),
+          where("isSharedPublicly", "==", true),
+          orderBy("startedAt", "desc"),
+          limit(50),
+        ),
+      )
         .then((snapshot) => {
           if (cancelled) return;
-          setTrips(snapshot.docs.map((doc) => parseSharedTripDocument(doc.id, doc.data())));
+          setTrips(snapshot.docs.map(parseSharedTripDocument));
           setIsLoading(false);
         })
         .catch((err: unknown) => {

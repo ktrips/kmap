@@ -2,7 +2,7 @@ import PhotosUI
 import SwiftUI
 
 /// チェックインと投稿写真の詳細で共通の、写真の下の表示と操作。
-/// 1行目: 日付（左寄せ）と、公開／非公開・削除（右寄せ）。
+/// 1行目: 日付（左寄せ）と、削除（右寄せ）。写真が見られる人は、旅の公開状況だけで決まる。
 /// 2行目: 写真を変更・連携カメラ・連携プリントを横一線に並べる。
 /// 両画面で並びと見た目をそろえるために共有する。
 struct PhotoDetailActionRow: View {
@@ -13,9 +13,7 @@ struct PhotoDetailActionRow: View {
     var showsLinkedCamera: Bool
     var showsPrint: Bool
     var isPrinting: Bool
-    var isHidden: Bool
-    var isUpdatingVisibility: Bool
-    /// 「公開／非公開」「削除」を出すか（写真がある時だけ意味がある）。
+    /// 「削除」を出すか（写真がある時だけ意味がある）。
     var showsRemoveActions: Bool
     /// 写真の追加・変更が Komap Plus 限定で、今は使えない（無料版）か。
     /// `true`の時は「写真を追加」「連携カメラ」に鍵マークを付ける（押すと`onChange`等が呼ばれ、
@@ -24,7 +22,6 @@ struct PhotoDetailActionRow: View {
     var onChange: () -> Void
     var onLinkedCamera: () -> Void
     var onPrint: () -> Void
-    var onToggleHidden: () -> Void
     var onDelete: () -> Void
 
     var body: some View {
@@ -37,18 +34,6 @@ struct PhotoDetailActionRow: View {
                 Spacer(minLength: 8)
 
                 if showsRemoveActions {
-                    Button(action: onToggleHidden) {
-                        if isUpdatingVisibility {
-                            ProgressView()
-                        } else {
-                            Label(
-                                isHidden ? "非公開" : "公開",
-                                systemImage: isHidden ? "eye.slash.fill" : "eye"
-                            )
-                        }
-                    }
-                    .disabled(isUpdatingVisibility)
-
                     Button(role: .destructive, action: onDelete) {
                         Label("削除", systemImage: "trash")
                     }

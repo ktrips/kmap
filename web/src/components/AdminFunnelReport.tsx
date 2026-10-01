@@ -5,7 +5,7 @@ import { useAdminFunnelReport } from "../lib/useAdminFunnelReport";
  * 管理者（`AuthenticatedApp`から、サインイン中のメールアドレスが一致する時だけ）
  * に表示する、Web経由のユーザーがどの利用フェーズにいるかのレポート。
  * データは既存のFirestore（Firebase Authのユーザー数・walkRoutes・stamps・
- * sharedTrips）から`getAdminFunnelReport`が集計したものを使う。
+ * 公開中の旅）から`getAdminFunnelReport`が集計したものを使う。
  */
 /** `children`は、レポートの下に並べる管理者用の操作（プロモユーザーの登録など）。 */
 export function AdminFunnelReport({ children }: { children?: ReactNode }) {

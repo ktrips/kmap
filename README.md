@@ -328,6 +328,14 @@ flowchart LR
   `firebase deploy --only firestore:rules,storage`で反映する）
 - Googleでサインインすると、保存した地点・御朱印・時間旅（歩いたルート）・投稿写真がクラウド
   （Firestore）に同期され、Webアプリからも同じ記録を閲覧できる
+- **データの置き場所**: 旅・御朱印・投稿写真・物語の正本はクラウドの`users/{uid}/…`（写真は本人のStorageの1か所）。
+  iOSアプリの端末のデータは控えで、保存したらクラウドに上げ、起動・サインイン・「マイ時空旅」を開いた時に
+  クラウドから取り込む（`AccountOwnership.restoreFromCloud`）。同じGoogleアカウントなら、iOS・Web・他のスマホで同じ旅が見える
+- **公開（みんなの時空旅）**: 旅の文書の`isSharedPublicly`だけで切り替える。ルールで「本人、または公開中なら誰でも
+  （サインインなしでも）読める」にしており、公開用のコピーは作らない。御朱印・投稿写真が見られるかは旅の公開状況に従う。
+  公開ページに必要な投稿者名・写真の一覧・いいね/コメントの件数は、Cloud Functions（`functions/src/sharedTrips.ts`）が
+  旅の文書に書き込む。一覧は全ユーザーの`walkRoutes`から公開中のものを探す（コレクショングループクエリ、
+  インデックスは`firebase/firestore.indexes.json`）。いいね・コメントは`sharedTrips/{tripId}/likes|comments`
 - iOSアプリの「マイ時空旅」「マイ御朱印」・ポイント・地図の軌跡と獲得済みの御朱印には、サインイン中のアカウントで
   保存した記録だけを出す（旅・御朱印・投稿写真の`ownerUserID`、`AccountOwned`）。サインインしていない間は、
   サインインせずに保存した記録だけが見える。この項目を持つ前の記録は、サインインした時に一度だけ、

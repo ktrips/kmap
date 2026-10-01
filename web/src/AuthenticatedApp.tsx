@@ -51,9 +51,9 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
   const [selectedMap, setSelectedMap] = useState<OldMapEntry | null>(null);
   const [isKindleOpen, setIsKindleOpen] = useKindleDeepLink();
   const isAdmin = user.email === ADMIN_EMAIL;
-  // 「時空旅」タブは、自分の記録と他ユーザーが公開した時空旅（sharedTrips）の
-  // 両方を並べる。自分の記録のうち公開中のものは、同じidが`sharedTrips`にも
-  // 存在するため、重複して2件表示されないよう自分のID分は`sharedTrips`側から
+  // 「時空旅」タブは、自分の記録と他ユーザーが公開した時空旅の
+  // 両方を並べる。自分の記録のうち公開中のものは、公開中の旅の一覧にも
+  // 含まれるため、重複して2件表示されないよう自分のID分は公開中の旅の一覧から
   // 除外してから合流させる。共有されている（＝自分の公開中の記録、または
   // 他ユーザーの記録）ことは、一覧側で🌐アイコンとして示す。
   const sharedTripIDs = useMemo(() => new Set(sharedTrips.map((trip) => trip.id)), [sharedTrips]);

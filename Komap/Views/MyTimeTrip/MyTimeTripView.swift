@@ -509,19 +509,13 @@ struct MyTimeTripView: View {
         )
     }
 
-    /// 時間旅を削除する。公開中だった場合は「みんなの時空旅」からも取り除き、
-    /// クラウド側（`users/{uid}/walkRoutes/{id}`）のコピーも削除する。
+    /// 時間旅を削除する。クラウドの旅（`users/{uid}/walkRoutes/{id}`）も消すので、
+    /// 公開中だった場合も「みんなの時空旅」から見えなくなる。
     private func delete(_ route: WalkRoute) {
         let routeID = route.id
-        let wasPublic = route.isSharedPublicly
         let userID = authService.userID
         modelContext.delete(route)
-        Task {
-            if wasPublic {
-                try? await syncService.unpublishSharedTrip(tripID: routeID)
-            }
-            try? await syncService.delete(walkRouteID: routeID, userID: userID)
-        }
+        Task { try? await syncService.delete(walkRouteID: routeID, userID: userID) }
     }
 
     private func delete(_ place: SavedPlace) {

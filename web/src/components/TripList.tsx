@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import type { UnifiedTrip } from "../types/unifiedTrip";
 import { distanceLabel, tripDateFormatter as dateFormatter } from "../lib/format";
 import { findOldMap } from "../lib/oldMapCatalog";
-import { useTripEngagementCountsMap } from "../lib/useTripEngagementCounts";
 import { compareTrips, TRIP_REGION_BADGE, tripRegion } from "../lib/tripRegion";
 
 interface Props {
@@ -50,25 +49,11 @@ function TripMetaLine({ trip, counts }: { trip: UnifiedTrip; counts: Engagement 
  * 各旅の名前の横にリージョン（Japan・Europeなど）を小さく添える。
  */
 export function TripList({ trips, selectedId, onSelect }: Props) {
-  // いいね・コメントは公開中の旅にしか付かない。公開データに件数（Cloud Functionsが書く）がある旅は
-  // それを使い、まだ無い旅だけ集計クエリで数える。
-  const idsToCount = useMemo(
-    () =>
-      trips
-        .filter((trip) => (trip.kind === "shared" || trip.isShared) && (trip.likeCount === null || trip.commentCount === null))
-        .map((trip) => trip.id),
+  // いいね・コメントの件数は、公開中の旅の文書に Cloud Functions が書いている（functions/src/sharedTrips.ts）。
+  const engagement = useMemo(
+    () => new Map(trips.map((trip) => [trip.id, { likeCount: trip.likeCount ?? 0, commentCount: trip.commentCount ?? 0 }])),
     [trips],
   );
-  const counted = useTripEngagementCountsMap(idsToCount);
-  const engagement = useMemo(() => {
-    const map = new Map(counted);
-    for (const trip of trips) {
-      if (trip.likeCount !== null && trip.commentCount !== null) {
-        map.set(trip.id, { likeCount: trip.likeCount, commentCount: trip.commentCount });
-      }
-    }
-    return map;
-  }, [counted, trips]);
 
   const sortedTrips = useMemo(
     () => [...trips].sort(compareTrips("likes", (id) => engagement.get(id)?.likeCount ?? 0)),

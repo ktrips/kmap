@@ -15,7 +15,7 @@ export function toDate(value: unknown, fallback: Date | null): Date | null {
 }
 
 /**
- * `users/{uid}/walkRoutes/{id}`と`sharedTrips/{id}`に共通する項目を読み取る。
+ * `users/{uid}/walkRoutes/{id}`の項目を読み取る（自分の旅・公開中の旅で共通）。
  * どちらもiOSアプリ（`SyncService`）が同じ項目名で書き込むため、読み取りもここに1本化する。
  */
 export function parseTripFields(id: string, data: DocumentData): WalkTrip {
