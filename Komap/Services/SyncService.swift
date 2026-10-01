@@ -88,6 +88,7 @@ struct SyncService {
             "era": place.era,
             "storyText": place.storyText,
             "createdAt": Timestamp(date: place.createdAt),
+            "updatedAt": FieldValue.serverTimestamp(),
         ]
 
         try await placesCollection(for: userID)
@@ -131,6 +132,8 @@ struct SyncService {
             "walkRouteID": stamp.walkRouteID?.uuidString as Any? ?? NSNull(),
             // 公開ページ（Cloud Functions が作る写真の一覧）で使う史跡名。
             "siteName": HistoricSiteCatalog.site(withID: stamp.siteID)?.name ?? "御朱印",
+            // 別の端末が、前回の同期の後に変わった分だけを読む（`CloudSync`）ための時刻。
+            "updatedAt": FieldValue.serverTimestamp(),
         ]
         if let detail, !detail.isEmpty {
             data["detail"] = detail
@@ -198,6 +201,7 @@ struct SyncService {
             "storyTitle": post.storyTitle as Any? ?? NSNull(),
             "storyBody": post.storyBody as Any? ?? NSNull(),
             "storyUpdatedAt": post.storyUpdatedAt.map(Timestamp.init(date:)) as Any? ?? NSNull(),
+            "updatedAt": FieldValue.serverTimestamp(),
         ]
 
         try await photoPostsCollection(for: userID)
@@ -248,6 +252,7 @@ struct SyncService {
             "travelJournalMarkdown": route.travelJournalMarkdownWithVideoLink as Any? ?? NSNull(),
             "tripVideoURL": route.tripVideoURL as Any? ?? NSNull(),
             "travelJournalGeneratedAt": route.travelJournalGeneratedAt.map { Timestamp(date: $0) } as Any? ?? NSNull(),
+            "updatedAt": FieldValue.serverTimestamp(),
         ]
         var payload = data
         if let detailsUpdatedAt = route.detailsUpdatedAt {
@@ -268,13 +273,18 @@ struct SyncService {
     }
 
     /// このアカウントのクラウドにある旅・御朱印・投稿写真・物語の文書（IDと中身）。
-    /// 端末の記録とクラウドを合わせる（`CloudSync`）のに使う。
-    func fetchCloudRecords(userID: String) async throws -> CloudRecords {
+    /// 端末の記録とクラウドを合わせる（`CloudSync`）のに使う。`changedSince`を渡すと、その時刻より後に
+    /// 変わった（`updatedAt`が新しい）文書だけを読む（旅は軌跡の座標を含むので、毎回全件は読まない）。
+    func fetchCloudRecords(userID: String, changedSince: Date? = nil) async throws -> CloudRecords {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
-        async let routes = walkRoutesCollection(for: userID).getDocuments()
-        async let stamps = stampsCollection(for: userID).getDocuments()
-        async let posts = photoPostsCollection(for: userID).getDocuments()
-        async let places = placesCollection(for: userID).getDocuments()
+        func changed(_ collection: CollectionReference) async throws -> QuerySnapshot {
+            guard let changedSince else { return try await collection.getDocuments() }
+            return try await collection.whereField("updatedAt", isGreaterThan: Timestamp(date: changedSince)).getDocuments()
+        }
+        async let routes = changed(walkRoutesCollection(for: userID))
+        async let stamps = changed(stampsCollection(for: userID))
+        async let posts = changed(photoPostsCollection(for: userID))
+        async let places = changed(placesCollection(for: userID))
         func records(_ snapshot: QuerySnapshot) -> [String: [String: Any]] {
             Dictionary(snapshot.documents.map { ($0.documentID, $0.data()) }, uniquingKeysWith: { first, _ in first })
         }

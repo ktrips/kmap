@@ -12,20 +12,43 @@ import UIKit
 /// - クラウドにあって端末に無い記録は取り込む（写真は Storage から取ってくる）。
 /// - 両方にある記録は、名前・感想は新しい方（`detailsUpdatedAt`）を残し、公開の印などはクラウドに合わせる。
 ///   持ち主の分からない端末の記録（`ownerUserID`を持つ前に保存したもの）は、このアカウントのものにする。
-/// - 端末にだけある記録は、前回の同期でクラウドにあった（＝他の端末・Webで消された）なら端末からも消し、
-///   一度もクラウドで見ていない（＝まだ上がっていない）なら上げる。
+/// - 端末にだけある記録は、一度もクラウドで見ていない（＝まだ上がっていない）なら上げる。前回までの同期でクラウドに
+///   あった（＝他の端末・Webで消された）なら、全件を読む同期の時に端末からも消す。
+///
+/// 旅は軌跡の座標を含むので、毎回全件は読まない。普段は前回の同期の後に変わった文書（`updatedAt`が新しいもの）だけを
+/// 読み、全件を読む（削除を見分ける）のは1日に1回か、「設定」の「すべてクラウドに同期」を押した時だけ。
 @MainActor
 enum CloudSync {
-    /// 直近に同期した時刻（アカウントごと）。画面を開くたびに全件を読み直さないよう、短い間は省く。
+    /// 直近に同期した時刻（アカウントごと）。画面を開くたびに読み直さないよう、短い間は省く。
     private static var lastSyncedAt: [String: Date] = [:]
     private static let minimumInterval: TimeInterval = 60
+    /// 全件を読む（削除を見分ける）間隔。
+    private static let fullSyncInterval: TimeInterval = 24 * 60 * 60
+    /// 端末とサーバーの時計のずれや、書き込みの遅れで取りこぼさないよう、前回の時刻より少し前から読む。
+    private static let changedSinceMargin: TimeInterval = 5 * 60
 
+    /// - Parameters:
+    ///   - force: 直近に同期したばかりでも同期する。
+    ///   - full: 全件を読み、他の端末・Webで消された記録も端末から消す（1日以上たっていれば自動で全件）。
     /// - Returns: 端末に新しく取り込んだ件数。クラウドを読めなかった時は`nil`。
     @discardableResult
-    static func sync(userID: String, context: ModelContext, syncService: SyncService = SyncService(), force: Bool = false) async -> Int? {
+    static func sync(
+        userID: String,
+        context: ModelContext,
+        syncService: SyncService = SyncService(),
+        force: Bool = false,
+        full: Bool = false
+    ) async -> Int? {
         if !force, let last = lastSyncedAt[userID], Date().timeIntervalSince(last) < minimumInterval { return 0 }
-        guard let cloud = try? await syncService.fetchCloudRecords(userID: userID) else { return nil }
-        lastSyncedAt[userID] = Date()
+        let defaults = UserDefaults.standard
+        let lastFullKey = "cloudSync.lastFull.\(userID)", lastChangedKey = "cloudSync.lastChanged.\(userID)"
+        let lastFull = defaults.object(forKey: lastFullKey) as? Date
+        let isFull = full || lastFull.map { Date().timeIntervalSince($0) > fullSyncInterval } ?? true
+        let changedSince = isFull ? nil : (defaults.object(forKey: lastChangedKey) as? Date ?? lastFull)?
+            .addingTimeInterval(-changedSinceMargin)
+        let startedAt = Date()
+        guard let cloud = try? await syncService.fetchCloudRecords(userID: userID, changedSince: changedSince) else { return nil }
+        lastSyncedAt[userID] = startedAt
         var imported = 0
 
         // 旅
@@ -37,7 +60,7 @@ enum CloudSync {
                 if merge(route, with: data) { try? await syncService.upload(route, userID: userID, checkRemoteDetails: false) }
             } else if route.ownerUserID == userID {
                 if seenRoutes.contains(key) {
-                    context.delete(route)
+                    if isFull { context.delete(route) }
                 } else if (try? await syncService.upload(route, userID: userID, checkRemoteDetails: false)) != nil {
                     seenRoutes.insert(key)
                 }
@@ -60,8 +83,10 @@ enum CloudSync {
                 stamp.ownerUserID = userID
             } else if stamp.ownerUserID == userID {
                 if seenStamps.contains(key) {
-                    stamp.updatePhoto(nil)
-                    context.delete(stamp)
+                    if isFull {
+                        stamp.updatePhoto(nil)
+                        context.delete(stamp)
+                    }
                 } else {
                     await syncService.uploadTripContents(stamps: [stamp], photoPosts: [], userID: userID)
                     seenStamps.insert(key)
@@ -85,8 +110,10 @@ enum CloudSync {
                 post.ownerUserID = userID
             } else if post.ownerUserID == userID {
                 if seenPosts.contains(key) {
-                    StampPhotoStore.delete(post.photoFileName)
-                    context.delete(post)
+                    if isFull {
+                        StampPhotoStore.delete(post.photoFileName)
+                        context.delete(post)
+                    }
                 } else {
                     await syncService.uploadTripContents(stamps: [], photoPosts: [post], userID: userID)
                     seenPosts.insert(key)
@@ -110,7 +137,7 @@ enum CloudSync {
                 place.ownerUserID = userID
             } else if place.ownerUserID == userID {
                 if seenPlaces.contains(key) {
-                    context.delete(place)
+                    if isFull { context.delete(place) }
                 } else if (try? await syncService.upload(place, userID: userID)) != nil {
                     seenPlaces.insert(key)
                 }
@@ -127,6 +154,8 @@ enum CloudSync {
 
         try? context.save()
         [seenRoutes, seenStamps, seenPosts, seenPlaces].forEach { $0.save() }
+        defaults.set(startedAt, forKey: lastChangedKey)
+        if isFull { defaults.set(startedAt, forKey: lastFullKey) }
         return imported
     }
 

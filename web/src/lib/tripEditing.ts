@@ -12,6 +12,12 @@ export async function saveTripDetails(
 ): Promise<void> {
   if (!db) return;
   // `detailsUpdatedAt`: iOSアプリはこの日時と端末側の変更日時を比べ、新しい方の名前・感想を残す。
-  const payload = { title: updates.title, notes: updates.description, detailsUpdatedAt: serverTimestamp() };
+  // `updatedAt`: iOSアプリは、前回の同期の後に変わった分だけを読む（CloudSync）。
+  const payload = {
+    title: updates.title,
+    notes: updates.description,
+    detailsUpdatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
   await updateDoc(doc(db, "users", userID, "walkRoutes", tripId), payload);
 }

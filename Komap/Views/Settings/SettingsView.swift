@@ -312,7 +312,7 @@ struct SettingsView: View {
         isSyncing = true
         syncMessage = nil
         CloudSync.adoptUnownedRecords(userID: userID, context: modelContext)
-        if let imported = await CloudSync.sync(userID: userID, context: modelContext, syncService: syncService, force: true) {
+        if let imported = await CloudSync.sync(userID: userID, context: modelContext, syncService: syncService, force: true, full: true) {
             let stamps = ((try? modelContext.fetch(FetchDescriptor<CollectedStamp>())) ?? []).owned(by: userID)
             await syncService.uploadTripContents(
                 stamps: stamps,

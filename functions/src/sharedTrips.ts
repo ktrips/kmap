@@ -80,13 +80,21 @@ async function ownerDisplayName(uid: string): Promise<string | null> {
   }
 }
 
-/** 旅の文書に、公開ページ用の項目を書き込む。値が変わらない時は書かない（自分自身のトリガーの繰り返しを止める）。 */
-async function refreshRoute(uid: string, tripId: string, data: admin.firestore.DocumentData): Promise<void> {
+/**
+ * 旅の文書に、公開ページ用の項目を書き込む。値が変わらない時は書かない（自分自身のトリガーの繰り返しを止める）。
+ * 写真の一覧・件数は、公開中で`rebuildPhotos`の時だけ読み直す（旅の名前を変えただけの時などは読まない）。
+ */
+async function refreshRoute(
+  uid: string,
+  tripId: string,
+  data: admin.firestore.DocumentData,
+  rebuildPhotos: boolean,
+): Promise<void> {
   const updates: Record<string, unknown> = {};
   if (data.tripId !== tripId) updates.tripId = tripId;
   if (data.ownerDisplayName === undefined) updates.ownerDisplayName = await ownerDisplayName(uid);
 
-  if (data.isSharedPublicly === true) {
+  if (data.isSharedPublicly === true && rebuildPhotos) {
     // 公開した時点で件数を持たせる（クライアントは件数を数え直さず、旅の文書を読むだけで済む）。
     if (typeof data.likeCount !== "number" || typeof data.commentCount !== "number") {
       Object.assign(updates, await countEngagement(tripId));
@@ -109,7 +117,11 @@ export const onWalkRouteWritten = onDocumentWritten(
   async (event) => {
     const data = event.data?.after.data();
     if (!data) return; // 削除された旅は、文書ごと見えなくなるので何もしない。
-    await refreshRoute(event.params.uid, event.params.tripId, data);
+    // 写真の一覧・件数を作るのは、新しく公開された時（または一覧がまだ無い時）だけ。
+    // 公開中の写真の変化は、御朱印・投稿写真のトリガー（refreshRoutesOf）が反映する。
+    const becamePublic = data.isSharedPublicly === true && event.data?.before.get("isSharedPublicly") !== true;
+    const missingPhotos = data.stampPhotos === undefined || data.postPhotos === undefined;
+    await refreshRoute(event.params.uid, event.params.tripId, data, becamePublic || missingPhotos);
   },
 );
 
@@ -118,7 +130,8 @@ async function refreshRoutesOf(uid: string, walkRouteIDs: (string | undefined)[]
   for (const tripId of new Set(walkRouteIDs.filter((id): id is string => typeof id === "string" && id.length > 0))) {
     const route = await routeRef(uid, tripId).get();
     const data = route.data();
-    if (data) await refreshRoute(uid, tripId, data);
+    // 非公開の旅は公開ページが無いので、何もしない（公開した時に旅のトリガーが作る）。
+    if (data?.isSharedPublicly === true) await refreshRoute(uid, tripId, data, true);
   }
 }
 
