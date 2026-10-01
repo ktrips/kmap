@@ -211,9 +211,10 @@ struct MyTimeTripView: View {
             .sheet(isPresented: $isPresentingGPXImport) {
                 GPXImportSheet()
             }
-            // Webで変えた時空旅の名前・感想を、開くたびに取り込む。
+            // 開くたびに、同じアカウントで別の端末に記録した旅と、Webで変えた時空旅の名前・感想を取り込む。
             .task(id: authService.userID) {
                 guard let userID = authService.userID else { return }
+                await AccountOwnership.restoreFromCloud(userID: userID, context: modelContext, syncService: syncService)
                 if (try? await syncService.pullWalkRouteDetails(into: walkRoutes, userID: userID)) ?? 0 > 0 {
                     try? modelContext.save()
                 }

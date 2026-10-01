@@ -338,7 +338,7 @@ struct SettingsView: View {
         isSyncing = false
     }
 
-    /// サインイン直後に、クラウド側にだけある地点（他の端末やWebから同期されたもの）を
+    /// サインイン直後に、クラウド側にだけある地点・旅・御朱印・投稿写真（他の端末やWebから同期されたもの）を
     /// ローカルにも取り込む。
     private func pullFromCloud() async {
         guard let userID = authService.userID else { return }
@@ -362,15 +362,8 @@ struct SettingsView: View {
                 modelContext.insert(place)
             }
 
-            let localStamps = try modelContext.fetch(FetchDescriptor<CollectedStamp>())
-            let localStampIDs = Set(localStamps.map(\.id))
-            let remoteStamps = try await syncService.fetchAllStamps(userID: userID)
-            for remote in remoteStamps {
-                guard let remoteUUID = UUID(uuidString: remote.id), !localStampIDs.contains(remoteUUID) else { continue }
-                let stamp = CollectedStamp(id: remoteUUID, siteID: remote.siteID, collectedAt: remote.collectedAt)
-                stamp.ownerUserID = userID
-                modelContext.insert(stamp)
-            }
+            // 旅・御朱印・投稿写真（別の端末で記録したものを含む）を取り込む。
+            await AccountOwnership.restoreFromCloud(userID: userID, context: modelContext, syncService: syncService, force: true)
 
             let localRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>()).owned(by: userID)
             try await syncService.pullWalkRouteDetails(into: localRoutes, userID: userID)

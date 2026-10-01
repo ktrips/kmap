@@ -289,6 +289,23 @@ struct SyncService {
         try await document.setData(payload, merge: true)
     }
 
+    /// このアカウントのクラウドにある旅・御朱印・投稿写真の文書（IDと中身）。
+    /// 別の端末で記録したものを、この端末にも取り込む（`CloudRestore`）のに使う。
+    func fetchCloudRecords(userID: String) async throws -> (
+        routes: [(id: String, data: [String: Any])],
+        stamps: [(id: String, data: [String: Any])],
+        photoPosts: [(id: String, data: [String: Any])]
+    ) {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        async let routes = walkRoutesCollection(for: userID).getDocuments()
+        async let stamps = stampsCollection(for: userID).getDocuments()
+        async let posts = photoPostsCollection(for: userID).getDocuments()
+        func records(_ snapshot: QuerySnapshot) -> [(id: String, data: [String: Any])] {
+            snapshot.documents.map { (id: $0.documentID, data: $0.data()) }
+        }
+        return try await (records(routes), records(stamps), records(posts))
+    }
+
     /// Webで変えた時空旅の名前・感想を、端末の記録に取り込む。
     ///
     /// 名前・感想を最後に変えた日時（`detailsUpdatedAt`）を比べて新しい方を残す。
@@ -298,18 +315,6 @@ struct SyncService {
     /// - Returns: 端末の記録を書き換えた件数。
     @MainActor
     @discardableResult
-    /// このアカウントのクラウドにある旅・御朱印・投稿写真のID。端末の記録の持ち主を決める（`AccountOwnership`）のに使う。
-    func fetchCloudRecordIDs(userID: String) async throws -> (routes: Set<UUID>, stamps: Set<UUID>, photoPosts: Set<UUID>) {
-        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
-        async let routes = walkRoutesCollection(for: userID).getDocuments()
-        async let stamps = stampsCollection(for: userID).getDocuments()
-        async let posts = photoPostsCollection(for: userID).getDocuments()
-        func ids(_ snapshot: QuerySnapshot) -> Set<UUID> {
-            Set(snapshot.documents.compactMap { UUID(uuidString: $0.documentID) })
-        }
-        return try await (ids(routes), ids(stamps), ids(posts))
-    }
-
     func pullWalkRouteDetails(into routes: [WalkRoute], userID: String) async throws -> Int {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         let snapshot = try await walkRoutesCollection(for: userID).getDocuments()
