@@ -38,6 +38,8 @@ struct CheckpointInfoSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var plusStore: PlusStore
+    @EnvironmentObject private var authService: AuthService
+    private let syncService = SyncService()
     /// 無料の3か所を使い切っていて、まだ詳細を作っていない場所を開いた時は`true`
     /// （AIには問い合わせず、Komap Plus の案内を出す）。
     @State private var isLockedByPlus = false
@@ -280,6 +282,22 @@ struct CheckpointInfoSheet: View {
             )
             modelContext.insert(story)
         }
+        uploadDetailToStamps(newBody)
+    }
+
+    /// このチェックポイントで獲得した自分の御朱印に、説明文を添えてクラウドへ上げる
+    /// （Webの旅日記・公開ページの御朱印にも、同じ説明が出るようにする）。
+    private func uploadDetailToStamps(_ detail: String) {
+        guard let userID = authService.userID else { return }
+        let siteID = site.id
+        let descriptor = FetchDescriptor<CollectedStamp>(predicate: #Predicate { $0.siteID == siteID && $0.ownerUserID == userID })
+        let stamps = (try? modelContext.fetch(descriptor)) ?? []
+        guard !stamps.isEmpty else { return }
+        Task {
+            for stamp in stamps {
+                try? await syncService.upload(stamp, userID: userID, detail: detail)
+            }
+        }
     }
 }
 
@@ -325,6 +343,7 @@ private struct CheckpointStoryEditView: View {
         site: HistoricSiteCatalog.all[0],
         overlayMap: OldMapCatalog.edoCastle
     )
-    .modelContainer(for: [CheckpointStory.self], inMemory: true)
+    .modelContainer(for: [CheckpointStory.self, CollectedStamp.self], inMemory: true)
     .environmentObject(PlusStore())
+    .environmentObject(AuthService())
 }

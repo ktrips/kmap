@@ -11,7 +11,6 @@ struct EveryoneTimeTripView: View {
     @State private var selectedTrip: RemoteSharedTrip?
     @State private var leaderboard: [RemoteUserStats] = []
     /// 旅ごとのいいねの数（いいね順に並べるために、一覧を読み込んだ後にまとめて数える）。
-    @State private var likeCounts: [String: Int] = [:]
     @State private var sortOrder: TripSortOrder = AppSettings.tripSortOrder
 
     private let syncService = SyncService()
@@ -68,7 +67,7 @@ struct EveryoneTimeTripView: View {
                                 .font(.headline)
                                 .padding(.top, 12)
                             ForEach(group.trips) { trip in
-                                SharedTripRow(trip: trip, likeCount: likeCounts[trip.id])
+                                SharedTripRow(trip: trip, likeCount: trip.likeCount)
                                     .padding(.vertical, 8)
                                     .contentShape(Rectangle())
                                     .onTapGesture {
@@ -102,32 +101,6 @@ struct EveryoneTimeTripView: View {
         }
         leaderboard = (try? await leaderboardResult) ?? []
         isLoading = false
-        await loadLikeCounts()
-    }
-
-    /// 一覧の旅のいいねの数。公開データに件数（Cloud Functionsが書く）がある旅はそれを使い、
-    /// まだ無い旅だけ集計クエリで並行して数える。
-    private func loadLikeCounts() async {
-        var known: [String: Int] = [:]
-        for trip in trips {
-            if let likeCount = trip.likeCount { known[trip.id] = likeCount }
-        }
-        likeCounts = known
-        let ids = trips.filter { $0.likeCount == nil }.map(\.id)
-        guard !ids.isEmpty else { return }
-        let counts = await withTaskGroup(of: (String, Int?).self) { group in
-            for id in ids {
-                group.addTask { [syncService] in
-                    (id, try? await syncService.fetchEngagementCounts(tripID: id).likeCount)
-                }
-            }
-            var result: [String: Int] = [:]
-            for await (id, count) in group {
-                if let count { result[id] = count }
-            }
-            return result
-        }
-        likeCounts.merge(counts) { _, new in new }
     }
 
     /// リージョンごとに分けて、選んだ順番で並べた旅（旅の無いリージョンは出さない）。
@@ -142,7 +115,7 @@ struct EveryoneTimeTripView: View {
     private func isOrderedBefore(_ a: RemoteSharedTrip, _ b: RemoteSharedTrip) -> Bool {
         switch sortOrder {
         case .likes:
-            let la = likeCounts[a.id] ?? 0, lb = likeCounts[b.id] ?? 0
+            let la = a.likeCount ?? 0, lb = b.likeCount ?? 0
             if la != lb { return la > lb }
             if a.startedAt != b.startedAt { return a.startedAt > b.startedAt }
             return a.totalDistanceMeters > b.totalDistanceMeters

@@ -416,10 +416,14 @@ struct SyncService {
     /// Webアプリと同じコレクションを見るため、Webで付けた分もそのまま件数に含まれる。
     func fetchEngagementCounts(tripID: String) async throws -> (likeCount: Int, commentCount: Int) {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
-        async let likeAggregate = likesCollection(tripID: tripID).count.getAggregation(source: .server)
-        async let commentAggregate = commentsCollection(tripID: tripID).count.getAggregation(source: .server)
-        let (likes, comments) = try await (likeAggregate, commentAggregate)
-        return (likes.count.intValue, comments.count.intValue)
+        // 件数は Cloud Functions が公開中の旅の文書に書いている（functions/src/sharedTrips.ts）。
+        let snapshot = try await Firestore.firestore().collectionGroup("walkRoutes")
+            .whereField("tripId", isEqualTo: tripID)
+            .whereField("isSharedPublicly", isEqualTo: true)
+            .limit(to: 1)
+            .getDocuments()
+        let data = snapshot.documents.first?.data()
+        return (data?["likeCount"] as? Int ?? 0, data?["commentCount"] as? Int ?? 0)
     }
 
     // MARK: - ランキング（userPublicStats）

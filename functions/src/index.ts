@@ -412,5 +412,5 @@ export {
   onPhotoPostWritten,
   syncTripLikeCount,
   syncTripCommentCount,
-  migrateSharedTrips,
+  cleanupLegacySharedTrips,
 } from "./sharedTrips";

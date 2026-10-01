@@ -330,17 +330,21 @@ flowchart LR
   （Firestore）に同期され、Webアプリからも同じ記録を閲覧できる
 - **データの置き場所**: 旅・御朱印・投稿写真・物語の正本はクラウドの`users/{uid}/…`（写真は本人のStorageの1か所）。
   iOSアプリの端末のデータは控えで、保存したらクラウドに上げ、起動・サインイン・「マイ時空旅」を開いた時に
-  クラウドから取り込む（`AccountOwnership.restoreFromCloud`）。同じGoogleアカウントなら、iOS・Web・他のスマホで同じ旅が見える
+  クラウドと合わせる（`CloudSync`: クラウドにしか無いものは取り込み、名前・感想は新しい方、公開の印などはクラウドに
+  合わせる。前回クラウドにあったのに消えたものは端末からも消し、まだ上がっていないものは上げる）。
+  同じGoogleアカウントなら、iOS・Web・他のスマホで同じ旅が見える
 - **公開（みんなの時空旅）**: 旅の文書の`isSharedPublicly`だけで切り替える。ルールで「本人、または公開中なら誰でも
   （サインインなしでも）読める」にしており、公開用のコピーは作らない。御朱印・投稿写真が見られるかは旅の公開状況に従う。
   公開ページに必要な投稿者名・写真の一覧・いいね/コメントの件数は、Cloud Functions（`functions/src/sharedTrips.ts`）が
   旅の文書に書き込む。一覧は全ユーザーの`walkRoutes`から公開中のものを探す（コレクショングループクエリ、
-  インデックスは`firebase/firestore.indexes.json`）。いいね・コメントは`sharedTrips/{tripId}/likes|comments`
-- iOSアプリの「マイ時空旅」「マイ御朱印」・ポイント・地図の軌跡と獲得済みの御朱印には、サインイン中のアカウントで
-  保存した記録だけを出す（旅・御朱印・投稿写真の`ownerUserID`、`AccountOwned`）。サインインしていない間は、
+  インデックスは`firebase/firestore.indexes.json`）。いいね・コメントは`sharedTrips/{tripId}/likes|comments`。
+  Cloud Functions が書く項目（件数・写真の一覧・投稿者名・`tripId`）は、ルールで本人も書き換えられない。
+  以前のiOSアプリが作っていた公開用のコピーは、Webの管理者レポートの「コピーを削除」（`cleanupLegacySharedTrips`）で片付ける
+- iOSアプリの「マイ時空旅」「マイ御朱印」・保存した物語・ポイント・地図の軌跡と獲得済みの御朱印には、サインイン中のアカウントで
+  保存した記録だけを出す（旅・御朱印・投稿写真・物語の`ownerUserID`、`AccountOwned`）。サインインしていない間は、
   サインインせずに保存した記録だけが見える。この項目を持つ前の記録は、サインインした時に一度だけ、
-  クラウド（`users/{uid}/walkRoutes`・`stamps`・`photoPosts`）に同じIDがあるものをそのアカウントのものにする
-  （`AccountOwnership`）。サインインより前に記録していたものは、「設定」の「すべてクラウドに同期」で今のアカウントのものになる
+  クラウド（`users/{uid}/walkRoutes`・`stamps`・`photoPosts`・`places`）に同じIDがあるものをそのアカウントのものにする
+  （`CloudSync`）。サインインより前に記録していたものは、「設定」の「すべてクラウドに同期」で今のアカウントのものになる
 - 御朱印・投稿写真の画像本体はFirebase Storageへ自動アップロードされ、Web側やシェア時にも
   画像そのものを見られる
 - Webアプリの「時空旅」タブは、サインイン後も自分の記録（My Trips）と他ユーザーが

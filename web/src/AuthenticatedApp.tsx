@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { AdminFunnelReport } from "./components/AdminFunnelReport";
-import { AdminMigrateSharedTrips } from "./components/AdminMigrateSharedTrips";
+import { AdminCleanupLegacySharedTrips } from "./components/AdminCleanupLegacySharedTrips";
 import { AdminPromoUsers } from "./components/AdminPromoUsers";
 import { Header } from "./components/Header";
 import { KindleBookModal, useKindleDeepLink } from "./components/KindleBookModal";
@@ -179,7 +179,7 @@ export default function AuthenticatedApp({ user, sharedTrips, onSignOut }: Props
           {tab === "admin" && isAdmin && (
             <AdminFunnelReport>
               <AdminPromoUsers user={user} />
-              <AdminMigrateSharedTrips />
+              <AdminCleanupLegacySharedTrips />
             </AdminFunnelReport>
           )}
         </main>

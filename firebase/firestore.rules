@@ -25,9 +25,19 @@ service cloud.firestore {
     // 公開中の旅は誰でも（サインインしていない訪問者も）読める。公開ページ用の項目（写真の一覧・件数など）は
     // Cloud Functions（functions/src/sharedTrips.ts）が書き込む。
     match /users/{userId}/walkRoutes/{walkRouteId} {
-      allow read: if (request.auth != null && request.auth.uid == userId)
-                    || resource.data.isSharedPublicly == true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Cloud Functions だけが書く項目。本人も含め、クライアントからは書き換えられない（件数の水増しなどを防ぐ）。
+      function functionManagedKeys() {
+        return ['tripId', 'ownerDisplayName', 'stampPhotos', 'postPhotos', 'likeCount', 'commentCount'];
+      }
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow read: if isOwner() || resource.data.isSharedPublicly == true;
+      allow create: if isOwner() && !request.resource.data.keys().hasAny(functionManagedKeys());
+      allow update: if isOwner()
+                      && !request.resource.data.diff(resource.data).affectedKeys().hasAny(functionManagedKeys());
+      allow delete: if isOwner();
     }
 
     // 「みんなの時空旅」の一覧（全ユーザーの旅から公開中のものを探すコレクショングループクエリ）。

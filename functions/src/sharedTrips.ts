@@ -177,53 +177,28 @@ export const syncTripCommentCount = onDocumentWritten(
 );
 
 /**
- * 管理者が一度だけ実行する移行。以前の公開用のコピー（`sharedTrips/{tripId}`の文書）から、
- * 旅の文書に公開の印と公開ページ用の項目を写す。旅の文書が無い（コピーにしか無い）旅は、コピーから作る。
- * 公開用の写真の一覧は、旅の文書を書いた直後に`onWalkRouteWritten`が本人の御朱印・投稿写真から作り直す。
- * 何度実行しても同じ結果になる。
+ * 管理者が実行する後片付け。以前のiOSアプリが作っていた公開用のコピーを消す。
+ * - `sharedTrips/{tripId}`の文書のうち、旅の中身を持つもの（コピー）。いいね・コメント（サブコレクション）は残る。
+ * - Storage の`sharedPhotos/`（写真の複製）のうち、どの公開中の旅の写真の一覧からも使われていないもの。
+ * 古いアプリが残っている間は新しいコピーが作られることがあるので、何度実行してもよい。
  */
-export const migrateSharedTrips = onCall({ region: REGION, timeoutSeconds: 540 }, async (request) => {
+export const cleanupLegacySharedTrips = onCall({ region: REGION, timeoutSeconds: 540 }, async (request) => {
   const token = request.auth?.token;
   if (token?.email !== ADMIN_EMAIL || token?.email_verified !== true) {
     throw new HttpsError("permission-denied", "管理者だけが実行できます。");
   }
-  const legacy = await db().collection("sharedTrips").get();
-  let migrated = 0;
-  for (const doc of legacy.docs) {
-    const data = doc.data();
-    const uid = data.ownerUserID as string | undefined;
-    if (!uid || data.latitudes === undefined) continue; // いいね・コメントだけの（中身の無い）文書は飛ばす。
-    const route = routeRef(uid, doc.id);
-    const existing = await route.get();
-    const fromCopy = existing.exists
-      ? {}
-      : {
-          title: data.title ?? null,
-          notes: data.notes ?? null,
-          latitudes: data.latitudes ?? [],
-          longitudes: data.longitudes ?? [],
-          startedAt: data.startedAt ?? null,
-          endedAt: data.endedAt ?? null,
-          stepCount: data.stepCount ?? null,
-          overlayMapID: data.overlayMapID ?? null,
-          totalDistanceMeters: data.totalDistanceMeters ?? 0,
-          travelJournalTitle: data.travelJournalTitle ?? null,
-          travelJournalMarkdown: data.travelJournalMarkdown ?? null,
-          travelJournalGeneratedAt: data.travelJournalGeneratedAt ?? null,
-          tripVideoURL: data.tripVideoURL ?? null,
-        };
-    await route.set(
-      {
-        ...fromCopy,
-        isSharedPublicly: true,
-        tripId: doc.id,
-        ownerDisplayName: data.ownerDisplayName ?? null,
-        ...(await countEngagement(doc.id)),
-      },
-      { merge: true },
-    );
-    migrated += 1;
-  }
-  logger.info("公開中の旅を移行しました", { migrated });
-  return { migrated };
+  const copies = (await db().collection("sharedTrips").get()).docs.filter((doc) => doc.get("latitudes") !== undefined);
+  await Promise.all(copies.map((doc) => doc.ref.delete()));
+
+  const publicRoutes = await db().collectionGroup("walkRoutes").where("isSharedPublicly", "==", true).get();
+  const usedURLs = publicRoutes.docs
+    .flatMap((doc) => [...(doc.get("stampPhotos") ?? []), ...(doc.get("postPhotos") ?? [])])
+    .map((photo: PublicPhoto) => photo.url)
+    .join("\n");
+  const [files] = await admin.storage().bucket().getFiles({ prefix: "sharedPhotos/" });
+  const unused = files.filter((file) => !usedURLs.includes(encodeURIComponent(file.name)));
+  await Promise.all(unused.map((file) => file.delete()));
+
+  logger.info("以前の公開用のコピーを片付けました", { copies: copies.length, photos: unused.length });
+  return { copies: copies.length, photos: unused.length };
 });
