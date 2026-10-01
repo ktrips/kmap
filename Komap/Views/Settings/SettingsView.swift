@@ -35,7 +35,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                plusSection
                 accountSection
                 overlayOpacitySection
                 recordingSafetySection
@@ -86,30 +85,27 @@ struct SettingsView: View {
         }
     }
 
-    @ViewBuilder
-    /// 一番上の「Komap Plus」。無料版と Plus の比較ページを開く。
-    private var plusSection: some View {
-        Section {
-            Button {
-                isShowingPlus = true
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "seal.fill")
-                        .font(.title2)
-                        .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(plusStore.isPlus ? "Komap Plus 会員です" : "Komap Plus")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Text(plusStore.isPlus ? "特典と登録内容を見る" : "無料版との違いを見る（写真・場所の詳細・旅の動画・Kindle本の全文）")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
+    /// 「アカウント」の中の、Komap Plus 会員かどうかの行。押すと無料版と Plus の比較ページ（登録内容）を開く。
+    private var plusRow: some View {
+        Button {
+            isShowingPlus = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "seal.fill")
+                    .font(.title2)
+                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(plusStore.isPlus ? "Komap Plus 会員です" : "Komap Plus")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(plusStore.isPlus ? "特典と登録内容を見る" : "無料版との違いを見る（写真・場所の詳細・旅の動画・Kindle本の全文）")
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                 }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
         }
     }
@@ -150,6 +146,8 @@ struct SettingsView: View {
                         .foregroundStyle(.red)
                 }
             }
+
+            plusRow
         } header: {
             Text("アカウント / Web連携")
         } footer: {
