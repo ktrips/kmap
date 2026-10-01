@@ -1,4 +1,4 @@
-import { doc, getDoc } from "firebase/firestore/lite";
+import { collectionGroup, getDocs, limit, query, where } from "firebase/firestore/lite";
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { parseSharedTripDocument } from "./useSharedTrips";
@@ -19,10 +19,19 @@ export function useSharedTripById(tripId: string | null, isAlreadyInList: boolea
       return;
     }
     let cancelled = false;
-    getDoc(doc(db, "sharedTrips", tripId))
+    // 旅の文書は持ち主ごとの場所（`users/{uid}/walkRoutes`）にあるので、旅のID（`tripId`）で探す。
+    getDocs(
+      query(
+        collectionGroup(db, "walkRoutes"),
+        where("tripId", "==", tripId),
+        where("isSharedPublicly", "==", true),
+        limit(1),
+      ),
+    )
       .then((snapshot) => {
-        if (cancelled || !snapshot.exists()) return;
-        setTrip(parseSharedTripDocument(snapshot.id, snapshot.data()));
+        const found = snapshot.docs[0];
+        if (cancelled || !found) return;
+        setTrip(parseSharedTripDocument(found));
       })
       .catch(() => {
         // 個別取得に失敗しても、一覧側の通常表示には影響しないので静かに諦める。

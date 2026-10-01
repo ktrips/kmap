@@ -326,20 +326,24 @@ struct SettingsView: View {
             for route in walkRoutes {
                 try await syncService.upload(route, userID: userID, checkRemoteDetails: false)
             }
-            // 公開中の時空旅は、Webの公開データも最新の内容（動画・説明・写真）で作り直す。
-            let sharedCount = await syncService.refreshAllSharedTrips(
-                in: modelContext, userID: userID, ownerDisplayName: authService.displayName
+            // 御朱印・投稿写真も、まだ上がっていない写真ごとクラウドに上げる（公開中の旅なら、Cloud Functions が公開ページに反映する）。
+            let stamps = try modelContext.fetch(FetchDescriptor<CollectedStamp>()).owned(by: userID)
+            let photoPosts = try modelContext.fetch(FetchDescriptor<WalkPhotoPost>()).owned(by: userID)
+            await syncService.uploadTripContents(
+                stamps: stamps,
+                photoPosts: photoPosts,
+                userID: userID,
+                checkpointDetails: SyncService.checkpointDetailTexts(for: stamps, in: modelContext)
             )
             try? modelContext.save()
-            syncMessage = "地点\(places.count)件・時空旅\(walkRoutes.count)件（うち公開中\(sharedCount)件のWeb表示も更新）を同期しました"
+            syncMessage = "地点\(places.count)件・時空旅\(walkRoutes.count)件・御朱印\(stamps.count)件・写真\(photoPosts.count)件を同期しました"
         } catch {
             syncMessage = "同期に失敗しました: \(error.localizedDescription)"
         }
         isSyncing = false
     }
 
-    /// サインイン直後に、クラウド側にだけある地点・旅・御朱印・投稿写真（他の端末やWebから同期されたもの）を
-    /// ローカルにも取り込む。
+    /// サインイン直後に、クラウド側にだけある地点（他の端末やWebから同期されたもの）をローカルにも取り込む。
     private func pullFromCloud() async {
         guard let userID = authService.userID else { return }
         do {
@@ -362,11 +366,7 @@ struct SettingsView: View {
                 modelContext.insert(place)
             }
 
-            // 旅・御朱印・投稿写真（別の端末で記録したものを含む）を取り込む。
-            await AccountOwnership.restoreFromCloud(userID: userID, context: modelContext, syncService: syncService, force: true)
-
-            let localRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>()).owned(by: userID)
-            try await syncService.pullWalkRouteDetails(into: localRoutes, userID: userID)
+            // 旅・御朱印・投稿写真は、サインインした時に`RootView`が取り込む（`AccountOwnership.restoreFromCloud`）。
             try? modelContext.save()
         } catch {
             syncMessage = "クラウドからの取得に失敗しました: \(error.localizedDescription)"

@@ -73,8 +73,12 @@ export async function loadRealtimeFirestore() {
  * Cloud Functionsは `functions/src/index.ts` の `setGlobalOptions` と同じリージョン
  * （asia-northeast1）を指定する必要がある。
  */
-export async function loadFunctions() {
+export async function loadFunctions(region: "asia-northeast1" | "us-central1" = "asia-northeast1") {
   const module = await import("firebase/functions");
+  if (region !== "asia-northeast1") {
+    // Firestoreのトリガーと同じ場所に置いた関数（`functions/src/sharedTrips.ts`の移行など）。
+    return { functions: app ? module.getFunctions(app, region) : undefined, httpsCallable: module.httpsCallable, FunctionsError: module.FunctionsError };
+  }
   if (!functionsInstance && app) {
     functionsInstance = module.getFunctions(app, "asia-northeast1");
   }

@@ -17,7 +17,6 @@ struct StampCheckInSheet: View {
     @State private var isLoadingPhoto = false
     @State private var isShowingCamera = false
     @State private var isConfirmingDelete = false
-    @State private var isUpdatingVisibility = false
     /// クラウド（Webでも見られるようにするため）へのアップロードに失敗した時のメッセージ。
     /// 失敗しても端末には保存されているが、原因がわかるよう表示しておく。
     @State private var photoSyncErrorMessage: String?
@@ -79,8 +78,6 @@ struct StampCheckInSheet: View {
                         showsLinkedCamera: isCameraLinkConfigured,
                         showsPrint: stamp.photo != nil && AppSettings.printerLinkHost != nil,
                         isPrinting: isPrintingToLinkedPrinter,
-                        isHidden: stamp.isHiddenFromSharing,
-                        isUpdatingVisibility: isUpdatingVisibility,
                         showsRemoveActions: stamp.photo != nil,
                         isPhotoLocked: !plusStore.isPlus,
                         onChange: {
@@ -94,7 +91,6 @@ struct StampCheckInSheet: View {
                             }
                         },
                         onPrint: { Task { await printToLinkedPrinter() } },
-                        onToggleHidden: { Task { await toggleVisibility() } },
                         onDelete: { isConfirmingDelete = true }
                     )
 
@@ -205,16 +201,6 @@ struct StampCheckInSheet: View {
         }
     }
 
-    /// 「非公開」を切り替える。「みんなの時空旅」に公開中の時空旅であれば、
-    /// この写真だけを公開データから外す／戻すために公開データを作り直す。
-    private func toggleVisibility() async {
-        isUpdatingVisibility = true
-        defer { isUpdatingVisibility = false }
-        stamp.isHiddenFromSharing.toggle()
-        try? modelContext.save()
-        await resyncSharedTripIfNeeded()
-    }
-
     /// 「連携プリント」ボタンから、この御朱印の写真をその場で連携プリンターへ転送する。
     private func printToLinkedPrinter() async {
         guard let photo = stamp.photo else { return }
@@ -258,43 +244,19 @@ struct StampCheckInSheet: View {
 
         guard let userID = authService.userID else { return }
         guard let image else {
-            // 写真を削除した場合も、クラウド側の削除が終わってから公開データに反映する。
-            Task {
-                await resyncSharedTripIfNeeded()
-            }
+            // 写真を消した時は、クラウドの御朱印の写真URLも空にする（公開中の旅なら、Cloud Functions が反映する）。
+            Task { try? await syncService.upload(stamp, userID: userID) }
             return
         }
         Task {
             do {
                 try await syncService.uploadStampPhoto(stamp, userID: userID)
                 try? modelContext.save()
-                await resyncSharedTripIfNeeded()
             } catch {
                 // 端末には保存済みだが、Webでも見られるようにするアップロードには失敗した。
                 photoSyncErrorMessage = "写真をWebでも見られるようにする処理に失敗しました: \(error.localizedDescription)"
             }
         }
-    }
-
-    /// この御朱印が属する時間旅が既に「みんなの時空旅」に公開済みなら、
-    /// 今追加・変更した写真を公開データにも反映する。
-    private func resyncSharedTripIfNeeded() async {
-        guard let walkRouteID = stamp.walkRouteID else { return }
-        let routeDescriptor = FetchDescriptor<WalkRoute>(predicate: #Predicate { $0.id == walkRouteID })
-        guard let route = try? modelContext.fetch(routeDescriptor).first, route.isSharedPublicly else { return }
-
-        let stampsDescriptor = FetchDescriptor<CollectedStamp>(predicate: #Predicate { $0.walkRouteID == walkRouteID })
-        let postsDescriptor = FetchDescriptor<WalkPhotoPost>(predicate: #Predicate { $0.walkRouteID == walkRouteID })
-        let stamps = (try? modelContext.fetch(stampsDescriptor)) ?? []
-        let photoPosts = (try? modelContext.fetch(postsDescriptor)) ?? []
-
-        await syncService.resyncSharedTripIfNeeded(
-            route,
-            userID: authService.userID,
-            ownerDisplayName: authService.displayName,
-            stamps: stamps,
-            photoPosts: photoPosts
-        )
     }
 
     private func loadStoryIfNeeded(force: Bool = false) async {

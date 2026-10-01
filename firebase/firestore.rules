@@ -21,16 +21,28 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // 旅の正本。公開・非公開は`isSharedPublicly`だけで切り替える。本人は常に読み書きでき、
+    // 公開中の旅は誰でも（サインインしていない訪問者も）読める。公開ページ用の項目（写真の一覧・件数など）は
+    // Cloud Functions（functions/src/sharedTrips.ts）が書き込む。
     match /users/{userId}/walkRoutes/{walkRouteId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if (request.auth != null && request.auth.uid == userId)
+                    || resource.data.isSharedPublicly == true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 「みんなの時空旅」の一覧（全ユーザーの旅から公開中のものを探すコレクショングループクエリ）。
+    // クエリには`isSharedPublicly == true`の条件が必要（ルールは絞り込みではないため）。
+    match /{path=**}/walkRoutes/{walkRouteId} {
+      allow read: if resource.data.isSharedPublicly == true;
     }
 
     match /users/{userId}/photoPosts/{photoPostId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 「みんなの時空旅」: サインインしていない訪問者でも、Web上で誰でも閲覧できる
-    // （公開が前提の機能のため）。書き込み・削除は自分（ownerUserID）のドキュメントのみ。
+    // 公開した旅への「いいね」「コメント」の置き場所（`sharedTrips/{tripId}/likes|comments`）。
+    // 旅そのものは`users/{uid}/walkRoutes`にあり、以前の公開用のコピー（この文書の中身）は移行後は使わない。
+    // 古いコピーは、持ち主だけが消せる。
     match /sharedTrips/{tripId} {
       allow read: if true;
       allow create, update: if request.auth != null && request.resource.data.ownerUserID == request.auth.uid;

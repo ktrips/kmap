@@ -6,7 +6,7 @@ export interface SharedPhoto {
   detail?: string;
 }
 
-/** 全ユーザー共通で公開された時空旅。Firestoreの `sharedTrips/{id}` に対応する。 */
+/** 公開中の時空旅。Firestoreの`users/{uid}/walkRoutes/{id}`（`isSharedPublicly == true`）に対応する。 */
 export interface SharedTrip {
   id: string;
   ownerUserID: string;

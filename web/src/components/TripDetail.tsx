@@ -144,7 +144,7 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
     if (!currentUser) return;
     setIsSaving(true);
     try {
-      await saveTripDetails(currentUser.uid, trip.id, trip.isShared, {
+      await saveTripDetails(currentUser.uid, trip.id, {
         title: editTitle.trim().length > 0 ? editTitle.trim() : null,
         description: editDescription.trim().length > 0 ? editDescription.trim() : null,
       });

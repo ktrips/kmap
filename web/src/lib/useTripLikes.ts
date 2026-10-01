@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { db } from "./firebase";
 
 /**
- * 1つの時空旅（`sharedTrips/{tripId}`）への「いいね」を管理する。
+ * 1つの時空旅への「いいね」（`sharedTrips/{tripId}/likes`）を管理する。
  * `sharedTrips/{tripId}/likes/{uid}`の存在＝いいね済み、として扱う
  * （文書のIDをuidに固定しているため、1人1いいねが自然に守られる）。
  * 軽量版のFirestoreで、旅を開いた時と、自分がいいねを付け外しした後に読み直す。

@@ -11,7 +11,7 @@ export interface TripComment {
   createdAt: Date;
 }
 
-/** 1つの時空旅（`sharedTrips/{tripId}`）へのコメントを管理する。 */
+/** 1つの時空旅へのコメント（`sharedTrips/{tripId}/comments`）を管理する。 */
 export function useTripComments(tripId: string | null) {
   const [comments, setComments] = useState<TripComment[]>([]);
   const [isPosting, setIsPosting] = useState(false);
