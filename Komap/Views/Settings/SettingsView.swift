@@ -75,11 +75,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .onChange(of: authService.isSignedIn) { _, isSignedIn in
-                if isSignedIn {
-                    Task { await pullFromCloud() }
-                }
-            }
+            
         }
     }
 
@@ -309,68 +305,26 @@ struct SettingsView: View {
         }
     }
 
+    /// 「すべてクラウドに同期」。サインインより前に記録していたもの（持ち主のいない記録）をこのアカウントのものにしてから、
+    /// 端末の記録をクラウドと合わせる。御朱印には説明文（旅日記と同じ内容）も添えて上げる。
     private func syncAllToCloud() async {
         guard let userID = authService.userID else { return }
         isSyncing = true
         syncMessage = nil
-        do {
-            let places = try modelContext.fetch(FetchDescriptor<SavedPlace>())
-            for place in places {
-                try await syncService.upload(place, userID: userID)
-            }
-            // サインインより前に記録していたもの（持ち主のいない旅・御朱印・写真）を、このアカウントのものにしてから上げる。
-            AccountOwnership.adoptUnownedRecords(userID: userID, context: modelContext)
-            let walkRoutes = try modelContext.fetch(FetchDescriptor<WalkRoute>()).owned(by: userID)
-            // 先にWebでの名前・感想の変更を取り込み、端末の古い値で上書きしないようにする。
-            try? await syncService.pullWalkRouteDetails(into: walkRoutes, userID: userID)
-            for route in walkRoutes {
-                try await syncService.upload(route, userID: userID, checkRemoteDetails: false)
-            }
-            // 御朱印・投稿写真も、まだ上がっていない写真ごとクラウドに上げる（公開中の旅なら、Cloud Functions が公開ページに反映する）。
-            let stamps = try modelContext.fetch(FetchDescriptor<CollectedStamp>()).owned(by: userID)
-            let photoPosts = try modelContext.fetch(FetchDescriptor<WalkPhotoPost>()).owned(by: userID)
+        CloudSync.adoptUnownedRecords(userID: userID, context: modelContext)
+        if let imported = await CloudSync.sync(userID: userID, context: modelContext, syncService: syncService, force: true) {
+            let stamps = ((try? modelContext.fetch(FetchDescriptor<CollectedStamp>())) ?? []).owned(by: userID)
             await syncService.uploadTripContents(
                 stamps: stamps,
-                photoPosts: photoPosts,
+                photoPosts: [],
                 userID: userID,
                 checkpointDetails: SyncService.checkpointDetailTexts(for: stamps, in: modelContext)
             )
-            try? modelContext.save()
-            syncMessage = "地点\(places.count)件・時空旅\(walkRoutes.count)件・御朱印\(stamps.count)件・写真\(photoPosts.count)件を同期しました"
-        } catch {
-            syncMessage = "同期に失敗しました: \(error.localizedDescription)"
+            syncMessage = imported > 0 ? "クラウドと同期しました（\(imported)件を取り込みました）" : "クラウドと同期しました"
+        } else {
+            syncMessage = "同期に失敗しました。通信状況を確認して、もう一度お試しください。"
         }
         isSyncing = false
-    }
-
-    /// サインイン直後に、クラウド側にだけある地点（他の端末やWebから同期されたもの）をローカルにも取り込む。
-    private func pullFromCloud() async {
-        guard let userID = authService.userID else { return }
-        do {
-            let localPlaces = try modelContext.fetch(FetchDescriptor<SavedPlace>())
-            let localIDs = Set(localPlaces.map(\.id))
-
-            let remotePlaces = try await syncService.fetchAll(userID: userID)
-            for remote in remotePlaces {
-                guard let remoteUUID = UUID(uuidString: remote.id), !localIDs.contains(remoteUUID) else { continue }
-                let place = SavedPlace(
-                    id: remoteUUID,
-                    title: remote.title,
-                    latitude: remote.latitude,
-                    longitude: remote.longitude,
-                    overlayMapID: remote.overlayMapID,
-                    era: remote.era,
-                    storyText: remote.storyText,
-                    createdAt: remote.createdAt
-                )
-                modelContext.insert(place)
-            }
-
-            // 旅・御朱印・投稿写真は、サインインした時に`RootView`が取り込む（`AccountOwnership.restoreFromCloud`）。
-            try? modelContext.save()
-        } catch {
-            syncMessage = "クラウドからの取得に失敗しました: \(error.localizedDescription)"
-        }
     }
 }
 

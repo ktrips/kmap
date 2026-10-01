@@ -7,7 +7,9 @@ struct MyTimeTripView: View {
     @EnvironmentObject private var mapSession: MapSessionState
     @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \SavedPlace.createdAt, order: .reverse) private var places: [SavedPlace]
+    @Query(sort: \SavedPlace.createdAt, order: .reverse) private var allPlaces: [SavedPlace]
+    /// 今サインインしているアカウントで保存したものだけ（`AccountOwned`）。
+    private var places: [SavedPlace] { allPlaces.owned(by: authService.userID) }
     @Query(sort: \WalkRoute.startedAt, order: .reverse) private var allWalkRoutes: [WalkRoute]
     @Query(sort: \CollectedStamp.collectedAt, order: .reverse) private var allCollectedStamps: [CollectedStamp]
     @Query(sort: \WalkPhotoPost.postedAt, order: .reverse) private var allPhotoPosts: [WalkPhotoPost]
@@ -211,13 +213,10 @@ struct MyTimeTripView: View {
             .sheet(isPresented: $isPresentingGPXImport) {
                 GPXImportSheet()
             }
-            // 開くたびに、同じアカウントで別の端末に記録した旅と、Webで変えた時空旅の名前・感想を取り込む。
+            // 開くたびに、端末の記録をクラウドと合わせる（別の端末・Webでの追加・変更・削除を取り込む）。
             .task(id: authService.userID) {
                 guard let userID = authService.userID else { return }
-                await AccountOwnership.restoreFromCloud(userID: userID, context: modelContext, syncService: syncService)
-                if (try? await syncService.pullWalkRouteDetails(into: walkRoutes, userID: userID)) ?? 0 > 0 {
-                    try? modelContext.save()
-                }
+                await CloudSync.sync(userID: userID, context: modelContext, syncService: syncService)
             }
             .task(id: pointsSnapshot) {
                 guard let userID = authService.userID else { return }

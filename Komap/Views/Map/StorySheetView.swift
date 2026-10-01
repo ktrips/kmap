@@ -128,6 +128,7 @@ struct StorySheetView: View {
             era: overlayMap?.era ?? "江戸時代",
             storyText: story.body
         )
+        place.ownerUserID = authService.userID
         modelContext.insert(place)
         isSaved = true
 

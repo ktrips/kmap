@@ -20,6 +20,8 @@ final class SavedPlace {
     /// AIが生成した物語本文
     var storyText: String
     var createdAt: Date
+    /// この物語を保存したアカウント（Firebase の uid）。サインインしていない時に保存したものは`nil`（`AccountOwned`）。
+    var ownerUserID: String?
 
     init(
         id: UUID = UUID(),

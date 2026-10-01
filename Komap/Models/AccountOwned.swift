@@ -1,6 +1,6 @@
 import Foundation
 
-/// 保存したアカウント（`ownerUserID`）を持つ記録。旅・御朱印・投稿写真。
+/// 保存したアカウント（`ownerUserID`）を持つ記録。旅・御朱印・投稿写真・保存した物語。
 /// 一覧や集計には、今サインインしているアカウントのものだけを出す
 /// （サインインしていない間は、サインインせずに保存したもの＝`ownerUserID`が`nil`のものだけ）。
 protocol AccountOwned {
@@ -10,6 +10,7 @@ protocol AccountOwned {
 extension WalkRoute: AccountOwned {}
 extension CollectedStamp: AccountOwned {}
 extension WalkPhotoPost: AccountOwned {}
+extension SavedPlace: AccountOwned {}
 
 extension Array where Element: AccountOwned {
     /// `userID`のアカウントで保存したものだけ（`userID`が`nil`なら、サインインせずに保存したものだけ）。

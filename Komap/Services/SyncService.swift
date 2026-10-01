@@ -95,19 +95,6 @@ struct SyncService {
             .setData(data, merge: true)
     }
 
-    /// サインイン後などに、クラウド側の一覧を取得する（ローカルへの反映は呼び出し側で行う）。
-    func fetchAll(userID: String) async throws -> [RemotePlace] {
-        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
-
-        let snapshot = try await placesCollection(for: userID)
-            .order(by: "createdAt", descending: true)
-            .getDocuments()
-
-        return snapshot.documents.compactMap { document in
-            RemotePlace(id: document.documentID, data: document.data())
-        }
-    }
-
     /// 旅の動画をクラウドへ上げ、共有用リンクを`route.tripVideoURL`に保存して時空旅も同期する。
     /// 旅日記（Webの旅日記も含む）にこのリンクが載る。
     @discardableResult
@@ -170,19 +157,6 @@ struct SyncService {
     func deleteStampPhoto(_ stamp: CollectedStamp, userID: String?) async {
         guard let userID else { return }
         await photoStorage.delete(path: stampPhotoStoragePath(userID: userID, stampID: stamp.id))
-    }
-
-    /// サインイン後などに、クラウド側の御朱印一覧を取得する（ローカルへの反映は呼び出し側で行う）。
-    func fetchAllStamps(userID: String) async throws -> [RemoteStamp] {
-        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
-
-        let snapshot = try await stampsCollection(for: userID)
-            .order(by: "collectedAt", descending: true)
-            .getDocuments()
-
-        return snapshot.documents.compactMap { document in
-            RemoteStamp(id: document.documentID, data: document.data())
-        }
     }
 
     /// 「みんなの時空旅」（全ユーザーの公開中の旅。自分が公開したものも含む）を、
@@ -254,7 +228,7 @@ struct SyncService {
     /// 保存した時間旅（`WalkRoute`）を `users/{uid}/walkRoutes/{id}` へアップロードする。
     /// Webアプリの「My Trips」で、同じGoogleアカウントの記録を見られるようにするために使う。
     /// - Parameter checkRemoteDetails: クラウド側の名前・感想の方が新しいかを確かめてから書くか。
-    ///   直前に`pullWalkRouteDetails`で取り込み済みの時は`false`にして、1件ごとの読み込みを省く。
+    ///   直前に`CloudSync`で取り込み済みの時は`false`にして、1件ごとの読み込みを省く。
     func upload(_ route: WalkRoute, userID: String?, checkRemoteDetails: Bool = true) async throws {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         guard let userID else { throw SyncError.notSignedIn }
@@ -293,75 +267,20 @@ struct SyncService {
         try await document.setData(payload, merge: true)
     }
 
-    /// このアカウントのクラウドにある旅・御朱印・投稿写真の文書（IDと中身）。
-    /// 別の端末で記録したものを、この端末にも取り込む（`CloudRestore`）のに使う。
-    func fetchCloudRecords(userID: String) async throws -> (
-        routes: [(id: String, data: [String: Any])],
-        stamps: [(id: String, data: [String: Any])],
-        photoPosts: [(id: String, data: [String: Any])]
-    ) {
+    /// このアカウントのクラウドにある旅・御朱印・投稿写真・物語の文書（IDと中身）。
+    /// 端末の記録とクラウドを合わせる（`CloudSync`）のに使う。
+    func fetchCloudRecords(userID: String) async throws -> CloudRecords {
         guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
         async let routes = walkRoutesCollection(for: userID).getDocuments()
         async let stamps = stampsCollection(for: userID).getDocuments()
         async let posts = photoPostsCollection(for: userID).getDocuments()
-        func records(_ snapshot: QuerySnapshot) -> [(id: String, data: [String: Any])] {
-            snapshot.documents.map { (id: $0.documentID, data: $0.data()) }
+        async let places = placesCollection(for: userID).getDocuments()
+        func records(_ snapshot: QuerySnapshot) -> [String: [String: Any]] {
+            Dictionary(snapshot.documents.map { ($0.documentID, $0.data()) }, uniquingKeysWith: { first, _ in first })
         }
-        return try await (records(routes), records(stamps), records(posts))
-    }
-
-    /// Webで変えた時空旅の名前・感想を、端末の記録に取り込む。
-    ///
-    /// 名前・感想を最後に変えた日時（`detailsUpdatedAt`）を比べて新しい方を残す。
-    /// どちらにも日時が無い（この仕組みを入れる前にWebで変えた）場合は、iOSでの変更は
-    /// その都度クラウドへ上げているため、クラウド側の値をWebでの変更とみなして取り込む。
-    /// 端末の方が新しいのにクラウドが古いまま（上げ損ねた）なら、クラウドへ上げ直す。
-    /// - Returns: 端末の記録を書き換えた件数。
-    @MainActor
-    @discardableResult
-    func pullWalkRouteDetails(into routes: [WalkRoute], userID: String) async throws -> Int {
-        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
-        let snapshot = try await walkRoutesCollection(for: userID).getDocuments()
-        let routesByID = Dictionary(routes.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
-
-        var updatedCount = 0
-        var routesToUpload: [WalkRoute] = []
-        for document in snapshot.documents {
-            guard let route = routesByID[document.documentID] else { continue }
-            let data = document.data()
-            let remoteTitle = Self.normalized(data["title"] as? String)
-            let remoteNotes = Self.normalized(data["notes"] as? String)
-            let remoteUpdatedAt = (data["detailsUpdatedAt"] as? Timestamp)?.dateValue()
-            let differs = remoteTitle != Self.normalized(route.title) || remoteNotes != Self.normalized(route.notes)
-
-            let remoteIsNewer: Bool
-            switch (remoteUpdatedAt, route.detailsUpdatedAt) {
-            case let (remote?, local?): remoteIsNewer = remote > local
-            case (_?, nil): remoteIsNewer = true
-            case (nil, nil): remoteIsNewer = differs
-            case (nil, _?): remoteIsNewer = false
-            }
-
-            if remoteIsNewer {
-                if differs {
-                    route.title = remoteTitle
-                    route.notes = remoteNotes
-                    updatedCount += 1
-                }
-                route.detailsUpdatedAt = remoteUpdatedAt ?? route.detailsUpdatedAt
-            } else if differs {
-                routesToUpload.append(route)
-            }
-        }
-        for route in routesToUpload {
-            try? await upload(route, userID: userID, checkRemoteDetails: false)
-        }
-        return updatedCount
-    }
-
-    private static func normalized(_ text: String?) -> String? {
-        guard let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
-        return trimmed
+        return try await CloudRecords(
+            routes: records(routes), stamps: records(stamps), photoPosts: records(posts), places: records(places)
+        )
     }
 
     /// 削除をクラウド側にも反映する。
@@ -643,36 +562,6 @@ struct SyncService {
     }
 }
 
-/// Firestoreから読み取った1件分のデータ（`SavedPlace` への変換用の軽量DTO）。
-struct RemotePlace {
-    let id: String
-    let title: String
-    let latitude: Double
-    let longitude: Double
-    let overlayMapID: String?
-    let era: String
-    let storyText: String
-    let createdAt: Date
-
-    init?(id: String, data: [String: Any]) {
-        guard let title = data["title"] as? String,
-              let latitude = data["latitude"] as? Double,
-              let longitude = data["longitude"] as? Double,
-              let era = data["era"] as? String,
-              let storyText = data["storyText"] as? String
-        else { return nil }
-
-        self.id = id
-        self.title = title
-        self.latitude = latitude
-        self.longitude = longitude
-        self.overlayMapID = data["overlayMapID"] as? String
-        self.era = era
-        self.storyText = storyText
-        self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
-    }
-}
-
 /// 「みんなの時空旅」の写真1枚分（`sharedTrips/{id}`の`stampPhotos`/`postPhotos`の1要素）。
 struct RemoteSharedPhoto: Identifiable {
     var id: String { url }
@@ -757,23 +646,6 @@ struct RemoteSharedTrip: Identifiable {
     }
 }
 
-/// Firestoreから読み取った御朱印1件分のデータ（`CollectedStamp` への変換用の軽量DTO）。
-struct RemoteStamp {
-    let id: String
-    let siteID: String
-    let collectedAt: Date
-    let photoURL: String?
-
-    init?(id: String, data: [String: Any]) {
-        guard let siteID = data["siteID"] as? String else { return nil }
-        self.id = id
-        self.siteID = siteID
-        self.collectedAt = (data["collectedAt"] as? Timestamp)?.dateValue() ?? Date()
-        self.photoURL = data["photoURL"] as? String
-    }
-}
-
-
 /// 「みんなの時空旅」への1件のコメント（`sharedTrips/{tripId}/comments/{id}`）。
 struct RemoteTripComment: Identifiable {
     let id: String
@@ -840,4 +712,12 @@ struct RemoteFriendRequest: Identifiable {
         self.status = status
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
     }
+}
+
+/// クラウドの記録（文書ID → 中身）。`SyncService.fetchCloudRecords`の結果。
+struct CloudRecords {
+    let routes: [String: [String: Any]]
+    let stamps: [String: [String: Any]]
+    let photoPosts: [String: [String: Any]]
+    let places: [String: [String: Any]]
 }

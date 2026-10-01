@@ -24,10 +24,9 @@ struct RootView: View {
         .task(id: authService.userID) {
             // Web版でも Plus の特典（Kindle本の全文）を使えるよう、サインインしたアカウントに購入を記録する。
             await plusStore.setSignedInUser(authService.userID, email: authService.email)
-            // 同じアカウントで別の端末に記録した旅・御朱印・写真を取り込み、持ち主の分からない端末の記録のうち
-            // クラウドにもあるものを、このアカウントのものにする（「マイ時空旅」「マイ御朱印」はアカウントごと）。
+            // 端末の記録をクラウドと合わせる（別の端末・Webでの追加・変更・削除を取り込み、まだ上がっていないものは上げる）。
             if let userID = authService.userID {
-                await AccountOwnership.restoreFromCloud(userID: userID, context: modelContext, syncService: syncService, force: true)
+                await CloudSync.sync(userID: userID, context: modelContext, syncService: syncService, force: true)
             }
             guard let userID = authService.userID, let email = authService.email else { return }
             await syncService.claimFriendRequestsAddressedToMe(userID: userID, email: email)
