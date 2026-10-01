@@ -37,9 +37,7 @@ struct SettingsView: View {
             Form {
                 accountSection
                 overlayOpacitySection
-                recordingSafetySection
-                currentLocationIconSection
-                photoFilterSection
+                walkingSettingsSection
 
                 Section {
                     Text("Komap 古地図巡りは、現在の地図に古地図を重ね合わせて、歩いている場所の「昔の姿」をAIの解説とともに旅できるアプリです。古地図はサンプルの位置合わせデータです。実際の史料に基づく正確な位置合わせではありません。")
@@ -227,8 +225,39 @@ struct SettingsView: View {
         }
     }
 
-    private var recordingSafetySection: some View {
+    /// 「歩行中の設定」: 現在地アイコン → 動きがない時の一時停止 → 一時停止までの時間 → 写真の加工 の順に1枚のカードにまとめる。
+    private var walkingSettingsSection: some View {
         Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("現在地アイコン")
+                HStack(spacing: 18) {
+                    ForEach(CurrentLocationIconStyle.allCases) { style in
+                        Button {
+                            currentLocationIconStyle = style
+                            AppSettings.currentLocationIconStyle = style
+                        } label: {
+                            VStack(spacing: 6) {
+                                Image(uiImage: style.icon(emphasized: false))
+                                    .padding(6)
+                                    .background(
+                                        Circle().stroke(
+                                            currentLocationIconStyle == style ? Color.accentColor : Color.clear,
+                                            lineWidth: 2
+                                        )
+                                    )
+                                Text(style.title)
+                                    .font(.caption2)
+                                    .foregroundStyle(currentLocationIconStyle == style ? .primary : .secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.vertical, 4)
+
             Toggle("動きがない時に自動で一時停止", isOn: $autoPauseWhenStationary)
                 .onChange(of: autoPauseWhenStationary) { _, newValue in
                     AppSettings.autoPauseWhenStationary = newValue
@@ -243,50 +272,7 @@ struct SettingsView: View {
                     AppSettings.stationaryAutoPauseMinutes = newValue
                 }
             }
-        } header: {
-            Text("記録の自動制御")
-        } footer: {
-            Text("動きがないと自動で一時停止し（歩き出すと再開）、8時間で記録を終えます。")
-        }
-    }
 
-    private var currentLocationIconSection: some View {
-        Section {
-            HStack(spacing: 18) {
-                ForEach(CurrentLocationIconStyle.allCases) { style in
-                    Button {
-                        currentLocationIconStyle = style
-                        AppSettings.currentLocationIconStyle = style
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(uiImage: style.icon(emphasized: false))
-                                .padding(6)
-                                .background(
-                                    Circle().stroke(
-                                        currentLocationIconStyle == style ? Color.accentColor : Color.clear,
-                                        lineWidth: 2
-                                    )
-                                )
-                            Text(style.title)
-                                .font(.caption2)
-                                .foregroundStyle(currentLocationIconStyle == style ? .primary : .secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
-        } header: {
-            Text("現在地マークの見た目")
-        } footer: {
-            Text("歩いている時に、地図上の自分の位置に出すマークです。")
-        }
-    }
-
-    private var photoFilterSection: some View {
-        Section {
             Picker("写真の加工", selection: $photoFilterStyle) {
                 ForEach(PhotoFilterStyle.allCases) { style in
                     Text(style.title).tag(style)
@@ -297,9 +283,9 @@ struct SettingsView: View {
                 AppSettings.photoFilterStyle = newValue
             }
         } header: {
-            Text("写真の加工")
+            Text("歩行中の設定")
         } footer: {
-            Text("撮影・追加した写真に自動でかけます。")
+            Text("動きがないと自動で一時停止し（歩き出すと再開）、8時間で記録を終えます。写真の加工は、撮影・追加した写真に自動でかけます。")
         }
     }
 
