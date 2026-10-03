@@ -10,12 +10,18 @@ export interface SharedPhoto {
 export interface SharedTrip {
   id: string;
   ownerUserID: string;
+  /** 旅の文書のパス（`users/{uid}/walkRoutes/{id}`）。一覧では読まない軌跡の座標を、開いた時に読むのに使う。 */
+  documentPath: string;
   ownerDisplayName: string | null;
   title: string | null;
   /** 感想・説明。Webからも編集できる。 */
   description: string | null;
+  /** 軌跡の座標。一覧では読まないので空（旅を開いた時に`useTripRoute`が読む）。 */
   latitudes: number[];
   longitudes: number[];
+  /** 歩き始めた地点（一覧でリージョンを決めるのに使う。Cloud Functionsが書く）。 */
+  startLatitude: number | null;
+  startLongitude: number | null;
   startedAt: Date;
   endedAt: Date | null;
   stepCount: number | null;

@@ -27,7 +27,8 @@ service cloud.firestore {
     match /users/{userId}/walkRoutes/{walkRouteId} {
       // Cloud Functions だけが書く項目。本人も含め、クライアントからは書き換えられない（件数の水増しなどを防ぐ）。
       function functionManagedKeys() {
-        return ['tripId', 'ownerDisplayName', 'stampPhotos', 'postPhotos', 'likeCount', 'commentCount'];
+        return ['tripId', 'ownerDisplayName', 'stampPhotos', 'postPhotos', 'likeCount', 'commentCount',
+                'startLatitude', 'startLongitude'];
       }
       function isOwner() {
         return request.auth != null && request.auth.uid == userId;

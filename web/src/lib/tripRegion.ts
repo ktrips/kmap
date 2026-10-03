@@ -50,8 +50,8 @@ export function tripRegion(trip: UnifiedTrip): TripRegion {
   if (map?.southWest && map.northEast) {
     return regionOf((map.southWest.lat + map.northEast.lat) / 2, (map.southWest.lng + map.northEast.lng) / 2);
   }
-  if (trip.latitudes.length > 0 && trip.longitudes.length > 0) {
-    return regionOf(trip.latitudes[0], trip.longitudes[0]);
+  if (trip.startLatitude !== null && trip.startLongitude !== null) {
+    return regionOf(trip.startLatitude, trip.startLongitude);
   }
   return "other";
 }

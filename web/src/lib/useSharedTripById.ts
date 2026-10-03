@@ -31,7 +31,7 @@ export function useSharedTripById(tripId: string | null, isAlreadyInList: boolea
       .then((snapshot) => {
         const found = snapshot.docs[0];
         if (cancelled || !found) return;
-        setTrip(parseSharedTripDocument(found));
+        setTrip(parseSharedTripDocument(found.ref.path, found.data()));
       })
       .catch(() => {
         // 個別取得に失敗しても、一覧側の通常表示には影響しないので静かに諦める。

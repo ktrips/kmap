@@ -13,6 +13,11 @@ export interface UnifiedTrip {
   description: string | null;
   latitudes: number[];
   longitudes: number[];
+  /** 歩き始めた地点（一覧のリージョン用。公開中の旅の一覧では座標を読まないため別に持つ）。 */
+  startLatitude: number | null;
+  startLongitude: number | null;
+  /** 公開中の旅の文書のパス。座標をまだ読んでいない時に`useTripRoute`が使う（自分の旅は`null`）。 */
+  documentPath: string | null;
   startedAt: Date;
   endedAt: Date | null;
   stepCount: number | null;
@@ -84,6 +89,9 @@ export function fromWalkTrip(
     description: trip.description,
     latitudes: trip.latitudes,
     longitudes: trip.longitudes,
+    startLatitude: trip.latitudes[0] ?? null,
+    startLongitude: trip.longitudes[0] ?? null,
+    documentPath: null,
     startedAt: trip.startedAt,
     endedAt: trip.endedAt,
     stepCount: trip.stepCount,
@@ -110,6 +118,9 @@ export function fromSharedTrip(trip: SharedTrip): UnifiedTrip {
     description: trip.description,
     latitudes: trip.latitudes,
     longitudes: trip.longitudes,
+    startLatitude: trip.startLatitude,
+    startLongitude: trip.startLongitude,
+    documentPath: trip.documentPath,
     startedAt: trip.startedAt,
     endedAt: trip.endedAt,
     stepCount: trip.stepCount,

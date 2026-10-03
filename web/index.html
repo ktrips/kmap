@@ -11,6 +11,9 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- 最初に必ず通信する先へ、JSを読み込んでいる間に接続しておく（公開中の旅の一覧・地図）。 -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://maps.googleapis.com" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Komap 古地図巡り | 時空を超えた地図アプリ</title>
     <meta name="description" content="Komap 古地図巡りで保存した、あなただけの時間旅行の記録を見られるWebアプリです。" />

@@ -34,7 +34,8 @@ if (isFirebaseConfigured) {
   // Analyticsは初期表示には不要な上、Safariのプライベートモードなど一部環境で
   // 未サポートのため、動的importで遅延読み込みし、対応している場合のみ初期化する
   // （未対応・未使用でも初期バンドルを太らせない）。
-  if (firebaseConfig.measurementId) {
+  // さらに、画面の表示に必要な読み込み（一覧の取得など）と通信を取り合わないよう、ページの読み込みが終わってから始める。
+  const startAnalytics = () =>
     import("firebase/analytics")
       .then(({ isSupported, getAnalytics }) => isSupported().then((supported) => ({ supported, getAnalytics })))
       .then(({ supported, getAnalytics }) => {
@@ -45,6 +46,9 @@ if (isFirebaseConfigured) {
       .catch(() => {
         // Analyticsが使えない環境は無視して続行する。
       });
+  if (firebaseConfig.measurementId) {
+    if (document.readyState === "complete") setTimeout(startAnalytics, 1000);
+    else window.addEventListener("load", () => setTimeout(startAnalytics, 1000), { once: true });
   }
 }
 

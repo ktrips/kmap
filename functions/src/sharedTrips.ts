@@ -14,6 +14,8 @@ import { ADMIN_EMAIL } from "./adminEmail";
  * - `tripId`（旅のIDで探すため）・`ownerDisplayName`（Googleの表示名の先頭6文字）。持ち主のuidは文書の場所から分かる
  * - `stampPhotos`・`postPhotos`: その旅の御朱印・投稿写真（写真のある分。見られるかどうかは旅の公開状況だけで決まる）
  * - `likeCount`・`commentCount`: いいね・コメントの件数（いいね・コメントは`sharedTrips/{tripId}/likes|comments`）
+ * - `startLatitude`・`startLongitude`: 歩き始めた地点。公開ページの一覧は通信量を減らすため軌跡の座標（`latitudes`・
+ *   `longitudes`）を読まないので、一覧でリージョンを決めるのに使う（座標は旅を開いた時にその1件だけ読む）
  *
  * 御朱印・投稿写真そのもの（`users/{uid}/stamps`・`photoPosts`）は本人しか読めない。公開されるのは旅の文書だけ。
  * Firestoreのデータベースが米国のマルチリージョン（nam5）にあるため、トリガーはus-central1に置く。
@@ -93,6 +95,10 @@ async function refreshRoute(
   const updates: Record<string, unknown> = {};
   if (data.tripId !== tripId) updates.tripId = tripId;
   if (data.ownerDisplayName === undefined) updates.ownerDisplayName = await ownerDisplayName(uid);
+  const startLatitude = Array.isArray(data.latitudes) && typeof data.latitudes[0] === "number" ? data.latitudes[0] : null;
+  const startLongitude = Array.isArray(data.longitudes) && typeof data.longitudes[0] === "number" ? data.longitudes[0] : null;
+  if ((data.startLatitude ?? null) !== startLatitude) updates.startLatitude = startLatitude;
+  if ((data.startLongitude ?? null) !== startLongitude) updates.startLongitude = startLongitude;
 
   if (data.isSharedPublicly === true && rebuildPhotos) {
     // 公開した時点で件数を持たせる（クライアントは件数を数え直さず、旅の文書を読むだけで済む）。

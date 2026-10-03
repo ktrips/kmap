@@ -1,19 +1,26 @@
-import { collectionGroup, getDocs, limit, orderBy, query, where, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore/lite";
+import type { DocumentData } from "firebase/firestore/lite";
 import { useEffect, useState } from "react";
-import { db } from "./firebase";
+import { isFirebaseConfigured } from "./firebase";
+import { runProjectedQuery } from "./firestoreRest";
 import { parseTripFields } from "./tripDocument";
 import type { SharedPhoto, SharedTrip } from "../types/sharedTrip";
 
 /**
  * 公開中の旅（`users/{uid}/walkRoutes/{id}`で`isSharedPublicly == true`のもの）の1件を`SharedTrip`に変換する。
- * 投稿者名・写真の一覧・件数は Cloud Functions（functions/src/sharedTrips.ts）が旅の文書に書いている。
+ * 投稿者名・写真の一覧・件数・歩き始めた地点は Cloud Functions（functions/src/sharedTrips.ts）が旅の文書に書いている。
  * 単発取得（`useSharedTripById`）とも共有する。
+ *
+ * @param path 旅の文書のパス（`users/{uid}/walkRoutes/{id}`）。
  */
-export function parseSharedTripDocument(snapshot: QueryDocumentSnapshot<DocumentData>): SharedTrip {
-  const data = snapshot.data();
+export function parseSharedTripDocument(path: string, data: DocumentData): SharedTrip {
+  const [, ownerFromPath = "", , id = ""] = path.split("/");
+  const trip = parseTripFields(id, data);
   return {
-    ...parseTripFields(snapshot.id, data),
-    ownerUserID: data.ownerUserID ?? snapshot.ref.parent.parent?.id ?? "",
+    ...trip,
+    documentPath: path,
+    startLatitude: trip.latitudes[0] ?? (typeof data.startLatitude === "number" ? data.startLatitude : null),
+    startLongitude: trip.longitudes[0] ?? (typeof data.startLongitude === "number" ? data.startLongitude : null),
+    ownerUserID: data.ownerUserID ?? ownerFromPath,
     ownerDisplayName: data.ownerDisplayName ?? null,
     stampPhotos: parsePhotos(data.stampPhotos),
     postPhotos: parsePhotos(data.postPhotos),
@@ -38,9 +45,17 @@ function parsePhotos(value: unknown): SharedPhoto[] {
     .filter((photo): photo is SharedPhoto => photo !== null);
 }
 
+/** 一覧で読む項目。軌跡の座標（`latitudes`・`longitudes`）は旅の文書の大半を占めるので読まず、旅を開いた時に読む。 */
+const LIST_FIELDS = [
+  "title", "notes", "startedAt", "endedAt", "stepCount", "overlayMapID", "totalDistanceMeters",
+  "travelJournalTitle", "travelJournalMarkdown", "tripVideoURL", "ownerUserID", "ownerDisplayName",
+  "stampPhotos", "postPhotos", "likeCount", "commentCount", "startLatitude", "startLongitude",
+];
+
 /**
  * 全ユーザーが公開している「みんなの時空旅」の直近50件を読み込む（全ユーザーの`walkRoutes`から公開中のものを探す）。
  * サインインしていない訪問者でも見られる（Firestoreルールで、公開中の旅は誰でも読める）。
+ * 軌跡の座標を除いた項目だけを読む（17件で 1.3MB → 約0.2MB）。座標は`useTripRoute`が旅を開いた時に読む。
  *
  * 最初に読み込む量を減らすため、リアルタイム購読（完全版のFirestoreが必要）ではなく軽量版で1回読み、
  * タブに戻ってきた時（5分以上たっていれば）に読み直す。
@@ -51,8 +66,7 @@ export function useSharedTrips() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const firestore = db;
-    if (!firestore) {
+    if (!isFirebaseConfigured) {
       setTrips([]);
       return;
     }
@@ -62,17 +76,18 @@ export function useSharedTrips() {
       loadedAt = Date.now();
       setIsLoading(true);
       setError(null);
-      getDocs(
-        query(
-          collectionGroup(firestore, "walkRoutes"),
-          where("isSharedPublicly", "==", true),
-          orderBy("startedAt", "desc"),
-          limit(50),
-        ),
+      runProjectedQuery(
+        {
+          from: [{ collectionId: "walkRoutes", allDescendants: true }],
+          where: { fieldFilter: { field: { fieldPath: "isSharedPublicly" }, op: "EQUAL", value: { booleanValue: true } } },
+          orderBy: [{ field: { fieldPath: "startedAt" }, direction: "DESCENDING" }],
+          limit: 50,
+        },
+        LIST_FIELDS,
       )
-        .then((snapshot) => {
+        .then((documents) => {
           if (cancelled) return;
-          setTrips(snapshot.docs.map(parseSharedTripDocument));
+          setTrips(documents.map(({ path, data }) => parseSharedTripDocument(path, data)));
           setIsLoading(false);
         })
         .catch((err: unknown) => {
