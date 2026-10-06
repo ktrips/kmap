@@ -57,9 +57,12 @@ enum HistoricSiteCatalog {
     /// 同梱のチェックポイント + 管理者による変更 + ユーザーが追加した古地図のチェックポイント。
     static var allIncludingCustom: [HistoricSite] {
         if let cachedAll { return cachedAll }
-        let hidden = OverlayOverrideStore.allHiddenSiteIDs()
+        // 管理者による追加・非表示は、クラウドで全員に配るもの（`AdminCheckpointCloud`）と、
+        // 以前の端末内だけの保存（`OverlayOverrideStore`。管理者がサインインするとクラウドへ移す）の両方を反映する。
+        let hidden = OverlayOverrideStore.allHiddenSiteIDs().union(AdminCheckpointCloud.hiddenSiteIDs())
         let bundled = hidden.isEmpty ? all : all.filter { !hidden.contains($0.id) }
-        let combined = bundled + OverlayOverrideStore.allExtraSites() + CustomOverlayMapStore.sites()
+        let combined = bundled + AdminCheckpointCloud.extraSites() + OverlayOverrideStore.allExtraSites()
+            + CustomOverlayMapStore.sites()
         cachedAll = combined
         cachedByOverlayID = Dictionary(grouping: combined, by: \.overlayMapID)
         cachedByID = Dictionary(combined.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })

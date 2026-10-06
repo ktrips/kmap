@@ -338,6 +338,10 @@ struct MapScreen: View {
         )
         .ignoresSafeArea()
         .modifier(CheckpointAddPrompt(request: $checkpointAddRequest, onAdd: addCheckpoint))
+        // 管理者がクラウドで追加・非表示にしたチェックポイントを読み直した時に、地図の表示も作り直す。
+        .onReceive(NotificationCenter.default.publisher(for: AdminCheckpointCloud.didChange)) { _ in
+            recomputeActiveCheckpoints()
+        }
     }
 
     var body: some View {

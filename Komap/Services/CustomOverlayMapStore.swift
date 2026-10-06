@@ -250,7 +250,7 @@ enum CustomOverlayMapStore {
 
 /// 古地図へのチェックポイントの追加（編集画面・地図の長押しで共通）。
 ///
-/// 同梱の古地図は管理者だけが追加でき、端末内の「上書き」（`OverlayOverrideStore`）に保存する。
+/// 同梱の古地図は管理者だけが追加でき、クラウド（`AdminCheckpointCloud`）経由で全員の端末・Webに配る。
 /// 自分で追加した古地図（`CustomOverlayMapStore`）は誰でも追加でき、公開中ならクラウドの公開データも作り直す。
 enum OverlayCheckpointEditing {
     /// この古地図にチェックポイントを追加できるか。
@@ -267,7 +267,7 @@ enum OverlayCheckpointEditing {
         let pointName = trimmedName.isEmpty ? "新しいポイント" : trimmedName
         let pointSummary = summary.trimmingCharacters(in: .whitespacesAndNewlines)
         if OldMapCatalog.isBundled(id: overlayID) {
-            OverlayOverrideStore.addCheckpoint(
+            AdminCheckpointCloud.add(
                 toOverlayID: overlayID, name: pointName, summary: pointSummary, coordinate: coordinate
             )
         } else {

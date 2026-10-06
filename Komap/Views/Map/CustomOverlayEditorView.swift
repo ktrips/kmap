@@ -103,7 +103,10 @@ struct CustomOverlayEditorView: View {
                             } label: {
                                 Label("変更を元に戻す", systemImage: "arrow.uturn.backward")
                             }
-                            .disabled(!OverlayOverrideStore.hasOverride(id: overlay.id))
+                            .disabled(
+                                !OverlayOverrideStore.hasOverride(id: overlay.id)
+                                    && !AdminCheckpointCloud.hasChanges(overlayID: overlay.id)
+                            )
                         } else {
                             Button(role: .destructive) {
                                 isConfirmingDeleteOverlay = true
@@ -165,7 +168,8 @@ struct CustomOverlayEditorView: View {
             ) { site in
                 Button("「\(site.name)」を削除", role: .destructive) {
                     if isBundled {
-                        OverlayOverrideStore.removeCheckpoint(overlayID: overlay.id, siteID: site.id)
+                        // 全員の画面から消す（管理者が追加したものは取り除き、同梱のものは非表示にする）。
+                        AdminCheckpointCloud.remove(siteID: site.id, overlayID: overlay.id)
                     } else {
                         CustomOverlayMapStore.deleteCheckpoint(siteID: site.id)
                     }
@@ -181,6 +185,7 @@ struct CustomOverlayEditorView: View {
             ) {
                 Button("元に戻す", role: .destructive) {
                     OverlayOverrideStore.reset(id: overlay.id)
+                    AdminCheckpointCloud.reset(overlayID: overlay.id)
                     reloadOverlay()
                     checkpoints = HistoricSiteCatalog.sites(forOverlayID: overlay.id)
                 }

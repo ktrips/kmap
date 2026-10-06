@@ -79,6 +79,13 @@ service cloud.firestore {
       }
     }
 
+    // 管理者が同梱の古地図に加えたチェックポイントの変更（追加・非表示）。全員のアプリ・Webが読む。
+    // 文書のIDはチェックポイントのID。書けるのは管理者だけ（iOSの`AdminCheckpointCloud`）。
+    match /adminCheckpoints/{siteId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // 「みんなの古地図」: 追加した古地図の公開データ。読み取りは誰でも可。
     // 作成・更新・削除は、ownerUserIDが自分のuidの文書だけ。
     match /sharedOverlayMaps/{mapId} {

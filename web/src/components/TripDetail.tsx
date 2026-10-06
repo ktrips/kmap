@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
 import { distanceLabel, tripDateFormatter as dateFormatter } from "../lib/format";
 import { findOldMap } from "../lib/oldMapCatalog";
-import { sitesForOverlay } from "../lib/historicSiteCatalog";
+import { sitesForOverlay, useHistoricSiteCatalogVersion } from "../lib/historicSiteCatalog";
 import { saveTripDetails } from "../lib/tripEditing";
 import { useTripComments } from "../lib/useTripComments";
 import { useTripLikes } from "../lib/useTripLikes";
@@ -101,7 +101,9 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   // いいね・コメントのリアルタイム更新でTripDetailが再描画されるたびに
   // 新しい配列参照になり、変わっていないTripMapView側の重い再描画
   // （古地図オーバーレイの再取得・マーカーの作り直し）を毎回引き起こしていた。
-  const checkpoints = useMemo(() => sitesForOverlay(oldMap?.id ?? null), [oldMap]);
+  const catalogVersion = useHistoricSiteCatalogVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const checkpoints = useMemo(() => sitesForOverlay(oldMap?.id ?? null), [oldMap, catalogVersion]);
   // 動画は下の「旅の動画」でその場で再生できるため、iOSアプリが旅日記の末尾に
   // 付けている動画リンクの行は本文から外す（同じリンクが2か所に出ないように）。
   const journalHtml = useMemo(() => {

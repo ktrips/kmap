@@ -144,6 +144,20 @@ enum OverlayOverrideStore {
         }
     }
 
+    /// 端末に保存していたポイントの追加・非表示を取り出して消す（クラウドへの移行用。`AdminCheckpointCloud`）。
+    static func takeCheckpointChanges() -> (extras: [HistoricSite], hidden: [(siteID: String, overlayID: String)]) {
+        var map = records()
+        let extras = allExtraSites()
+        let hidden = map.values.flatMap { record in (record.hiddenSiteIDs ?? []).map { (siteID: $0, overlayID: record.id) } }
+        guard !extras.isEmpty || !hidden.isEmpty else { return ([], []) }
+        for id in Array(map.keys) {
+            map[id]?.extraCheckpoints = nil
+            map[id]?.hiddenSiteIDs = nil
+        }
+        save(map)
+        return (extras, hidden)
+    }
+
     /// この古地図への変更をすべて取り消し、同梱の元の内容に戻す。
     static func reset(id: String) {
         var map = records()

@@ -1,4 +1,4 @@
-import { sitesForOverlay } from "../lib/historicSiteCatalog";
+import { sitesForOverlay, useHistoricSiteCatalogVersion } from "../lib/historicSiteCatalog";
 import type { OldMapEntry } from "../lib/oldMapCatalog";
 import { oldMapRegion, REGION_LABEL } from "../lib/tripRegion";
 import { TripMapView } from "./TripMapView";
@@ -9,6 +9,8 @@ interface Props {
 
 /** 古地図1枚の詳細。今の地図に重ねた表示・古地図の画像・チェックポイントの一覧を見せる。 */
 export function OldMapDetail({ map }: Props) {
+  // 管理者が追加したチェックポイントを読み込んだら描き直す。
+  useHistoricSiteCatalogVersion();
   if (!map || !map.southWest || !map.northEast) {
     return (
       <div className="trip-detail place-detail-empty">

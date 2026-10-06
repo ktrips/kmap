@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { OldMapEntry } from "../lib/oldMapCatalog";
-import { sitesForOverlay } from "../lib/historicSiteCatalog";
+import { sitesForOverlay, useHistoricSiteCatalogVersion } from "../lib/historicSiteCatalog";
 import { oldMapRegion, REGION_LABEL, REGION_ORDER, VISIBLE_OLD_MAPS } from "../lib/tripRegion";
 
 interface Props {
@@ -21,6 +21,8 @@ export function oldMapCount(sharedMaps: OldMapEntry[]): number {
  * 「みんなの古地図」としてまとめる。サインインしていなくても見られる。
  */
 export function OldMapList({ selectedId, onSelect, sharedMaps = [] }: Props) {
+  // 管理者が追加したチェックポイントを読み込んだら、件数を描き直す。
+  useHistoricSiteCatalogVersion();
   const groups = useMemo(() => {
     return REGION_ORDER.map((region) => ({
       key: region,

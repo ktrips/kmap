@@ -6,6 +6,7 @@ struct RootView: View {
     @StateObject private var plusStore = PlusStore()
     private let syncService = SyncService()
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -19,11 +20,20 @@ struct RootView: View {
         .environmentObject(mapSession)
         .environmentObject(plusStore)
         .onAppear { plusStore.start() }
+        // 管理者が追加・非表示にしたチェックポイントを、起動時とアプリに戻った時に読み直す。
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            guard phase == .active else { return }
+            Task { await AdminCheckpointCloud.refresh() }
+        }
         // サインインするたび、自分の検証済みメールアドレス宛に届いている友達招待が
         // あれば受け取れる状態にする（`friendRequests`の`toUID`を自分のuidで確定させる）。
         .task(id: authService.userID) {
             // Web版でも Plus の特典（Kindle本の全文）を使えるよう、サインインしたアカウントに購入を記録する。
             await plusStore.setSignedInUser(authService.userID, email: authService.email)
+            // 以前は管理者の端末にだけ保存していたチェックポイントの追加・非表示を、全員に配るクラウドへ移す。
+            if authService.isAdmin {
+                AdminCheckpointCloud.migrateLocalOverrides()
+            }
             // 端末の記録をクラウドと合わせる（別の端末・Webでの追加・変更・削除を取り込み、まだ上がっていないものは上げる）。
             if let userID = authService.userID {
                 await CloudSync.sync(userID: userID, context: modelContext, syncService: syncService, force: true)
