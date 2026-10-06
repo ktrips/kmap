@@ -248,6 +248,36 @@ enum CustomOverlayMapStore {
     }
 }
 
+/// 古地図へのチェックポイントの追加（編集画面・地図の長押しで共通）。
+///
+/// 同梱の古地図は管理者だけが追加でき、端末内の「上書き」（`OverlayOverrideStore`）に保存する。
+/// 自分で追加した古地図（`CustomOverlayMapStore`）は誰でも追加でき、公開中ならクラウドの公開データも作り直す。
+enum OverlayCheckpointEditing {
+    /// この古地図にチェックポイントを追加できるか。
+    static func canAddCheckpoint(toOverlayID overlayID: String, isAdmin: Bool) -> Bool {
+        if OldMapCatalog.isBundled(id: overlayID) { return isAdmin }
+        return CustomOverlayMapStore.all().contains { $0.id == overlayID }
+    }
+
+    /// チェックポイントを1つ追加する。名前が空なら「新しいポイント」にする。
+    static func addCheckpoint(
+        toOverlayID overlayID: String, name: String, summary: String, coordinate: CLLocationCoordinate2D
+    ) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pointName = trimmedName.isEmpty ? "新しいポイント" : trimmedName
+        let pointSummary = summary.trimmingCharacters(in: .whitespacesAndNewlines)
+        if OldMapCatalog.isBundled(id: overlayID) {
+            OverlayOverrideStore.addCheckpoint(
+                toOverlayID: overlayID, name: pointName, summary: pointSummary, coordinate: coordinate
+            )
+        } else {
+            CustomOverlayMapStore.addCheckpoint(
+                toOverlayID: overlayID, name: pointName, summary: pointSummary, coordinate: coordinate
+            )
+        }
+    }
+}
+
 fileprivate extension CustomOverlayMapStore.Record {
     var overlayMap: HistoricalOverlayMap {
         HistoricalOverlayMap(

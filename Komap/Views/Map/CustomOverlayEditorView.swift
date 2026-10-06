@@ -279,18 +279,9 @@ struct CustomOverlayEditorView: View {
 
     private func addPoint() {
         guard let coordinate = pendingCoordinate else { return }
-        let name = newPointName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let summary = newPointSummary.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pointName = name.isEmpty ? "新しいポイント" : name
-        if isBundled {
-            OverlayOverrideStore.addCheckpoint(
-                toOverlayID: overlay.id, name: pointName, summary: summary, coordinate: coordinate
-            )
-        } else {
-            CustomOverlayMapStore.addCheckpoint(
-                toOverlayID: overlay.id, name: pointName, summary: summary, coordinate: coordinate
-            )
-        }
+        OverlayCheckpointEditing.addCheckpoint(
+            toOverlayID: overlay.id, name: newPointName, summary: newPointSummary, coordinate: coordinate
+        )
         pendingCoordinate = nil
         checkpoints = HistoricSiteCatalog.sites(forOverlayID: overlay.id)
         resyncIfPublic()

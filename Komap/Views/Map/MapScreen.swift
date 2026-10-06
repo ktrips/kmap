@@ -47,6 +47,8 @@ struct MapScreen: View {
     @State private var currentLocationSearchMessage: String?
     /// チェックポイントのマーカー上の小さなアイコンボタンがタップされた時に表示する史跡。
     @State private var tappedCheckpoint: HistoricSite?
+    /// 地図の3秒長押しで、チェックポイントを追加するか確認している地点。
+    @State private var checkpointAddRequest: CheckpointAddRequest?
     /// 地図上の写真ピンがタップされた時に表示する投稿。
     @State private var tappedPhotoPost: WalkPhotoPost?
     @State private var newlyCollectedSite: HistoricSite?
@@ -180,6 +182,35 @@ struct MapScreen: View {
         }
     }
 
+    /// 地図の長押しした地点に、チェックポイントを追加できる古地図があれば確認を出す。
+    /// 1枚表示中はその古地図（範囲の外でも追加できる）、全地図表示中はその地点を含む古地図が対象。
+    /// 同梱の古地図は管理者だけ、自分で追加した古地図は誰でも追加できる（`OverlayCheckpointEditing`）。
+    private func requestCheckpointAdd(at coordinate: CLLocationCoordinate2D) {
+        let candidates = mapSession.isShowingAllOverlays
+            ? OldMapCatalog.visibleIncludingCustom.filter { $0.contains(coordinate) }
+            : [mapSession.selectedOverlay].compactMap { $0 }
+        guard let overlay = candidates.first(where: {
+            OverlayCheckpointEditing.canAddCheckpoint(toOverlayID: $0.id, isAdmin: authService.isAdmin)
+        }) else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        checkpointAddRequest = CheckpointAddRequest(overlay: overlay, coordinate: coordinate)
+    }
+
+    private func addCheckpoint(_ request: CheckpointAddRequest, name: String, summary: String) {
+        OverlayCheckpointEditing.addCheckpoint(
+            toOverlayID: request.overlay.id, name: name, summary: summary, coordinate: request.coordinate
+        )
+        recomputeActiveCheckpoints()
+        // 公開中の自分の古地図なら、「みんなの古地図」の公開データにも反映する。
+        guard CustomOverlayMapStore.isPublic(id: request.overlay.id) else { return }
+        let mapID = request.overlay.id
+        let userID = authService.userID
+        let displayName = authService.displayName
+        Task {
+            try? await OverlayMapShareService().publish(mapID: mapID, userID: userID, ownerDisplayName: displayName)
+        }
+    }
+
     /// 現在地を含む古地図（同梱・追加済みの両方）を探して選択する。1枚も無ければ、
     /// 現在地付近の古地図を新しく作る検索画面へ移る（その場所の名前を検索文に入れておく）。
     private func searchOldMapAtCurrentLocation() async {
@@ -265,44 +296,53 @@ struct MapScreen: View {
         )
     }
 
+    /// 地図本体（`body`の式が大きくなりすぎて型検査が終わらなくなるため分けている）。
+    private var mapLayer: some View {
+        GoogleMapRepresentable(
+            overlayMap: mapSession.selectedOverlay,
+            overlayOpacity: Float(mapSession.overlayOpacity),
+            currentLocation: locationManager.currentLocation,
+            currentHeading: locationManager.currentCourse,
+            currentLocationIconStyle: currentLocationIconStyle,
+            showAllOverlays: mapSession.isShowingAllOverlays,
+            moveCameraRequest: mapSession.cameraMoveRequest,
+            reattachOverlayRequest: mapSession.overlayReattachRequest,
+            bottomInset: bottomPanelHeight,
+            savedWalkPaths: cachedSavedWalkPaths,
+            liveWalkPath: displayedLiveWalkPath,
+            isRecordingWalk: locationManager.isRecordingWalk || isWatchTrackingActive,
+            checkpoints: cachedActiveCheckpoints,
+            collectedSiteIDs: cachedCollectedSiteIDs,
+            photoPosts: photoPosts,
+            onTap: { coordinate in
+                handleMapTap(at: coordinate)
+            },
+            onCheckpointTap: { site in
+                // 「全ての古地図を表示」中でも、チェックポイントの名称を押した時は
+                // 単体表示に切り替えず（他のマーカーが消えてしまうため）、
+                // そのまま詳細シートを開く。
+                tappedCheckpoint = site
+            },
+            onPhotoPostTap: { post in
+                tappedPhotoPost = post
+            },
+            onLongPress: { coordinate in
+                requestCheckpointAdd(at: coordinate)
+            },
+            onUserPanned: {
+                isFollowingCurrentLocation = false
+            },
+            onVisibleBoundsChange: { bounds in
+                mapSession.visibleBounds = bounds
+            }
+        )
+        .ignoresSafeArea()
+        .modifier(CheckpointAddPrompt(request: $checkpointAddRequest, onAdd: addCheckpoint))
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
-            GoogleMapRepresentable(
-                overlayMap: mapSession.selectedOverlay,
-                overlayOpacity: Float(mapSession.overlayOpacity),
-                currentLocation: locationManager.currentLocation,
-                currentHeading: locationManager.currentCourse,
-                currentLocationIconStyle: currentLocationIconStyle,
-                showAllOverlays: mapSession.isShowingAllOverlays,
-                moveCameraRequest: mapSession.cameraMoveRequest,
-                reattachOverlayRequest: mapSession.overlayReattachRequest,
-                bottomInset: bottomPanelHeight,
-                savedWalkPaths: cachedSavedWalkPaths,
-                liveWalkPath: displayedLiveWalkPath,
-                isRecordingWalk: locationManager.isRecordingWalk || isWatchTrackingActive,
-                checkpoints: cachedActiveCheckpoints,
-                collectedSiteIDs: cachedCollectedSiteIDs,
-                photoPosts: photoPosts,
-                onTap: { coordinate in
-                    handleMapTap(at: coordinate)
-                },
-                onCheckpointTap: { site in
-                    // 「全ての古地図を表示」中でも、チェックポイントの名称を押した時は
-                    // 単体表示に切り替えず（他のマーカーが消えてしまうため）、
-                    // そのまま詳細シートを開く。
-                    tappedCheckpoint = site
-                },
-                onPhotoPostTap: { post in
-                    tappedPhotoPost = post
-                },
-                onUserPanned: {
-                    isFollowingCurrentLocation = false
-                },
-                onVisibleBoundsChange: { bounds in
-                    mapSession.visibleBounds = bounds
-                }
-            )
-            .ignoresSafeArea()
+            mapLayer
 
             VStack(spacing: 12) {
                 actionButtonsRow
@@ -1420,4 +1460,43 @@ private struct WalkSaveDecisionSheet: View {
         .environmentObject(MapSessionState())
         .environmentObject(PlusStore())
         .modelContainer(for: [SavedPlace.self, WalkRoute.self, CollectedStamp.self, WalkPhotoPost.self], inMemory: true)
+}
+
+/// 地図の長押しで、チェックポイントを追加するか確認している地点。
+struct CheckpointAddRequest: Identifiable {
+    let id = UUID()
+    let overlay: HistoricalOverlayMap
+    let coordinate: CLLocationCoordinate2D
+}
+
+/// 地図の長押しで出す「チェックポイントを追加しますか？」の確認（名前・説明を入力する）。
+/// `MapScreen`の長い修飾子の列に直接`.alert`を足すと型検査が終わらなくなるため、別の修飾子に分けている。
+private struct CheckpointAddPrompt: ViewModifier {
+    @Binding var request: CheckpointAddRequest?
+    var onAdd: (CheckpointAddRequest, _ name: String, _ summary: String) -> Void
+    @State private var name = ""
+    @State private var summary = ""
+
+    func body(content: Content) -> some View {
+        content
+            .alert(
+                "チェックポイントを追加しますか？",
+                isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } }),
+                presenting: request
+            ) { request in
+                TextField("名前", text: $name)
+                TextField("説明（任意）", text: $summary)
+                Button("追加") { onAdd(request, name, summary) }
+                Button("キャンセル", role: .cancel) {}
+            } message: { request in
+                Text(String(
+                    format: "「%@」の、長押しした地点（緯度%.5f・経度%.5f）に追加します。",
+                    request.overlay.shortTitle, request.coordinate.latitude, request.coordinate.longitude
+                ))
+            }
+            .onChange(of: request?.id) { _, _ in
+                name = ""
+                summary = ""
+            }
+    }
 }

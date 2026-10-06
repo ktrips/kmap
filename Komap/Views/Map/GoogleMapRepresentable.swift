@@ -93,6 +93,8 @@ struct GoogleMapRepresentable: UIViewRepresentable {
     var onCheckpointTap: (HistoricSite) -> Void = { _ in }
     /// 投稿写真のピンがタップされた時に呼ばれる。
     var onPhotoPostTap: (WalkPhotoPost) -> Void = { _ in }
+    /// 地図を3秒以上長押しした時に、その地点（WGS84）を渡す（チェックポイントの追加に使う）。
+    var onLongPress: (CLLocationCoordinate2D) -> Void = { _ in }
     /// ユーザーが指でマップをドラッグ・ピンチ操作した時に呼ばれる。
     /// 現在地追従中はこれをきっかけに追従をやめる（プログラムによるカメラ移動では呼ばれない）。
     var onUserPanned: () -> Void = {}
@@ -123,6 +125,13 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         mapView.isIndoorEnabled = false
         // 歩いた道の朱色をくっきり引き立たせるため、地図自体は少しだけ彩度を落としておく。
         mapView.mapStyle = try? GMSMapStyle(jsonString: Self.mutedMapStyleJSON)
+        // Google マップ自身の長押し（約0.5秒）では誤って押しただけでも反応するため、3秒の長押しを自前で見る。
+        let longPress = UILongPressGestureRecognizer(
+            target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:))
+        )
+        longPress.minimumPressDuration = 3
+        longPress.delegate = context.coordinator
+        mapView.addGestureRecognizer(longPress)
         return mapView
     }
 
@@ -138,6 +147,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         context.coordinator.onTap = onTap
         context.coordinator.onCheckpointTap = onCheckpointTap
         context.coordinator.onPhotoPostTap = onPhotoPostTap
+        context.coordinator.onLongPress = onLongPress
         context.coordinator.onUserPanned = onUserPanned
         context.coordinator.onVisibleBoundsChange = onVisibleBoundsChange
         context.coordinator.mapView = mapView
@@ -195,6 +205,7 @@ struct GoogleMapRepresentable: UIViewRepresentable {
         var onTap: (CLLocationCoordinate2D) -> Void
         var onCheckpointTap: (HistoricSite) -> Void = { _ in }
         var onPhotoPostTap: (WalkPhotoPost) -> Void = { _ in }
+        var onLongPress: (CLLocationCoordinate2D) -> Void = { _ in }
         var onUserPanned: () -> Void = {}
         var onVisibleBoundsChange: (OldMapSearchBounds) -> Void = { _ in }
         var lastHandledMoveRequestID: UUID?
@@ -619,6 +630,12 @@ struct GoogleMapRepresentable: UIViewRepresentable {
             return renderer.image { _ in
                 image.draw(in: CGRect(origin: .zero, size: newSize))
             }
+        }
+
+        @objc func handleLongPress(_ recognizer: UILongPressGestureRecognizer) {
+            guard recognizer.state == .began, let mapView = recognizer.view as? GMSMapView else { return }
+            let coordinate = mapView.projection.coordinate(for: recognizer.location(in: mapView))
+            onLongPress(MapDisplayCoordinate.fromDisplay(coordinate))
         }
 
         func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
@@ -1179,5 +1196,15 @@ struct GoogleMapRepresentable: UIViewRepresentable {
                 clipPath.stroke()
             }
         }
+    }
+}
+
+extension GoogleMapRepresentable.Coordinator: UIGestureRecognizerDelegate {
+    /// 長押しの判定中も、地図のスクロール・ピンチなど Google マップ自身の操作を止めない。
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        true
     }
 }
