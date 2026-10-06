@@ -943,6 +943,27 @@ extension HistoricSiteCatalog {
             summary: "幅わずか90cmほどの、街でいちばん細い石段の路地。17世紀の商人の名が残る。紋章は黒地に銀の旅人。",
             coordinate: CLLocationCoordinate2D(latitude: 59.3231, longitude: 18.0728)
         ),
+        HistoricSite(
+            id: "stockholm-city-hall",
+            overlayMapID: "stockholm-old-town",
+            name: "ストックホルム市庁舎（ストックホルムの象徴）",
+            summary: "メーラレン湖のほとりにそびえる、三つの王冠を頂く塔の赤れんがの市庁舎。ストックホルムの象徴で、『魔女の宅急便』の舞台のモデルのひとつとされる。紋章は赤地に金の三つの王冠。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3275, longitude: 18.0542)
+        ),
+        HistoricSite(
+            id: "stockholm-zum-franziskaner",
+            overlayMapID: "stockholm-old-town",
+            name: "ツム・フランツィスカーナー（ビアホール）",
+            summary: "ドイツ商人の時代から続く、ガムラスタンの水辺の古いビアホール。『魔女の宅急便』の舞台のモデルのひとつとされる。紋章は金地に黒いジョッキ。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3224, longitude: 18.0742)
+        ),
+        HistoricSite(
+            id: "stockholm-tyska-brinken",
+            overlayMapID: "stockholm-old-town",
+            name: "ティスカ・ブリンケン（ガムラスタンの石畳）",
+            summary: "ドイツ教会へと上る、ガムラスタンの石畳の坂道。『魔女の宅急便』の舞台のモデルのひとつとされる。紋章は銀地に黒い石段。",
+            coordinate: CLLocationCoordinate2D(latitude: 59.3233, longitude: 18.0695)
+        ),
         // Europe — タリン旧市街（ハンザ同盟）
         HistoricSite(
             id: "tallinn-raekoja-plats",

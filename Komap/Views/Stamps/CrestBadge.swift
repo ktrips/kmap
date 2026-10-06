@@ -61,6 +61,9 @@ enum CrestBadgeCatalog {
         "stockholm-stortorget": CrestBadge(symbolName: "house.fill", tint: gules),
         "stockholm-riddarhuset": CrestBadge(symbolName: "shield.lefthalf.filled", tint: azure),
         "stockholm-marten-trotzig": CrestBadge(symbolName: "figure.walk", tint: sable),
+        "stockholm-city-hall": CrestBadge(symbolName: "crown.fill", tint: gules),
+        "stockholm-zum-franziskaner": CrestBadge(symbolName: "mug.fill", tint: goldBright),
+        "stockholm-tyska-brinken": CrestBadge(symbolName: "stairs", tint: sable),
 
         // タリン
         "tallinn-raekoja-plats": CrestBadge(symbolName: "building.columns.fill", tint: sable),

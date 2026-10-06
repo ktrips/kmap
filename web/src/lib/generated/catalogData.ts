@@ -464,6 +464,9 @@ export const HISTORIC_SITE_DATA: HistoricSiteEntry[] = [
   { id: "stockholm-stortorget", name: "ストールトリエット（大広場）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.325, lng: 18.0708 } },
   { id: "stockholm-riddarhuset", name: "リッダルフーセット（貴族院）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3259, lng: 18.0658 } },
   { id: "stockholm-marten-trotzig", name: "マーテン・トロッツィグ小路", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3231, lng: 18.0728 } },
+  { id: "stockholm-city-hall", name: "ストックホルム市庁舎（ストックホルムの象徴）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3275, lng: 18.0542 } },
+  { id: "stockholm-zum-franziskaner", name: "ツム・フランツィスカーナー（ビアホール）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3224, lng: 18.0742 } },
+  { id: "stockholm-tyska-brinken", name: "ティスカ・ブリンケン（ガムラスタンの石畳）", overlayMapID: "stockholm-old-town", coordinate: { lat: 59.3233, lng: 18.0695 } },
   // Europe — タリン旧市街（ハンザ同盟）
   { id: "tallinn-raekoja-plats", name: "ラエコヤ広場（旧市庁舎広場）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.437, lng: 24.7454 } },
   { id: "tallinn-toompea", name: "トームペア（城の丘）", overlayMapID: "tallinn-old-town", coordinate: { lat: 59.437, lng: 24.7402 } },
