@@ -329,6 +329,12 @@ struct PhotoPostPageView: View {
             post.storyUpdatedAt = Date()
             try? modelContext.save()
             try? await syncService.upload(post, userID: authService.userID)
+            // この写真を投稿した旅の旅日記も、新しい名前・説明で作り直す。
+            TravelJournalAutoUpdater.shared.scheduleRefresh(
+                context: modelContext,
+                userID: authService.userID,
+                isPlus: plusStore.isPlus
+            )
         } catch {
             infoErrorMessage = error.localizedDescription
         }

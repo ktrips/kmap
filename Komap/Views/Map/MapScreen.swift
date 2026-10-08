@@ -1059,6 +1059,12 @@ struct MapScreen: View {
             if let userID = authService.userID {
                 try? await syncService.upload(walkRoute, userID: userID)
             }
+            TravelJournalAutoUpdater.shared.scheduleRefresh(
+                context: modelContext,
+                userID: authService.userID,
+                isPlus: plusStore.isPlus,
+                including: walkRoute.id
+            )
         }
     }
 
@@ -1231,6 +1237,13 @@ struct MapScreen: View {
         if let userID = authService.userID {
             Task { try? await syncService.upload(route, userID: userID) }
         }
+        // 「旅日記を作成する」を押さなくても、旅日記を作ってWebの旅のページにも出す。
+        TravelJournalAutoUpdater.shared.scheduleRefresh(
+            context: modelContext,
+            userID: authService.userID,
+            isPlus: plusStore.isPlus,
+            including: route.id
+        )
 
         if !pending.hadWatchCompanion {
             Task {

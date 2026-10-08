@@ -20,10 +20,15 @@ struct RootView: View {
         .environmentObject(mapSession)
         .environmentObject(plusStore)
         .onAppear { plusStore.start() }
+        // 起動直後は Plus の購入状況がまだ読めていないことがあるので、分かった時にも旅日記を確かめる。
+        .onChange(of: plusStore.isPlus) { _, isPlus in
+            if isPlus { refreshTravelJournals() }
+        }
         // 管理者が追加・非表示にしたチェックポイントを、起動時とアプリに戻った時に読み直す。
         .onChange(of: scenePhase, initial: true) { _, phase in
             guard phase == .active else { return }
             Task { await AdminCheckpointCloud.refresh() }
+            refreshTravelJournals()
         }
         // サインインするたび、自分の検証済みメールアドレス宛に届いている友達招待が
         // あれば受け取れる状態にする（`friendRequests`の`toUID`を自分のuidで確定させる）。
@@ -38,9 +43,19 @@ struct RootView: View {
             if let userID = authService.userID {
                 await CloudSync.sync(userID: userID, context: modelContext, syncService: syncService, force: true)
             }
+            refreshTravelJournals()
             guard let userID = authService.userID, let email = authService.email else { return }
             await syncService.claimFriendRequestsAddressedToMe(userID: userID, email: email)
         }
+    }
+
+    /// 旅日記が無い最近の旅・内容（Webで変えた名前も含む）が変わった旅の旅日記を、自動で作り直してWebにも反映する。
+    private func refreshTravelJournals() {
+        TravelJournalAutoUpdater.shared.scheduleRefresh(
+            context: modelContext,
+            userID: authService.userID,
+            isPlus: plusStore.isPlus
+        )
     }
 }
 

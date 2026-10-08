@@ -283,6 +283,12 @@ struct CheckpointInfoSheet: View {
             modelContext.insert(story)
         }
         uploadDetailToStamps(newBody)
+        // この史跡を巡った旅の旅日記も、新しい説明で作り直す。
+        TravelJournalAutoUpdater.shared.scheduleRefresh(
+            context: modelContext,
+            userID: authService.userID,
+            isPlus: plusStore.isPlus
+        )
     }
 
     /// このチェックポイントで獲得した自分の御朱印に、説明文を添えてクラウドへ上げる

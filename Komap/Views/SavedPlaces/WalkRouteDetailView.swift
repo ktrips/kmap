@@ -80,7 +80,8 @@ struct WalkRouteDetailView: View {
     @State private var selectedStamp: StampSelection?
     @State private var isUpdatingShare = false
     @State private var shareErrorMessage: String?
-    @State private var isGeneratingJournal = false
+    /// 旅日記は保存時・内容の変更時に自動で作り直す（`TravelJournalAutoUpdater`）。作成中かどうかもここから見る。
+    @ObservedObject private var journalUpdater = TravelJournalAutoUpdater.shared
     @State private var journalErrorMessage: String?
     @State private var isShowingJournal = false
     @State private var likeCount = 0
@@ -102,7 +103,17 @@ struct WalkRouteDetailView: View {
     @State private var isShowingVideo = false
 
     private let syncService = SyncService()
-    private let journalService = TravelJournalService()
+    private var isGeneratingJournal: Bool { journalUpdater.generatingRouteIDs.contains(route.id) }
+
+    /// 旅日記が無い・内容が変わって古くなった旅日記を、少し待ってから自動で作り直してWebにも反映する。
+    private func scheduleJournalRefresh() {
+        journalUpdater.scheduleRefresh(
+            context: modelContext,
+            userID: authService.userID,
+            isPlus: plusStore.isPlus,
+            including: route.id
+        )
+    }
 
     private var stampsForRoute: [CollectedStamp] { collectedStamps }
 
@@ -187,6 +198,11 @@ struct WalkRouteDetailView: View {
         }
         .navigationTitle("マイ古地図：\(route.overlayMap?.title ?? "古地図なし")")
         .navigationBarTitleDisplayMode(.inline)
+        // 旅日記がまだ無ければ作り、この画面で写真・御朱印の名前や説明を直したら作り直す（Webにも反映される）。
+        .onAppear { scheduleJournalRefresh() }
+        .onChange(of: hasNewerContentThanJournal) { _, isStale in
+            if isStale { scheduleJournalRefresh() }
+        }
         .task(id: route.isSharedPublicly) {
             guard route.isSharedPublicly else { return }
             guard let counts = try? await syncService.fetchEngagementCounts(tripID: route.id.uuidString) else { return }
@@ -249,6 +265,7 @@ struct WalkRouteDetailView: View {
                 route.detailsUpdatedAt = Date()
                 try? modelContext.save()
                 Task { await syncEditedDetails() }
+                scheduleJournalRefresh()
             }
             Button("キャンセル", role: .cancel) {}
         }
@@ -307,6 +324,7 @@ struct WalkRouteDetailView: View {
                                 try? modelContext.save()
                                 isEditingNotes = false
                                 Task { await syncEditedDetails() }
+                                scheduleJournalRefresh()
                             }
                         }
                     }
@@ -661,7 +679,12 @@ struct WalkRouteDetailView: View {
                 }
 
                 if !isGeneratingJournal && hasNewerContentThanJournal {
-                    Label("写真・御朱印の説明が更新されています。作り直すと反映されます。", systemImage: "sparkles")
+                    Label(
+                        plusStore.isPlus
+                            ? "写真・御朱印の説明が更新されたので、旅日記を自動で作り直します。"
+                            : "写真・御朱印の説明が更新されています。作り直すと反映されます。",
+                        systemImage: "sparkles"
+                    )
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -693,24 +716,12 @@ struct WalkRouteDetailView: View {
             plusPaywallReason = .travelJournal
             return
         }
-        isGeneratingJournal = true
         journalErrorMessage = nil
         do {
-            let journal = try await journalService.generateJournal(
-                for: route,
-                stamps: stampsForRoute,
-                photoPosts: photoPostsForRoute,
-                modelContext: modelContext
-            )
-            route.travelJournalTitle = journal.title
-            route.travelJournalMarkdown = journal.markdownBody
-            route.travelJournalGeneratedAt = Date()
-            try? modelContext.save()
-            try? await syncService.upload(route, userID: authService.userID)
+            try await journalUpdater.generate(for: route, context: modelContext, userID: authService.userID)
         } catch {
             journalErrorMessage = error.localizedDescription
         }
-        isGeneratingJournal = false
     }
 
     /// この時空旅の要約カード画像と、その時空旅を直接開けるURL付きの紹介メッセージを
