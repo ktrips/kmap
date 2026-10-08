@@ -653,7 +653,9 @@ struct WalkRouteDetailView: View {
                     .foregroundStyle(.red)
             }
 
-            if route.travelJournalMarkdown != nil {
+            if let markdown = route.travelJournalMarkdown {
+                journalSummaryCard(markdown: markdown)
+
                 HStack(spacing: 8) {
                     Button {
                         isShowingJournal = true
@@ -707,6 +709,26 @@ struct WalkRouteDetailView: View {
                 .disabled(isGeneratingJournal)
             }
         }
+    }
+
+    /// AIが書いた旅の概要（旅日記のタイトルと本文）。自動で作られ・作り直されたら、そのままここに出る。
+    private func journalSummaryCard(markdown: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let title = route.travelJournalTitle, !title.isEmpty {
+                Text(title)
+                    .font(.headline)
+            }
+            Text(
+                (try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+                    ?? AttributedString(markdown)
+            )
+            .font(.subheadline)
+            .lineSpacing(4)
+            .opacity(isGeneratingJournal ? 0.5 : 1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     /// AIに、この時間旅の内容から旅日記を生成してもらい、成功したら保存・同期する。
