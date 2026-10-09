@@ -656,30 +656,6 @@ struct WalkRouteDetailView: View {
             if let markdown = route.travelJournalMarkdown {
                 journalSummaryCard(markdown: markdown)
 
-                HStack(spacing: 8) {
-                    Button {
-                        isShowingJournal = true
-                    } label: {
-                        Label("旅日記を読む", systemImage: "book.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button {
-                        Task { await generateJournal() }
-                    } label: {
-                        if isGeneratingJournal {
-                            ProgressView()
-                                .frame(width: 20)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isGeneratingJournal)
-                    .accessibilityLabel("旅日記を作り直す")
-                }
-
                 if !isGeneratingJournal && hasNewerContentThanJournal {
                     Label(
                         plusStore.isPlus
@@ -712,21 +688,52 @@ struct WalkRouteDetailView: View {
     }
 
     /// AIが書いた旅の概要（旅日記のタイトルと本文）。自動で作られ・作り直されたら、そのままここに出る。
+    /// 概要を押すか「旅日記を見る」のリンクで、写真・御朱印つきの旅日記（`TravelJournalView`）を開く。
     private func journalSummaryCard(markdown: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let title = route.travelJournalTitle, !title.isEmpty {
-                Text(title)
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
+                if let title = route.travelJournalTitle, !title.isEmpty {
+                    Text(title)
+                        .font(.headline)
+                }
+                Text(
+                    (try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+                        ?? AttributedString(markdown)
+                )
+                .font(.subheadline)
+                .lineSpacing(4)
+                .opacity(isGeneratingJournal ? 0.5 : 1)
             }
-            Text(
-                (try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
-                    ?? AttributedString(markdown)
-            )
-            .font(.subheadline)
-            .lineSpacing(4)
-            .opacity(isGeneratingJournal ? 0.5 : 1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture { isShowingJournal = true }
+
+            HStack {
+                Button {
+                    isShowingJournal = true
+                } label: {
+                    Label("旅日記を見る", systemImage: "chevron.right")
+                        .labelStyle(TrailingIconLabelStyle())
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.borderless)
+
+                Spacer()
+
+                Button {
+                    Task { await generateJournal() }
+                } label: {
+                    if isGeneratingJournal {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+                .buttonStyle(.borderless)
+                .disabled(isGeneratingJournal)
+                .accessibilityLabel("旅日記を作り直す")
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
@@ -1095,4 +1102,14 @@ private struct RouteStampGallerySheet: View {
     }
     .modelContainer(for: [WalkRoute.self, CollectedStamp.self, WalkPhotoPost.self], inMemory: true)
     .environmentObject(PlusStore())
+}
+
+/// 「旅日記を見る ›」のように、文字の後ろにアイコンを置くリンク風のラベル。
+private struct TrailingIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 2) {
+            configuration.title
+            configuration.icon.imageScale(.small)
+        }
+    }
 }
