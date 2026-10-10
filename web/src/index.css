@@ -821,6 +821,65 @@ code {
   color: var(--color-brown);
 }
 
+.trip-visibility-badge.is-private {
+  color: var(--color-brown);
+  background: rgba(140, 90, 52, 0.1);
+}
+
+/* 旅の名前の下に並べる情報（アプリの旅の詳細と同じ並び）。CP・写真・いいねは、それぞれの場所へ飛ぶリンク。 */
+.trip-info-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-brown);
+}
+
+.trip-info-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-brown-deep);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(140, 90, 52, 0.35);
+  text-underline-offset: 3px;
+}
+
+.trip-info-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.trip-info-button {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-card);
+  padding: 2px 10px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-brown-deep);
+  cursor: pointer;
+}
+
+.trip-info-button:hover {
+  background: rgba(140, 90, 52, 0.08);
+}
+
+.trip-share-message {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-brown);
+  word-break: break-all;
+}
+
+.trip-comments > .trip-like-button {
+  margin-bottom: 10px;
+}
+
 .trip-meta-owner {
   font-weight: 600;
 }

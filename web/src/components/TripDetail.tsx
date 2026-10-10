@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { marked } from "marked";
 import { distanceLabel, tripDateFormatter as dateFormatter } from "../lib/format";
 import { findOldMap } from "../lib/oldMapCatalog";
 import { sitesForOverlay, useHistoricSiteCatalogVersion } from "../lib/historicSiteCatalog";
 import { saveTripDetails } from "../lib/tripEditing";
+import { uuidToShortId } from "../lib/tripShortId";
 import { useTripComments } from "../lib/useTripComments";
 import { useTripLikes } from "../lib/useTripLikes";
 import { PhotoLightbox, type LightboxItem } from "./PhotoLightbox";
@@ -76,20 +77,27 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
   const [isSaving, setIsSaving] = useState(false);
   /** 開いているポイントの、`lightboxItems`内の位置（閉じている間は`null`）。 */
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  /** 旅の動画を、画面いっぱいの別ウィンドウ（オーバーレイ）で大きく見ている間は`true`。 */
+  /** 旅の動画を、画面いっぱいの別ウィンドウ（オーバーレイ）で見ている間は`true`。 */
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
+  /** 共有でURLをコピーした時などの、短いお知らせ。 */
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
+  // 情報の行の「CP」「写真」「いいね」から飛ぶ先。
+  const checkpointsRef = useRef<HTMLDivElement>(null);
+  const photosRef = useRef<HTMLDivElement>(null);
+  const engagementRef = useRef<HTMLDivElement>(null);
 
   // 選ぶ時空旅を切り替えたら、編集中だった内容は破棄する。
   useEffect(() => {
     setIsEditing(false);
     setLightboxIndex(null);
     setIsVideoExpanded(false);
+    setShareMessage(null);
   }, [trip?.id]);
 
-  // 旅日記に並べている順（御朱印・チェックポイント → 投稿した写真）に、左右で送れるようにする。
+  // 旅日記に並べている順（チェックポイント → 投稿した写真）に、左右で送れるようにする。
   const lightboxItems = useMemo<LightboxItem[]>(
     () => [
-      ...(trip?.stampPhotos ?? []).map((photo) => ({ ...photo, section: "御朱印・チェックポイント" })),
+      ...(trip?.stampPhotos ?? []).map((photo) => ({ ...photo, section: "チェックポイント" })),
       ...(trip?.postPhotos ?? []).map((photo) => ({ ...photo, section: "投稿した写真" })),
     ],
     [trip?.stampPhotos, trip?.postPhotos],
@@ -164,6 +172,33 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
     void toggleLike();
   };
 
+  /** 端末の共有（メモ・LINE・SNSなど）でこの旅のURLを送る。共有の機能が無いブラウザでは、URLをコピーする。 */
+  const handleShare = async () => {
+    const url = `${window.location.origin}/?t=${uuidToShortId(trip.id) ?? trip.id}`;
+    const text = "Komapで古地図巡りしよう！旅日記はこちら";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: trip.title ?? "Komapの時空旅", text, url });
+      } catch {
+        // 共有を取りやめた時は何もしない。
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareMessage("URLをコピーしました");
+    } catch {
+      setShareMessage(url);
+    }
+  };
+
+  const scrollTo = (ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const isPublic = trip.kind === "shared" || trip.isShared;
+  const checkpointCount = trip.stampCount ?? trip.stampPhotos.length;
+
   const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
@@ -208,76 +243,55 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
           <>
             <div className="trip-title-row">
               <h2>{trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}</h2>
-              {(trip.kind === "shared" || trip.isShared) && (
-                <span className="trip-visibility-badge" title="みんなの時空旅で公開中">
-                  🌐 公開中
-                </span>
-              )}
               {canEdit && (
-                <button type="button" className="trip-edit-button" onClick={startEditing}>
-                  ✏️ 編集
+                <button type="button" className="trip-edit-button" onClick={startEditing} aria-label="名前・説明を編集">
+                  ✏️
                 </button>
               )}
             </div>
 
-            <p className="trip-meta-row">
-              <span>{dateFormatter.format(trip.startedAt)}</span>
+            {/* 旅の情報（アプリの旅の詳細と同じ並び）: 公開状況・日付・距離・歩数・時間・CP・写真・いいね・動画・共有 */}
+            <div className="trip-info-row">
+              {isPublic ? (
+                <span className="trip-visibility-badge" title="みんなの時空旅で公開中">🌐 公開中</span>
+              ) : (
+                <span className="trip-visibility-badge is-private">🔒 自分だけ</span>
+              )}
               {trip.kind === "shared" && trip.ownerDisplayName && (
                 <span className="trip-meta-owner">👤 {trip.ownerDisplayName}</span>
               )}
+              <span>📅 {dateFormatter.format(trip.startedAt)}</span>
               <span>🚶 {distanceLabel(trip.totalDistanceMeters)}</span>
               {trip.stepCount !== null && <span>👣 {trip.stepCount}歩</span>}
               {duration && <span>🕐 {duration}</span>}
-            </p>
+              <button type="button" className="trip-info-link" onClick={() => scrollTo(checkpointsRef)}>
+                📍 CP {checkpointCount}
+              </button>
+              <button type="button" className="trip-info-link" onClick={() => scrollTo(photosRef)}>
+                📷 {trip.postPhotos.length}
+              </button>
+              {isPublic && (
+                <button type="button" className="trip-info-link" onClick={() => scrollTo(engagementRef)}>
+                  {isLikedByMe ? "❤️" : "🤍"} {likeCount}
+                </button>
+              )}
+              {trip.tripVideoURL && (
+                <button type="button" className="trip-info-button" onClick={() => setIsVideoExpanded(true)}>
+                  ▶ 動画
+                </button>
+              )}
+              <button type="button" className="trip-info-button" onClick={() => void handleShare()}>
+                ↗ 共有
+              </button>
+            </div>
+            {shareMessage && <p className="trip-share-message">{shareMessage}</p>}
 
             {trip.description && trip.description.length > 0 && (
               <p className="trip-description-text">{trip.description}</p>
             )}
           </>
         )}
-
-        <p className="trip-journal-basic-info trip-counts-row">
-          {`御朱印 ${trip.stampCount ?? trip.stampPhotos.length}件`}
-          {` ・ 写真 ${trip.postPhotos.length}件 ・ `}
-          <button
-            type="button"
-            className={`trip-like-button ${isLikedByMe ? "is-liked" : ""}`}
-            onClick={handleLikeClick}
-            disabled={isToggling}
-          >
-            いいね {isLikedByMe ? "❤️" : "🤍"} {likeCount}
-          </button>
-        </p>
       </div>
-
-      {/* 旅のサマリー（AIが生成した旅日記の本文。未生成なら非表示） */}
-      {journalHtml && (
-        <div className="trip-journal-summary">
-          <p className="trip-journal-summary-title">{oldMap ? `${oldMap.title}の時空旅` : "時空旅"}</p>
-          <div className="trip-journal-body" dangerouslySetInnerHTML={{ __html: journalHtml }} />
-        </div>
-      )}
-
-      {/* 旅の動画（iOSアプリで作った、軌跡の上を進んで写真を見せる動画） */}
-      {trip.tripVideoURL && (
-        <div className="trip-video">
-          <div className="trip-video-header">
-            <p className="trip-journal-gallery-title">旅の動画</p>
-            <button type="button" className="trip-video-expand" onClick={() => setIsVideoExpanded(true)}>
-              ⤢ 別ウィンドウで開く
-            </button>
-          </div>
-          {!isVideoExpanded && (
-            <video
-              className="trip-video-player"
-              src={trip.tripVideoURL}
-              controls
-              playsInline
-              preload="metadata"
-            />
-          )}
-        </div>
-      )}
 
       {trip.tripVideoURL && isVideoExpanded && (
         <VideoOverlay url={trip.tripVideoURL} onClose={() => setIsVideoExpanded(false)} />
@@ -293,10 +307,18 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         />
       )}
 
-      {/* 御朱印・チェックポイント */}
+      {/* 旅のサマリー（AIが生成した旅日記の本文。未生成なら非表示） */}
+      {journalHtml && (
+        <div className="trip-journal-summary">
+          <p className="trip-journal-summary-title">{oldMap ? `${oldMap.title}の時空旅` : "時空旅"}</p>
+          <div className="trip-journal-body" dangerouslySetInnerHTML={{ __html: journalHtml }} />
+        </div>
+      )}
+
+      {/* チェックポイント（CP） */}
       {trip.stampPhotos.length > 0 && (
-        <div className="trip-journal-gallery">
-          <p className="trip-journal-gallery-title">御朱印・チェックポイント</p>
+        <div className="trip-journal-gallery" ref={checkpointsRef}>
+          <p className="trip-journal-gallery-title">チェックポイント（CP {checkpointCount}）</p>
           {trip.stampPhotos.map((photo, index) => (
             <div
               key={photo.url}
@@ -320,8 +342,8 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
 
       {/* 投稿した写真 */}
       {trip.postPhotos.length > 0 && (
-        <div className="trip-journal-gallery">
-          <p className="trip-journal-gallery-title">投稿した写真</p>
+        <div className="trip-journal-gallery" ref={photosRef}>
+          <p className="trip-journal-gallery-title">写真（{trip.postPhotos.length}）</p>
           {trip.postPhotos.map((photo, index) => (
             <div
               key={photo.url}
@@ -343,7 +365,17 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
         </div>
       )}
 
-      <div className="trip-comments">
+      <div className="trip-comments" ref={engagementRef}>
+        {isPublic && (
+          <button
+            type="button"
+            className={`trip-like-button ${isLikedByMe ? "is-liked" : ""}`}
+            onClick={handleLikeClick}
+            disabled={isToggling}
+          >
+            {isLikedByMe ? "❤️" : "🤍"} {likeCount}
+          </button>
+        )}
         <p className="shared-trip-photo-section-title">コメント{comments.length > 0 ? ` ${comments.length}件` : ""}</p>
         {comments.length > 0 && (
           <ul className="trip-comment-list">

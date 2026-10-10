@@ -145,57 +145,73 @@ struct WalkRouteDetailView: View {
         SyncService.checkpointDetailTexts(for: stampsForRoute, in: modelContext)
     }
 
+    /// 情報の行の「CP」「写真」「いいね」から飛ぶ先。
+    private enum Anchor: Hashable {
+        case checkpoints, photos, engagement
+    }
+
+    /// 並びはWebの旅の詳細（`TripDetail.tsx`）と同じ: 名前と情報の行 → 説明 → 地図 → サマリー → CP → 写真 → いいね・コメント。
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                WalkRouteMapView(
-                    overlayMap: route.overlayMap,
-                    overlayOpacity: Float(route.overlayOpacity),
-                    path: route.coordinates,
-                    checkpoints: checkpointsForOverlay,
-                    collectedSiteIDs: Set(stampsForRoute.map(\.siteID)),
-                    onMapViewReady: { mapView in
-                        // `makeUIView`はSwiftUIの描画パス中に呼ばれるため、ここで直接
-                        // `@State`を書き換えると「Modifying state during view update」の
-                        // 警告と、それに伴う余分な再描画を引き起こす。次の実行ループまで
-                        // 書き換えを遅らせて、描画パスの外側で状態を更新する。
-                        DispatchQueue.main.async {
-                            mapViewForSharing = mapView
-                        }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    headerSection { anchor in
+                        withAnimation { proxy.scrollTo(anchor, anchor: .top) }
                     }
-                )
-                .frame(height: 240)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .playsTripVideoOnTap(localVideoURL: videoURL, cloudVideoURL: route.tripVideoURL) {
-                    isShowingVideo = true
-                }
 
-                nameSection
+                    if let notes = route.notes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                    }
 
-                statsSection
-
-                countsSection
-
-                descriptionAndJournalSection
-
-                if !stampsForRoute.isEmpty {
-                    checkpointsSection
-                }
-
-                if !photoPostsForRoute.isEmpty {
-                    photoPostsSection
-                }
-
-                if route.isSharedPublicly {
-                    TripEngagementView(
-                        tripID: route.id.uuidString,
-                        currentUserID: authService.userID,
-                        currentUserDisplayName: authService.displayName
+                    WalkRouteMapView(
+                        overlayMap: route.overlayMap,
+                        overlayOpacity: Float(route.overlayOpacity),
+                        path: route.coordinates,
+                        checkpoints: checkpointsForOverlay,
+                        collectedSiteIDs: Set(stampsForRoute.map(\.siteID)),
+                        onMapViewReady: { mapView in
+                            // `makeUIView`はSwiftUIの描画パス中に呼ばれるため、ここで直接
+                            // `@State`を書き換えると「Modifying state during view update」の
+                            // 警告と、それに伴う余分な再描画を引き起こす。次の実行ループまで
+                            // 書き換えを遅らせて、描画パスの外側で状態を更新する。
+                            DispatchQueue.main.async {
+                                mapViewForSharing = mapView
+                            }
+                        }
                     )
+                    .frame(height: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .playsTripVideoOnTap(localVideoURL: videoURL, cloudVideoURL: route.tripVideoURL) {
+                        isShowingVideo = true
+                    }
+
+                    travelJournalSection
+
+                    if !stampsForRoute.isEmpty {
+                        checkpointsSection
+                            .id(Anchor.checkpoints)
+                    }
+
+                    if !photoPostsForRoute.isEmpty {
+                        photoPostsSection
+                            .id(Anchor.photos)
+                    }
+
+                    if route.isSharedPublicly {
+                        TripEngagementView(
+                            tripID: route.id.uuidString,
+                            currentUserID: authService.userID,
+                            currentUserDisplayName: authService.displayName
+                        )
+                        .id(Anchor.engagement)
+                    }
                 }
+                .padding()
             }
-            .padding()
         }
+        .onAppear { loadSavedVideo() }
         .navigationTitle("マイ古地図：\(route.overlayMap?.title ?? "古地図なし")")
         .navigationBarTitleDisplayMode(.inline)
         // 旅日記がまだ無ければ作り、この画面で写真・御朱印の名前や説明を直したら作り直す（Webにも反映される）。
@@ -333,17 +349,13 @@ struct WalkRouteDetailView: View {
         }
     }
 
-    /// 1行目：旅の名前（使っていた古地図）と、その右横に公開状況アイコン・ラベル。
-    private var nameSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+    /// 一番上: 旅の名前と、その下に続けて並べる情報（公開状況・日付・距離・歩数・時間・CP・写真・いいね・動画・共有）。
+    /// Webの旅の詳細と同じ並び。CP・写真・いいねを押すと、それぞれの場所へ移る。
+    private func headerSection(scrollTo: @escaping (Anchor) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                if let title = route.title, !title.isEmpty {
-                    Text(title)
-                        .font(.title3.bold())
-                } else {
-                    Text(Self.dateFormatter.string(from: route.startedAt))
-                        .font(.title3.bold())
-                }
+                Text(route.title.flatMap { $0.isEmpty ? nil : $0 } ?? Self.dateFormatter.string(from: route.startedAt))
+                    .font(.title3.bold())
                 Button {
                     editedTitle = route.title ?? ""
                     isRenaming = true
@@ -353,172 +365,119 @@ struct WalkRouteDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 .accessibilityLabel("名前を変更")
-                Text(route.overlayMap?.title ?? "古地図なし")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.brown)
+            }
 
-                Spacer(minLength: 8)
-
-                Menu {
-                    ForEach(TripVisibility.allCases) { visibility in
-                        Button {
-                            Task { await setVisibility(visibility) }
-                        } label: {
-                            if visibility == currentVisibility {
-                                Label(visibility.menuTitle, systemImage: "checkmark")
-                            } else {
-                                Text(visibility.menuTitle)
-                            }
-                        }
-                    }
+            TripInfoFlowLayout(spacing: 12, lineSpacing: 6) {
+                visibilityMenu
+                Label(Self.dateFormatter.string(from: route.startedAt), systemImage: "calendar")
+                Label(distanceText, systemImage: "figure.walk")
+                if let stepCount = route.stepCount {
+                    Label("\(stepCount)歩", systemImage: "shoeprints.fill")
+                }
+                if let durationText {
+                    Label(durationText, systemImage: "clock")
+                }
+                Button {
+                    scrollTo(.checkpoints)
                 } label: {
-                    Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
-                        .font(.caption.bold())
-                        .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
-                        .lineLimit(1)
-                        .layoutPriority(1)
+                    Label("CP \(stampsForRoute.count)", systemImage: "mappin.circle.fill")
                 }
-                .disabled(isUpdatingShare)
-            }
-
-            if let shareErrorMessage {
-                Text(shareErrorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        }
-    }
-
-    /// 3行目：日付・歩いた距離・歩数・時間。
-    private var statsSection: some View {
-        HStack(spacing: 12) {
-            Label(Self.dateFormatter.string(from: route.startedAt), systemImage: "calendar")
-            Label(distanceText, systemImage: "figure.walk")
-            if let stepCount = route.stepCount {
-                Label("\(stepCount)歩", systemImage: "shoeprints.fill")
-            }
-            if let durationText {
-                Label(durationText, systemImage: "clock")
-            }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
-
-    /// 4行目：御朱印の数・写真の数・いいねの数（＋公開中ならシェアボタン）。
-    private var countsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 12) {
-                Label("御朱印 \(stampsForRoute.count)件", systemImage: "seal.fill")
-                    .foregroundStyle(Color(red: 0.72, green: 0.53, blue: 0.15))
-                Label("写真 \(photoPostsForRoute.count)件", systemImage: "camera.fill")
-                    .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.24))
+                .disabled(stampsForRoute.isEmpty)
+                Button {
+                    scrollTo(.photos)
+                } label: {
+                    Label("\(photoPostsForRoute.count)", systemImage: "camera.fill")
+                }
+                .disabled(photoPostsForRoute.isEmpty)
+                .accessibilityLabel("写真 \(photoPostsForRoute.count)枚")
                 if route.isSharedPublicly {
-                    Label("いいね \(likeCount)件", systemImage: "heart.fill")
-                        .foregroundStyle(.pink)
-
                     Button {
-                        Task { await prepareAndShowShareSheet() }
+                        scrollTo(.engagement)
                     } label: {
-                        if isPreparingShare {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "arrowshape.turn.up.right")
-                        }
+                        Label("\(likeCount)", systemImage: "heart.fill")
+                            .foregroundStyle(.pink)
                     }
-                    .disabled(isPreparingShare)
+                    .accessibilityLabel("いいね \(likeCount)件")
                 }
+                videoButton
+                shareButton
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            .labelStyle(CompactLabelStyle())
 
-            if let shareCardErrorMessage {
-                Text(shareCardErrorMessage)
+            ForEach([shareErrorMessage, shareCardErrorMessage, videoErrorMessage].compactMap { $0 }, id: \.self) { message in
+                Text(message)
                     .font(.caption)
                     .foregroundStyle(.red)
             }
         }
     }
 
-    /// 5行目：旅の説明（感想）と、旅日記を作る/読むボタン。
-    private var descriptionAndJournalSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let notes = route.notes, !notes.isEmpty {
-                Text(notes)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
+    /// 公開状況（押すと「公開・自分だけ・非表示」を選び直せる）。
+    private var visibilityMenu: some View {
+        Menu {
+            ForEach(TripVisibility.allCases) { visibility in
+                Button {
+                    Task { await setVisibility(visibility) }
+                } label: {
+                    if visibility == currentVisibility {
+                        Label(visibility.menuTitle, systemImage: "checkmark")
+                    } else {
+                        Text(visibility.menuTitle)
+                    }
+                }
             }
+        } label: {
+            Label(currentVisibility.statusText, systemImage: currentVisibility.systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(currentVisibility == .publicShared ? .blue : .secondary)
+        }
+        .disabled(isUpdatingShare)
+    }
 
-            travelJournalSection
-            videoSection
+    /// 旅の動画（軌跡をアイコンが進み、写真の地点で写真を見せる）。作っていなければ作ってから再生する。
+    /// 長押しで作り直せる（写真を追加した後など）。動画の共有は再生画面から。
+    @ViewBuilder
+    private var videoButton: some View {
+        if route.coordinates.count >= 2 {
+            Button {
+                Task { await generateAndPlayVideo() }
+            } label: {
+                if isGeneratingVideo {
+                    HStack(spacing: 4) {
+                        ProgressView().controlSize(.mini)
+                        Text("動画を作成中…")
+                    }
+                } else {
+                    Label("動画", systemImage: "play.rectangle.fill")
+                }
+            }
+            .disabled(isGeneratingVideo)
+            .contextMenu {
+                if videoURL != nil {
+                    Button {
+                        recreateVideo()
+                    } label: {
+                        Label("動画を作り直す", systemImage: "arrow.clockwise")
+                    }
+                }
+            }
         }
     }
 
-    /// 旅行記を作成するボタンの下の、旅の動画（軌跡をアイコンが進み、写真の地点で写真を見せる）。
-    @ViewBuilder
-    private var videoSection: some View {
-        if route.coordinates.count >= 2 {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Button {
-                        Task { await generateAndPlayVideo() }
-                    } label: {
-                        if isGeneratingVideo {
-                            HStack {
-                                ProgressView()
-                                Text("動画を作成中…")
-                            }
-                            .frame(maxWidth: .infinity)
-                        } else {
-                            Label("動画を再生", systemImage: "play.rectangle.fill")
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isGeneratingVideo)
-                    .contextMenu {
-                        if videoURL != nil {
-                            Button {
-                                recreateVideo()
-                            } label: {
-                                Label("動画を作り直す", systemImage: "arrow.clockwise")
-                            }
-                        }
-                    }
-
-                    // 動画ができていれば、写真を追加した後などに作り直せるボタンを出す。
-                    if videoURL != nil {
-                        Button {
-                            recreateVideo()
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .frame(width: 20)
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(isGeneratingVideo)
-                        .accessibilityLabel("動画を作り直す")
-                    }
-
-                    // 動画ができたら、再生ボタンの右横に共有ボタンを出す
-                    // （共有シートの「ビデオを保存」で写真ライブラリにも保存できる）。
-                    if let videoURL {
-                        ShareLink(item: videoURL) {
-                            Image(systemName: "square.and.arrow.up")
-                                .frame(width: 20)
-                        }
-                        .buttonStyle(.bordered)
-                        .accessibilityLabel("動画を共有")
-                    }
-                }
-
-                if let videoErrorMessage {
-                    Text(videoErrorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
+    /// この旅の画像とURL入りのメッセージを、メモ・LINE・SNSなどで共有する（「コピー」ではURLだけ）。
+    private var shareButton: some View {
+        Button {
+            Task { await prepareAndShowShareSheet() }
+        } label: {
+            if isPreparingShare {
+                ProgressView().controlSize(.mini)
+            } else {
+                Label("共有", systemImage: "square.and.arrow.up")
             }
-            .onAppear { loadSavedVideo() }
         }
+        .disabled(isPreparingShare)
     }
 
     /// 今の写真・地図の表示で動画を作り直す（端末の動画を消して作り、クラウドのリンクも差し替える）。
@@ -617,7 +576,7 @@ struct WalkRouteDetailView: View {
 
     private var photoPostsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("投稿した写真")
+            Text("写真（\(photoPostsForRoute.count)）")
                 .font(.headline)
 
             ForEach(photoPostsForRoute) { post in
@@ -631,7 +590,7 @@ struct WalkRouteDetailView: View {
 
     private var checkpointsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("御朱印・チェックポイント")
+            Text("チェックポイント（CP \(stampsForRoute.count)）")
                 .font(.headline)
 
             ForEach(stampsForRoute) { stamp in
@@ -1114,5 +1073,68 @@ private struct TrailingIconLabelStyle: LabelStyle {
             configuration.title
             configuration.icon.imageScale(.small)
         }
+    }
+}
+
+/// アイコンと文字の間を詰めた、情報の行用のラベル。
+private struct CompactLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 3) {
+            configuration.icon
+            configuration.title
+        }
+    }
+}
+
+/// 旅の情報を、横に続けて並べ、入りきらなければ次の行へ折り返す（Webの`flex-wrap`と同じ並べ方）。
+private struct TripInfoFlowLayout: Layout {
+    var spacing: CGFloat
+    var lineSpacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = arrange(subviews: subviews, maxWidth: proposal.width ?? .infinity)
+        let width = rows.map(\.width).max() ?? 0
+        let height = rows.map(\.height).reduce(0, +) + lineSpacing * CGFloat(max(rows.count - 1, 0))
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in arrange(subviews: subviews, maxWidth: bounds.width) {
+            var x = bounds.minX
+            for index in row.indices {
+                let size = subviews[index].sizeThatFits(.unspecified)
+                subviews[index].place(
+                    at: CGPoint(x: x, y: y + (row.height - size.height) / 2),
+                    proposal: ProposedViewSize(size)
+                )
+                x += size.width + spacing
+            }
+            y += row.height + lineSpacing
+        }
+    }
+
+    private struct Row {
+        var indices: [Int] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    private func arrange(subviews: Subviews, maxWidth: CGFloat) -> [Row] {
+        var rows: [Row] = []
+        var current = Row()
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            let needed = current.indices.isEmpty ? size.width : current.width + spacing + size.width
+            if needed > maxWidth, !current.indices.isEmpty {
+                rows.append(current)
+                current = Row()
+            }
+            current.width = current.indices.isEmpty ? size.width : current.width + spacing + size.width
+            current.height = max(current.height, size.height)
+            current.indices.append(index)
+        }
+        if !current.indices.isEmpty { rows.append(current) }
+        return rows
     }
 }
