@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (path) => JSON.parse(readFileSync(join(root, path), "utf8"));
 const { maps, mergedInto } = read("catalog/old_maps.json");
-const { sites } = read("catalog/historic_sites.json");
+const { sites, mergedInto: siteMergedInto = {} } = read("catalog/historic_sites.json");
 
 const HEADER = (source) =>
   `このファイルは scripts/generate-catalog.mjs が ${source} から生成したものです。直接編集しないでください。`;
@@ -30,6 +30,9 @@ for (const site of sites) {
 }
 for (const [from, to] of Object.entries(mergedInto)) {
   if (!mapIDs.has(to)) throw new Error(`統合先の古地図 ${to}（${from}）がありません`);
+}
+for (const [from, to] of Object.entries(siteMergedInto)) {
+  if (!siteIDs.has(to)) throw new Error(`統合先のチェックポイント ${to}（${from}）がありません`);
 }
 
 const num = (value) => (Number.isInteger(value) ? value.toFixed(1) : String(value));
@@ -85,6 +88,11 @@ function swiftSites() {
     out.push(`            coordinate: CLLocationCoordinate2D(latitude: ${num(site.lat)}, longitude: ${num(site.lng)})`);
     out.push("        ),");
   }
+  out.push("    ]", "");
+  out.push("    /// 置き換えによって廃止されたチェックポイントID → 置き換え先IDの対応表（例: 個人の古地図を同梱の古地図に置き換えた時）。");
+  out.push("    /// 過去の御朱印に残る廃止IDを、表示時・起動時の移行（`CatalogMigration`）で読み替える。");
+  out.push("    static let mergedIntoID: [String: String] = [");
+  for (const [from, to] of Object.entries(siteMergedInto)) out.push(`        "${from}": "${to}",`);
   out.push("    ]", "}", "");
   return out.join("\n");
 }

@@ -30,6 +30,7 @@ BOUNDS = {
     "buenosaires": (-34.626, -58.389, -34.597, -58.354),
     "paris": (48.880, 2.3290, 48.892, 2.3472),
     "london": (51.4990, -0.1080, 51.5208, -0.0730),
+    "brussels": (50.8335, 4.3340, 50.8525, 4.3641),
 }
 
 CHECKPOINTS = {
@@ -47,6 +48,8 @@ CHECKPOINTS = {
     "buenosaires": [(-34.6084, -58.3722), (-34.6089, -58.3737), (-34.6205, -58.3718), (-34.6011, -58.3832), (-34.6037, -58.3816)],
     "paris": [(48.8861, 2.3375), (48.8865, 2.3339), (48.8880, 2.3406), (48.8877, 2.3363), (48.8886, 2.3400), (48.8841, 2.3324)],
     "london": [(51.5081, -0.0972), (51.5074, -0.0939), (51.5061, -0.0896), (51.5080, -0.0877), (51.5138, -0.0985), (51.5082, -0.0762)],
+    "brussels": [(50.8467, 4.3524), (50.8450, 4.3500), (50.8478, 4.3548), (50.8478, 4.3600), (50.8445, 4.3565),
+                 (50.8418, 4.3620), (50.8510, 4.3475), (50.8374, 4.3463)],
 }
 
 
@@ -352,6 +355,22 @@ def emblem_lotus(color, leaf):
     return draw
 
 
+def emblem_tricolor_shield(colors, outline):
+    """ベルギーの三色（黒・黄・赤）を縦に並べた盾。"""
+    def draw(d, x, y, size, pal):
+        w, h = size * 0.74, size * 0.88
+        x0, y0 = x + (size - w) / 2, y + (size - h) / 2
+        shield = [(x0, y0), (x0 + w, y0), (x0 + w, y0 + h * 0.6), (x0 + w / 2, y0 + h), (x0, y0 + h * 0.6)]
+        mask = Image.new("L", d.im.size, 0)
+        ImageDraw.Draw(mask).polygon(shield, fill=255)
+        for i, color in enumerate(colors):
+            stripe = Image.new("L", d.im.size, 0)
+            ImageDraw.Draw(stripe).rectangle([x0 + w * i / 3, y0, x0 + w * (i + 1) / 3, y0 + h], fill=255)
+            d.bitmap((0, 0), ImageChops.multiply(mask, stripe), fill=color)
+        d.polygon(shield, outline=outline, width=6)
+    return draw
+
+
 def emblem_roundel(color, bg):
     """中世の円形の都市図（四つに区切られた聖都）。"""
     def draw(d, x, y, size, pal):
@@ -633,6 +652,17 @@ STYLES = {
         title=[("LONDINUM", "Trattatello.ttf", 104, "accent", 4), ("Anno Domini MDC · the age of Shakespeare", "Didot.ttc", 30, "ink", 1),
                ("ロンドン（シェイクスピアの時代）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
         emblem=emblem_tudor_rose(), accent=rgb("8a2a24"), bar=(300, "300 m"), extra=extra_london,
+    ),
+    "brussels": dict(
+        pal=dict(paper=(240, 230, 206), green=(146, 160, 110), ink=rgb("26221e"), road=(246, 238, 220),
+                 road_casing=rgb("7a6a52"), water=rgb("a2b8b4"), water_line=rgb("40585a")),
+        buildings=[rgb("c9a46a"), rgb("b8865a"), (234, 224, 204)], building_outline=rgb("5a4630"), road_scale=0.95,
+        shore=(3, 7, 18),
+        border=border_stripes([rgb("26221e"), rgb("e0b030"), rgb("b8302a")]), band=42,
+        title=[("BRUXELLES", "Trattatello.ttf", 96, "accent", 4), ("Capitale du Royaume de Belgique · MDCCCL", "Didot.ttc", 30, "ink", 1),
+               ("ブリュッセル（ベルギー王国の心臓部）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_tricolor_shield([rgb("26221e"), rgb("e0b030"), rgb("b8302a")], rgb("26221e")),
+        accent=rgb("8a2a24"), bar=(200, "200 m"),
     ),
     "buenosaires": dict(
         pal=dict(paper=(240, 232, 212), green=(148, 162, 108), ink=rgb("22262e"), road=(246, 240, 226),

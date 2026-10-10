@@ -278,6 +278,16 @@ extension OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 51.5208, longitude: -0.073)
     )
 
+    static let brussels = HistoricalOverlayMap(
+        id: "brussels-1850",
+        title: "ブリュッセル（ベルギー王国の心臓部）",
+        era: "1850年頃（ベルギー独立から20年）",
+        summary: "1830年の独立で生まれたベルギー王国の首都。ギルドハウスに囲まれたグランプラス、小便小僧、大聖堂、王宮、完成したばかりのアーケード、ギャルリ・サンチュベールをめぐります。",
+        imageAssetName: "OldMap_Brussels",
+        southWest: CLLocationCoordinate2D(latitude: 50.8335, longitude: 4.334),
+        northEast: CLLocationCoordinate2D(latitude: 50.8525, longitude: 4.3641)
+    )
+
     // Asia・Americaリージョンの古地図。OpenStreetMapの現在の地図データ（海岸線・水面・通り・建物・城壁）を
     // もとに、各地域の古地図の様式で描いたオリジナル画像（`scripts/global_maps/render_world.py`）。
     // 中国の都市は、端末のGPSと同じ世界測地系（WGS84）の座標で描いている。
@@ -423,6 +433,7 @@ extension OldMapCatalog {
         tallinn,
         paris,
         london,
+        brussels,
         beijing,
         xian,
         lhasa,
@@ -459,6 +470,7 @@ extension OldMapCatalog {
         "tallinn-old-town": .oldTowns,
         "paris-montmartre": .westernEurope,
         "london-shakespeare": .westernEurope,
+        "brussels-1850": .westernEurope,
         "beijing-qing": .ancientCapitals,
         "xian-changan": .ancientCapitals,
         "lhasa-holy-city": .ancientCapitals,
@@ -483,5 +495,6 @@ extension OldMapCatalog {
         "kudanshita-chidorigafuchi-meiji": "edo-castle-1850s",
         "meiji-jingu-omotesando-meiji": "oyama-kaido",
         "kagurazaka-waseda-shinjuku-meiji": "kiminona-seichi",
+        "E28E96A1-8694-42B7-A17B-A4811D4D1954": "brussels-1850",
     ]
 }

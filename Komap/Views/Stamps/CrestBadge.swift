@@ -90,6 +90,16 @@ enum CrestBadgeCatalog {
         "london-bridge": CrestBadge(symbolName: "building.2.fill", tint: sable),
         "london-st-pauls": CrestBadge(symbolName: "book.fill", tint: azure),
         "london-tower": CrestBadge(symbolName: "crown.fill", tint: sable),
+
+        // ブリュッセル（ベルギー王国の心臓部）
+        "brussels-grand-place": CrestBadge(symbolName: "building.columns.fill", tint: goldBright),
+        "brussels-manneken-pis": CrestBadge(symbolName: "drop.fill", tint: azure),
+        "brussels-galeries-saint-hubert": CrestBadge(symbolName: "bag.fill", tint: sable),
+        "brussels-cathedral": CrestBadge(symbolName: "cross.fill", tint: azure),
+        "brussels-mont-des-arts": CrestBadge(symbolName: "paintpalette.fill", tint: gules),
+        "brussels-royal-palace": CrestBadge(symbolName: "crown.fill", tint: gules),
+        "brussels-sainte-catherine": CrestBadge(symbolName: "fish.fill", tint: azure),
+        "brussels-jeu-de-balle": CrestBadge(symbolName: "cart.fill", tint: sable),
     ]
 
     static func badge(for siteID: String) -> CrestBadge? {

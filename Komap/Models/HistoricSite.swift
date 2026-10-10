@@ -89,6 +89,8 @@ enum HistoricSiteCatalog {
     /// 削除（非表示）した同梱ポイントも含めて探す（獲得済みの御朱印から辿れるようにするため）。
     static func site(withID id: String) -> HistoricSite? {
         if let site = bundledByID[id] { return site }
+        // 置き換えで廃止されたID（`mergedIntoID`）は、置き換え先の同梱ポイントとして読む。
+        if let mergedID = mergedIntoID[id], let site = bundledByID[mergedID] { return site }
         _ = allIncludingCustom
         return cachedByID?[id]
     }

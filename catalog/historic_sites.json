@@ -1382,6 +1382,78 @@
       "group": null
     },
     {
+      "id": "brussels-grand-place",
+      "overlayMapID": "brussels-1850",
+      "name": "グランプラス",
+      "summary": "市庁舎とギルドハウスに囲まれた、ブリュッセルの中心の広場。ユゴーが「世界で最も美しい広場」と讃えた。",
+      "lat": 50.8467,
+      "lng": 4.3524,
+      "group": "Europe — ブリュッセル（ベルギー王国の心臓部）"
+    },
+    {
+      "id": "brussels-manneken-pis",
+      "overlayMapID": "brussels-1850",
+      "name": "小便小僧",
+      "summary": "17世紀から街角に立つ小さな噴水の像。街の人々に「最古の市民」と親しまれてきた。",
+      "lat": 50.845,
+      "lng": 4.35,
+      "group": null
+    },
+    {
+      "id": "brussels-galeries-saint-hubert",
+      "overlayMapID": "brussels-1850",
+      "name": "ギャルリ・サンチュベール",
+      "summary": "1847年に開業した、ガラス屋根のヨーロッパ最古級のアーケード。",
+      "lat": 50.8478,
+      "lng": 4.3548,
+      "group": null
+    },
+    {
+      "id": "brussels-cathedral",
+      "overlayMapID": "brussels-1850",
+      "name": "聖ミカエルと聖グドゥラ大聖堂",
+      "summary": "街の守護聖人をまつる、双塔のゴシック様式の大聖堂。",
+      "lat": 50.8478,
+      "lng": 4.36,
+      "group": null
+    },
+    {
+      "id": "brussels-mont-des-arts",
+      "overlayMapID": "brussels-1850",
+      "name": "芸術の丘",
+      "summary": "下町と王宮のある高台を結ぶ丘。昔は古い家並みが坂に連なっていた。",
+      "lat": 50.8445,
+      "lng": 4.3565,
+      "group": null
+    },
+    {
+      "id": "brussels-royal-palace",
+      "overlayMapID": "brussels-1850",
+      "name": "王宮とブリュッセル公園",
+      "summary": "独立後、初代国王レオポルド1世が使った王宮と、その前に広がる公園。1830年の革命では戦いの場になった。",
+      "lat": 50.8418,
+      "lng": 4.362,
+      "group": null
+    },
+    {
+      "id": "brussels-sainte-catherine",
+      "overlayMapID": "brussels-1850",
+      "name": "サント・カトリーヌ（旧港）",
+      "summary": "かつて運河の船着き場があった地区。魚市場が開かれ、今も魚料理の店が並ぶ。",
+      "lat": 50.851,
+      "lng": 4.3475,
+      "group": null
+    },
+    {
+      "id": "brussels-jeu-de-balle",
+      "overlayMapID": "brussels-1850",
+      "name": "ジュ・ド・バル広場（マロル地区）",
+      "summary": "職人や労働者が暮らした下町マロルの広場。毎朝、蚤の市が開かれる。",
+      "lat": 50.8374,
+      "lng": 4.3463,
+      "group": null
+    },
+    {
       "id": "beijing-forbidden-city",
       "overlayMapID": "beijing-qing",
       "name": "紫禁城（故宮）",
@@ -1921,5 +1993,11 @@
       "lng": -58.3816,
       "group": null
     }
-  ]
+  ],
+  "mergedInto": {
+    "E28E96A1-8694-42B7-A17B-A4811D4D1954-cp1": "brussels-grand-place",
+    "E28E96A1-8694-42B7-A17B-A4811D4D1954-cp2": "brussels-manneken-pis",
+    "E28E96A1-8694-42B7-A17B-A4811D4D1954-cp3": "brussels-cathedral",
+    "E28E96A1-8694-42B7-A17B-A4811D4D1954-cp5": "brussels-mont-des-arts"
+  }
 }

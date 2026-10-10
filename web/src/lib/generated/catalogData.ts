@@ -186,6 +186,15 @@ export const OLD_MAP_DATA: OldMapEntry[] = [
     northEast: { lat: 51.5208, lng: -0.073 },
   },
   {
+    id: "brussels-1850",
+    title: "ブリュッセル（ベルギー王国の心臓部）",
+    era: "1850年頃（ベルギー独立から20年）",
+    summary: "1830年の独立で生まれたベルギー王国の首都。ギルドハウスに囲まれたグランプラス、小便小僧、大聖堂、王宮、完成したばかりのアーケード、ギャルリ・サンチュベールをめぐります。",
+    imageUrl: "/old-maps/old_map_brussels.jpg",
+    southWest: { lat: 50.8335, lng: 4.334 },
+    northEast: { lat: 50.8525, lng: 4.3641 },
+  },
+  {
     id: "beijing-qing",
     title: "北京・紫禁城と内城（清代）",
     era: "清代（18世紀・乾隆期）",
@@ -305,6 +314,7 @@ export const MERGED_INTO: Record<string, string> = {
   "kudanshita-chidorigafuchi-meiji": "edo-castle-1850s",
   "meiji-jingu-omotesando-meiji": "oyama-kaido",
   "kagurazaka-waseda-shinjuku-meiji": "kiminona-seichi",
+  "E28E96A1-8694-42B7-A17B-A4811D4D1954": "brussels-1850",
 };
 
 export const HISTORIC_SITE_DATA: HistoricSiteEntry[] = [
@@ -490,6 +500,15 @@ export const HISTORIC_SITE_DATA: HistoricSiteEntry[] = [
   { id: "london-bridge", name: "ロンドン橋", overlayMapID: "london-shakespeare", coordinate: { lat: 51.508, lng: -0.0877 } },
   { id: "london-st-pauls", name: "セント・ポール大聖堂", overlayMapID: "london-shakespeare", coordinate: { lat: 51.5138, lng: -0.0985 } },
   { id: "london-tower", name: "ロンドン塔", overlayMapID: "london-shakespeare", coordinate: { lat: 51.5082, lng: -0.0762 } },
+  // Europe — ブリュッセル（ベルギー王国の心臓部）
+  { id: "brussels-grand-place", name: "グランプラス", overlayMapID: "brussels-1850", coordinate: { lat: 50.8467, lng: 4.3524 } },
+  { id: "brussels-manneken-pis", name: "小便小僧", overlayMapID: "brussels-1850", coordinate: { lat: 50.845, lng: 4.35 } },
+  { id: "brussels-galeries-saint-hubert", name: "ギャルリ・サンチュベール", overlayMapID: "brussels-1850", coordinate: { lat: 50.8478, lng: 4.3548 } },
+  { id: "brussels-cathedral", name: "聖ミカエルと聖グドゥラ大聖堂", overlayMapID: "brussels-1850", coordinate: { lat: 50.8478, lng: 4.36 } },
+  { id: "brussels-mont-des-arts", name: "芸術の丘", overlayMapID: "brussels-1850", coordinate: { lat: 50.8445, lng: 4.3565 } },
+  { id: "brussels-royal-palace", name: "王宮とブリュッセル公園", overlayMapID: "brussels-1850", coordinate: { lat: 50.8418, lng: 4.362 } },
+  { id: "brussels-sainte-catherine", name: "サント・カトリーヌ（旧港）", overlayMapID: "brussels-1850", coordinate: { lat: 50.851, lng: 4.3475 } },
+  { id: "brussels-jeu-de-balle", name: "ジュ・ド・バル広場（マロル地区）", overlayMapID: "brussels-1850", coordinate: { lat: 50.8374, lng: 4.3463 } },
   // 北京・紫禁城と内城（清代）
   { id: "beijing-forbidden-city", name: "紫禁城（故宮）", overlayMapID: "beijing-qing", coordinate: { lat: 39.9163, lng: 116.3908 } },
   { id: "beijing-tiananmen", name: "天安門", overlayMapID: "beijing-qing", coordinate: { lat: 39.9075, lng: 116.391 } },

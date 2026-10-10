@@ -1107,6 +1107,63 @@ extension HistoricSiteCatalog {
             summary: "王の城塞であり牢獄。『リチャード三世』などの舞台にもなった。",
             coordinate: CLLocationCoordinate2D(latitude: 51.5082, longitude: -0.0762)
         ),
+        // Europe — ブリュッセル（ベルギー王国の心臓部）
+        HistoricSite(
+            id: "brussels-grand-place",
+            overlayMapID: "brussels-1850",
+            name: "グランプラス",
+            summary: "市庁舎とギルドハウスに囲まれた、ブリュッセルの中心の広場。ユゴーが「世界で最も美しい広場」と讃えた。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.8467, longitude: 4.3524)
+        ),
+        HistoricSite(
+            id: "brussels-manneken-pis",
+            overlayMapID: "brussels-1850",
+            name: "小便小僧",
+            summary: "17世紀から街角に立つ小さな噴水の像。街の人々に「最古の市民」と親しまれてきた。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.845, longitude: 4.35)
+        ),
+        HistoricSite(
+            id: "brussels-galeries-saint-hubert",
+            overlayMapID: "brussels-1850",
+            name: "ギャルリ・サンチュベール",
+            summary: "1847年に開業した、ガラス屋根のヨーロッパ最古級のアーケード。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.8478, longitude: 4.3548)
+        ),
+        HistoricSite(
+            id: "brussels-cathedral",
+            overlayMapID: "brussels-1850",
+            name: "聖ミカエルと聖グドゥラ大聖堂",
+            summary: "街の守護聖人をまつる、双塔のゴシック様式の大聖堂。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.8478, longitude: 4.36)
+        ),
+        HistoricSite(
+            id: "brussels-mont-des-arts",
+            overlayMapID: "brussels-1850",
+            name: "芸術の丘",
+            summary: "下町と王宮のある高台を結ぶ丘。昔は古い家並みが坂に連なっていた。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.8445, longitude: 4.3565)
+        ),
+        HistoricSite(
+            id: "brussels-royal-palace",
+            overlayMapID: "brussels-1850",
+            name: "王宮とブリュッセル公園",
+            summary: "独立後、初代国王レオポルド1世が使った王宮と、その前に広がる公園。1830年の革命では戦いの場になった。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.8418, longitude: 4.362)
+        ),
+        HistoricSite(
+            id: "brussels-sainte-catherine",
+            overlayMapID: "brussels-1850",
+            name: "サント・カトリーヌ（旧港）",
+            summary: "かつて運河の船着き場があった地区。魚市場が開かれ、今も魚料理の店が並ぶ。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.851, longitude: 4.3475)
+        ),
+        HistoricSite(
+            id: "brussels-jeu-de-balle",
+            overlayMapID: "brussels-1850",
+            name: "ジュ・ド・バル広場（マロル地区）",
+            summary: "職人や労働者が暮らした下町マロルの広場。毎朝、蚤の市が開かれる。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.8374, longitude: 4.3463)
+        ),
         // 北京・紫禁城と内城（清代）
         HistoricSite(
             id: "beijing-forbidden-city",
@@ -1539,5 +1596,14 @@ extension HistoricSiteCatalog {
             summary: "市の創設400年を記念して建てられた、7月9日大通りの白い塔。",
             coordinate: CLLocationCoordinate2D(latitude: -34.6037, longitude: -58.3816)
         ),
+    ]
+
+    /// 置き換えによって廃止されたチェックポイントID → 置き換え先IDの対応表（例: 個人の古地図を同梱の古地図に置き換えた時）。
+    /// 過去の御朱印に残る廃止IDを、表示時・起動時の移行（`CatalogMigration`）で読み替える。
+    static let mergedIntoID: [String: String] = [
+        "E28E96A1-8694-42B7-A17B-A4811D4D1954-cp1": "brussels-grand-place",
+        "E28E96A1-8694-42B7-A17B-A4811D4D1954-cp2": "brussels-manneken-pis",
+        "E28E96A1-8694-42B7-A17B-A4811D4D1954-cp3": "brussels-cathedral",
+        "E28E96A1-8694-42B7-A17B-A4811D4D1954-cp5": "brussels-mont-des-arts",
     ]
 }

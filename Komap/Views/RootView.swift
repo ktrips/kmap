@@ -39,13 +39,25 @@ struct RootView: View {
             if authService.isAdmin {
                 AdminCheckpointCloud.migrateLocalOverrides()
             }
+            // 同梱の古地図に置き換えた個人の古地図・チェックポイントのIDを、端末の記録で付け替える。
+            await migrateReplacedCatalogIDs()
             // 端末の記録をクラウドと合わせる（別の端末・Webでの追加・変更・削除を取り込み、まだ上がっていないものは上げる）。
             if let userID = authService.userID {
                 await CloudSync.sync(userID: userID, context: modelContext, syncService: syncService, force: true)
+                // クラウドから取り込んだ記録に古いIDが残っていれば、それも付け替える。
+                await migrateReplacedCatalogIDs()
             }
             refreshTravelJournals()
             guard let userID = authService.userID, let email = authService.email else { return }
             await syncService.claimFriendRequestsAddressedToMe(userID: userID, email: email)
+        }
+    }
+
+    private func migrateReplacedCatalogIDs() async {
+        await CatalogMigration.migrateReplacedIDs(context: modelContext, userID: authService.userID, syncService: syncService)
+        // 選んでいた古地図が置き換えられていれば、置き換え先の古地図にする。
+        if let selected = mapSession.selectedOverlay, let mergedID = OldMapCatalog.mergedIntoID[selected.id] {
+            mapSession.selectedOverlay = OldMapCatalog.overlay(withID: mergedID)
         }
     }
 
