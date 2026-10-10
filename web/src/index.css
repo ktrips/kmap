@@ -837,6 +837,11 @@ code {
   color: var(--color-brown);
 }
 
+.trip-info-title {
+  margin: 0;
+  color: var(--color-brown-deep);
+}
+
 .trip-info-link {
   border: none;
   background: none;

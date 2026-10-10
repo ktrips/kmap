@@ -241,17 +241,17 @@ export function TripDetail({ trip, currentUser = null, onRequestSignIn }: Props)
           </div>
         ) : (
           <>
-            <div className="trip-title-row">
-              <h2>{trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}</h2>
+            {/* 旅の名前の右横から、アプリの旅の詳細と同じ並びで情報を続けて表示する（入りきらなければ折り返す）:
+                公開状況・日付・距離・歩数・時間・CP・写真・いいね・動画・共有 */}
+            <div className="trip-info-row">
+              <h2 className="trip-info-title">
+                {trip.title && trip.title.length > 0 ? trip.title : dateFormatter.format(trip.startedAt)}
+              </h2>
               {canEdit && (
                 <button type="button" className="trip-edit-button" onClick={startEditing} aria-label="名前・説明を編集">
                   ✏️
                 </button>
               )}
-            </div>
-
-            {/* 旅の情報（アプリの旅の詳細と同じ並び）: 公開状況・日付・距離・歩数・時間・CP・写真・いいね・動画・共有 */}
-            <div className="trip-info-row">
               {isPublic ? (
                 <span className="trip-visibility-badge" title="みんなの時空旅で公開中">🌐 公開中</span>
               ) : (

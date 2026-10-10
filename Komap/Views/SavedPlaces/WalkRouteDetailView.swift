@@ -353,21 +353,22 @@ struct WalkRouteDetailView: View {
     /// Webの旅の詳細と同じ並び。CP・写真・いいねを押すと、それぞれの場所へ移る。
     private func headerSection(scrollTo: @escaping (Anchor) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(route.title.flatMap { $0.isEmpty ? nil : $0 } ?? Self.dateFormatter.string(from: route.startedAt))
-                    .font(.title3.bold())
-                Button {
-                    editedTitle = route.title ?? ""
-                    isRenaming = true
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("名前を変更")
-            }
-
+            // 名前の右横から、公開状況・日付などを続けて並べる（入りきらなければ次の行へ折り返す）。
             TripInfoFlowLayout(spacing: 12, lineSpacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(route.title.flatMap { $0.isEmpty ? nil : $0 } ?? Self.dateFormatter.string(from: route.startedAt))
+                        .font(.title3.bold())
+                        .foregroundStyle(.primary)
+                    Button {
+                        editedTitle = route.title ?? ""
+                        isRenaming = true
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel("名前を変更")
+                }
                 visibilityMenu
                 Label(Self.dateFormatter.string(from: route.startedAt), systemImage: "calendar")
                 Label(distanceText, systemImage: "figure.walk")
