@@ -61,6 +61,12 @@ struct StampListView: View {
                     )
                     .frame(height: 260)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                    // 全体地図の下に、この古地図で獲得したチェックポイントの数 / 全体の数。
+                    Label("獲得 \(collectedCount) / \(sites.count) か所", systemImage: "seal.fill")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.brown)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
 
                 if overlayMapID == nil {
