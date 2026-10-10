@@ -212,7 +212,7 @@ struct WalkRouteDetailView: View {
             }
         }
         .onAppear { loadSavedVideo() }
-        .navigationTitle("マイ古地図：\(route.overlayMap?.title ?? "古地図なし")")
+        .navigationTitle(route.overlayMap?.title ?? "古地図なし")
         .navigationBarTitleDisplayMode(.inline)
         // 旅日記がまだ無ければ作り、この画面で写真・御朱印の名前や説明を直したら作り直す（Webにも反映される）。
         .onAppear { scheduleJournalRefresh() }
