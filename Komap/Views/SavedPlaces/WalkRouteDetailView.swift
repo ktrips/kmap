@@ -768,10 +768,11 @@ struct WalkRouteDetailView: View {
         // 外部のURL短縮サービスは不安定だったため使わず、この時空旅を直接開ける
         // Web版のURLをそのままメッセージに載せる。UUID（36文字）をそのまま使うと
         // 長くなるため、可逆変換できる短縮ID（22文字、`UUID.shortID`）を使う。
-        let url = "https://komap.ktrips.net/?t=\(route.id.shortID)"
-        let message = "Komapで古地図巡りしよう！旅日記はこちら（\(url)）"
+        let url = URL(string: "https://komap.ktrips.net/?t=\(route.id.shortID)")!
+        let message = "Komapで古地図巡りしよう！旅日記はこちら（\(url.absoluteString)）"
 
-        shareItems = [image, message]
+        // メモ・LINE・SNSなどには画像とメッセージ（URL入り）を、「コピー」ではURLだけを渡す。
+        shareItems = [TripShareImageItem(image: image), TripShareTextItem(message: message, url: url)]
         isShowingShareSheet = true
     }
 
@@ -779,6 +780,7 @@ struct WalkRouteDetailView: View {
     /// 地図部分は、この画面に既に表示されている地図（`mapViewForSharing`）を
     /// そのままスナップショットして使う（現在の地図・古地図・ルート・御朱印スポットの
     /// マーカーが、画面と同じ見た目で重なった状態になる）。
+    /// 共有しやすいよう軽くする（横1080pxのJPEG、数百KB程度）。
     @MainActor
     private func renderShareCardImage() -> UIImage? {
         let card = TripShareCardView(
@@ -788,8 +790,9 @@ struct WalkRouteDetailView: View {
             mapSnapshot: captureMapSnapshot()
         )
         let renderer = ImageRenderer(content: card)
-        renderer.scale = 2
-        return renderer.uiImage
+        renderer.scale = 1
+        guard let data = renderer.uiImage?.jpegData(compressionQuality: 0.75) else { return nil }
+        return UIImage(data: data)
     }
 
     /// 画面上部に表示中の`GMSMapView`をそのまま画像化する。`GMSMapView`は内部で

@@ -238,3 +238,39 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+
+/// 共有する旅の画像。「コピー」の時はURLだけをコピーしたいので、画像は渡さない。
+final class TripShareImageItem: NSObject, UIActivityItemSource {
+    let image: UIImage
+
+    init(image: UIImage) {
+        self.image = image
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        image
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        activityType == .copyToPasteboard ? nil : image
+    }
+}
+
+/// 共有する紹介メッセージ（URL入り）。「コピー」の時は、その旅のURLだけを渡す。
+final class TripShareTextItem: NSObject, UIActivityItemSource {
+    let message: String
+    let url: URL
+
+    init(message: String, url: URL) {
+        self.message = message
+        self.url = url
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        message
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        activityType == .copyToPasteboard ? url : message
+    }
+}
