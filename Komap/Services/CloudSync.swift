@@ -94,8 +94,10 @@ enum CloudSync {
             }
         }
         let localStampIDs = allIDs(CollectedStamp.self, \.id, context)
-        for (key, data) in cloud.stamps where !localStampIDs.contains(key) {
-            if let id = UUID(uuidString: key), let stamp = await makeStamp(id: id, data: data, userID: userID) {
+        let newStamps = cloud.stamps.filter { !localStampIDs.contains($0.key) }
+        let stampPhotos = await downloadPhotos(newStamps.values.compactMap { $0["photoURL"] as? String })
+        for (key, data) in newStamps {
+            if let id = UUID(uuidString: key), let stamp = makeStamp(id: id, data: data, userID: userID, photos: stampPhotos) {
                 context.insert(stamp)
                 imported += 1
             }
@@ -121,8 +123,10 @@ enum CloudSync {
             }
         }
         let localPostIDs = allIDs(WalkPhotoPost.self, \.id, context)
-        for (key, data) in cloud.photoPosts where !localPostIDs.contains(key) {
-            if let id = UUID(uuidString: key), let post = await makePhotoPost(id: id, data: data, userID: userID) {
+        let newPosts = cloud.photoPosts.filter { !localPostIDs.contains($0.key) }
+        let postPhotos = await downloadPhotos(newPosts.values.compactMap { $0["photoURL"] as? String })
+        for (key, data) in newPosts {
+            if let id = UUID(uuidString: key), let post = makePhotoPost(id: id, data: data, userID: userID, photos: postPhotos) {
                 context.insert(post)
                 imported += 1
             }
@@ -262,14 +266,15 @@ enum CloudSync {
         return markdown.hasSuffix(suffix) ? String(markdown.dropLast(suffix.count)) : markdown
     }
 
-    private static func makeStamp(id: UUID, data: [String: Any], userID: String) async -> CollectedStamp? {
+    /// - Parameter photos: 先にまとめて取ってきた写真（URL → 端末のファイル名、`downloadPhotos`）。
+    private static func makeStamp(id: UUID, data: [String: Any], userID: String, photos: [String: String]) -> CollectedStamp? {
         guard let siteID = data["siteID"] as? String else { return nil }
         let photoURL = data["photoURL"] as? String
         let stamp = CollectedStamp(
             id: id,
             siteID: siteID,
             collectedAt: (data["collectedAt"] as? Timestamp)?.dateValue() ?? Date(),
-            photoFileName: await downloadPhoto(photoURL),
+            photoFileName: photoURL.flatMap { photos[$0] },
             walkRouteID: (data["walkRouteID"] as? String).flatMap(UUID.init(uuidString:))
         )
         stamp.cloudPhotoURL = photoURL
@@ -278,11 +283,11 @@ enum CloudSync {
     }
 
     /// 投稿写真は写真が本体なので、写真を取ってこられた時だけ作る（取れなければ次の機会にやり直す）。
-    private static func makePhotoPost(id: UUID, data: [String: Any], userID: String) async -> WalkPhotoPost? {
+    private static func makePhotoPost(id: UUID, data: [String: Any], userID: String, photos: [String: String]) -> WalkPhotoPost? {
         guard let latitude = data["latitude"] as? Double,
               let longitude = data["longitude"] as? Double,
               let photoURL = data["photoURL"] as? String,
-              let fileName = await downloadPhoto(photoURL)
+              let fileName = photos[photoURL]
         else { return nil }
         let post = WalkPhotoPost(
             id: id,
@@ -323,9 +328,32 @@ enum CloudSync {
         return place
     }
 
+    /// Storage の写真を、同時に`maxConcurrentDownloads`枚ずつ並行して取ってきて端末に保存し、URL → ファイル名を返す。
+    /// 新しい端末での初回の同期など、写真が多い時に1枚ずつ順に待たないようにする。画像の読み込み・圧縮・保存は
+    /// メインスレッドの外で行う（このenumは`@MainActor`なので、以前は画面の更新と同じスレッドで処理していた）。
+    nonisolated private static let maxConcurrentDownloads = 4
+
+    nonisolated private static func downloadPhotos(_ urlStrings: [String]) async -> [String: String] {
+        await withTaskGroup(of: (String, String?).self) { group in
+            var pending = Set(urlStrings).makeIterator()
+            for _ in 0..<maxConcurrentDownloads {
+                guard let urlString = pending.next() else { break }
+                group.addTask { (urlString, await downloadPhoto(urlString)) }
+            }
+            var fileNames: [String: String] = [:]
+            while let (urlString, fileName) = await group.next() {
+                fileNames[urlString] = fileName
+                if let next = pending.next() {
+                    group.addTask { (next, await downloadPhoto(next)) }
+                }
+            }
+            return fileNames
+        }
+    }
+
     /// Storage の写真を取ってきて端末に保存し、ファイル名を返す。
-    private static func downloadPhoto(_ urlString: String?) async -> String? {
-        guard let urlString, let url = URL(string: urlString),
+    nonisolated private static func downloadPhoto(_ urlString: String) async -> String? {
+        guard let url = URL(string: urlString),
               let (data, response) = try? await URLSession.shared.data(from: url),
               (response as? HTTPURLResponse)?.statusCode == 200,
               let image = UIImage(data: data)

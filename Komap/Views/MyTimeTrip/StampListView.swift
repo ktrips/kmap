@@ -38,19 +38,17 @@ struct StampListView: View {
         }
     }
 
-    private var stampsBySiteID: [String: CollectedStamp] {
+    /// 史跡ID → 獲得した御朱印。描き直しのたびに1回だけ作り、各マス・各古地図の件数で使い回す
+    /// （以前は計算プロパティで、御朱印のマス1つごと・古地図1枚ごとに、全部の御朱印から作り直していた）。
+    private func makeStampsBySiteID() -> [String: CollectedStamp] {
         Dictionary(collectedStamps.map { ($0.siteID, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
-    private var collectedSiteIDs: Set<String> {
-        Set(stampsBySiteID.keys)
-    }
-
-    private var collectedCount: Int {
-        sites.filter { stampsBySiteID[$0.id] != nil }.count
-    }
-
     var body: some View {
+        let stampsBySiteID = makeStampsBySiteID()
+        let collectedSiteIDs = Set(stampsBySiteID.keys)
+        let sites = self.sites
+        let collectedCount = sites.filter { collectedSiteIDs.contains($0.id) }.count
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
                 if let overlayMap {
@@ -72,7 +70,7 @@ struct StampListView: View {
                 if overlayMapID == nil {
                     ForEach(sitesByMap, id: \.map.id) { group in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("\(group.map.title) (\(collectedCount(in: group.sites)) / \(group.sites.count))")
+                            Text("\(group.map.title) (\(group.sites.filter { collectedSiteIDs.contains($0.id) }.count) / \(group.sites.count))")
                                 .font(.subheadline.bold())
                                 .foregroundStyle(.brown)
 
@@ -85,13 +83,13 @@ struct StampListView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                             LazyVGrid(columns: cardColumns, spacing: 12) {
-                                stampCells(for: group.sites)
+                                stampCells(for: group.sites, stampsBySiteID: stampsBySiteID)
                             }
                         }
                     }
                 } else {
                     LazyVGrid(columns: cardColumns, spacing: 12) {
-                        stampCells(for: sites)
+                        stampCells(for: sites, stampsBySiteID: stampsBySiteID)
                     }
                 }
             }
@@ -104,12 +102,8 @@ struct StampListView: View {
         }
     }
 
-    private func collectedCount(in sites: [HistoricSite]) -> Int {
-        sites.filter { stampsBySiteID[$0.id] != nil }.count
-    }
-
     @ViewBuilder
-    private func stampCells(for sites: [HistoricSite]) -> some View {
+    private func stampCells(for sites: [HistoricSite], stampsBySiteID: [String: CollectedStamp]) -> some View {
         ForEach(sites) { site in
             let stamp = stampsBySiteID[site.id]
             StampCell(site: site, stamp: stamp)

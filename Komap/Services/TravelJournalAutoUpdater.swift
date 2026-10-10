@@ -99,12 +99,27 @@ final class TravelJournalAutoUpdater: ObservableObject {
     private func refresh(context: ModelContext, userID: String?) async {
         let requested = requestedRouteIDs
         requestedRouteIDs = []
-        let descriptor = FetchDescriptor<WalkRoute>(
+        var descriptor = FetchDescriptor<WalkRoute>(
             predicate: #Predicate { $0.ownerUserID == userID },
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
-        let routes = (try? context.fetch(descriptor)) ?? []
-        for route in routes where needsJournal(route, requested: requested.contains(route.id), context: context) {
+        // 判定に使う項目だけを読む（軌跡の座標は、旅日記を作る旅の分だけ後から読まれる）。
+        descriptor.propertiesToFetch = [
+            \.id, \.startedAt, \.endedAt, \.detailsUpdatedAt, \.travelJournalGeneratedAt, \.travelJournalMarkdown,
+        ]
+        let candidates = ((try? context.fetch(descriptor)) ?? []).filter { route in
+            mayNeedJournal(route, requested: requested.contains(route.id))
+        }
+        guard !candidates.isEmpty else { return }
+
+        // 旅日記を作った後に内容が変わったかは、旅1件ごとにデータベースを読まず、御朱印・投稿写真・説明を
+        // 1回ずつまとめて読んで旅ごとに集計する（アプリに戻るたびに、旅の数×3回読んでいた）。
+        let latestChanges = latestContentChanges(in: context)
+        for route in candidates {
+            if let generatedAt = route.travelJournalGeneratedAt, route.travelJournalMarkdown != nil {
+                let latest = max(route.detailsUpdatedAt ?? .distantPast, latestChanges[route.id] ?? .distantPast)
+                guard latest > generatedAt else { continue }
+            }
             do {
                 try await generate(for: route, context: context, userID: userID)
             } catch {
@@ -113,29 +128,44 @@ final class TravelJournalAutoUpdater: ObservableObject {
         }
     }
 
-    private func needsJournal(_ route: WalkRoute, requested: Bool, context: ModelContext) -> Bool {
+    /// 旅日記を作る・作り直すかもしれない旅か（内容が変わったかは、まだ見ない）。
+    private func mayNeedJournal(_ route: WalkRoute, requested: Bool) -> Bool {
         guard route.endedAt != nil, !generatingRouteIDs.contains(route.id) else { return false }
         if !requested, let failedAt = lastFailureAt[route.id], Date().timeIntervalSince(failedAt) < retryInterval {
             return false
         }
-        guard let generatedAt = route.travelJournalGeneratedAt, route.travelJournalMarkdown != nil else {
+        if route.travelJournalGeneratedAt == nil || route.travelJournalMarkdown == nil {
             return requested || route.startedAt > Date().addingTimeInterval(-recentTripWindow)
         }
-        return latestContentChange(of: route, context: context) > generatedAt
+        return true
     }
 
-    /// 旅日記の内容に関わるもの（旅の名前・感想、御朱印・投稿写真の追加、その名前・AIの説明）が
-    /// 最後に変わった日時。
-    private func latestContentChange(of route: WalkRoute, context: ModelContext) -> Date {
-        let stamps = stamps(of: route, in: context)
-        let posts = photoPosts(of: route, in: context)
-        var latest = route.detailsUpdatedAt ?? .distantPast
-        for stamp in stamps { latest = max(latest, stamp.collectedAt) }
-        for post in posts { latest = max(latest, post.postedAt, post.storyUpdatedAt ?? .distantPast) }
-        if !stamps.isEmpty {
-            let siteIDs = Set(stamps.map(\.siteID))
-            let descriptor = FetchDescriptor<CheckpointStory>(predicate: #Predicate { siteIDs.contains($0.siteID) })
-            for story in (try? context.fetch(descriptor)) ?? [] { latest = max(latest, story.updatedAt) }
+    /// 旅ごとに、旅日記の内容に関わるもの（御朱印・投稿写真の追加、その名前・AIの説明）が最後に変わった日時。
+    /// 旅の名前・感想の変更（`detailsUpdatedAt`）は、呼び出し側で旅の項目から足す。
+    private func latestContentChanges(in context: ModelContext) -> [UUID: Date] {
+        var stampDescriptor = FetchDescriptor<CollectedStamp>(predicate: #Predicate { $0.walkRouteID != nil })
+        stampDescriptor.propertiesToFetch = [\.walkRouteID, \.siteID, \.collectedAt]
+        var postDescriptor = FetchDescriptor<WalkPhotoPost>(predicate: #Predicate { $0.walkRouteID != nil })
+        postDescriptor.propertiesToFetch = [\.walkRouteID, \.postedAt, \.storyUpdatedAt]
+        let stamps = (try? context.fetch(stampDescriptor)) ?? []
+        let posts = (try? context.fetch(postDescriptor)) ?? []
+        let storyUpdatedAt = Dictionary(
+            ((try? context.fetch(FetchDescriptor<CheckpointStory>())) ?? []).map { ($0.siteID, $0.updatedAt) },
+            uniquingKeysWith: max
+        )
+
+        var latest: [UUID: Date] = [:]
+        func note(_ routeID: UUID?, _ date: Date?) {
+            guard let routeID, let date else { return }
+            latest[routeID] = max(latest[routeID] ?? .distantPast, date)
+        }
+        for stamp in stamps {
+            note(stamp.walkRouteID, stamp.collectedAt)
+            note(stamp.walkRouteID, storyUpdatedAt[stamp.siteID])
+        }
+        for post in posts {
+            note(post.walkRouteID, post.postedAt)
+            note(post.walkRouteID, post.storyUpdatedAt)
         }
         return latest
     }
