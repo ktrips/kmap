@@ -583,7 +583,8 @@ struct MapScreen: View {
         .sheet(isPresented: isSaveConfirmationPresented) {
             WalkSaveDecisionSheet(
                 onSave: confirmPendingWalkRoute,
-                onDiscard: discardPendingWalkRoute
+                onDiscard: discardPendingWalkRoute,
+                onResume: resumePendingWalkRoute
             )
             .presentationDetents([.height(300)])
             .presentationDragIndicator(.hidden)
@@ -597,7 +598,8 @@ struct MapScreen: View {
         Binding(
             get: { pendingWalkRoute != nil },
             set: { isPresented in
-                if !isPresented { discardPendingWalkRoute() }
+                // 「保存」「旅に戻る」では先に`pendingWalkRoute`を空にしてから閉じるので、ここでは破棄しない。
+                if !isPresented, pendingWalkRoute != nil { discardPendingWalkRoute() }
             }
         )
     }
@@ -1190,6 +1192,20 @@ struct MapScreen: View {
         showPlusAfterFirstTripIfNeeded()
     }
 
+    /// 確認シートで「旅に戻る」が選ばれた時、保存も破棄もせず、同じ旅の記録を続きから再開する。
+    private func resumePendingWalkRoute() {
+        guard let pending = pendingWalkRoute else { return }
+        pendingWalkRoute = nil
+        activeWalkSessionID = pending.id
+        activeWalkStartedAt = pending.startedAt
+        stepCounter.start()
+        locationManager.isAutoPauseForInactivityEnabled = AppSettings.autoPauseWhenStationary
+        locationManager.stationaryAutoPauseInterval = TimeInterval(AppSettings.stationaryAutoPauseMinutes * 60)
+        locationManager.resumeRecordingWalk(from: pending.coordinates, startedAt: pending.startedAt)
+        isFollowingCurrentLocation = true
+        showOldMapForWalkingIfNeeded()
+    }
+
     /// 初めて旅を保存した時に一度だけ、Komap Plus の比較ページを見せる
     /// （保存確認のシートが閉じ終わってから開く）。
     private func showPlusAfterFirstTripIfNeeded() {
@@ -1407,6 +1423,8 @@ private struct PendingWalkRoute {
 private struct WalkSaveDecisionSheet: View {
     let onSave: () -> Void
     let onDiscard: () -> Void
+    /// 保存も破棄もせず、歩いている旅（記録）に戻る。
+    let onResume: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     /// 「破棄」を押した直後、誤操作を防ぐための小さな確認待ち状態。
@@ -1454,14 +1472,26 @@ private struct WalkSaveDecisionSheet: View {
                     .buttonStyle(.plain)
                 }
             } else {
-                Button(role: .destructive) {
-                    isConfirmingDiscard = true
-                } label: {
-                    Text("破棄")
-                        .font(.system(size: 15.6)) // .footnote(13pt)の20%増し
+                HStack(spacing: 28) {
+                    Button {
+                        onResume()
+                        dismiss()
+                    } label: {
+                        Text("キャンセル（旅に戻る）")
+                            .font(.system(size: 15.6)) // .footnote(13pt)の20%増し
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.tint)
+
+                    Button(role: .destructive) {
+                        isConfirmingDiscard = true
+                    } label: {
+                        Text("破棄")
+                            .font(.system(size: 15.6)) // .footnote(13pt)の20%増し
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.red)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.red)
             }
 
             Spacer(minLength: 0)
