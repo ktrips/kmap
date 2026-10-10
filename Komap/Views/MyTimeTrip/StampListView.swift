@@ -88,10 +88,6 @@ struct StampListView: View {
                         stampCells(for: sites)
                     }
                 }
-
-                Text("「スタート」でウォーキングを記録しながら史跡チェックポイントに近づくと、御朱印が自動で貯まります。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
             .padding()
         }
