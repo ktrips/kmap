@@ -80,6 +80,8 @@ struct PhotoPostPageView: View {
     @State private var printMessage: String?
     @State private var isConfirmingDelete = false
     @State private var editableUserTitle: String = ""
+    @State private var isEditingTitle = false
+    @FocusState private var isTitleFieldFocused: Bool
     @State private var isShowingPhotoChange = false
     @State private var isChangingPhoto = false
     @State private var isShowingPlus = false
@@ -129,21 +131,39 @@ struct PhotoPostPageView: View {
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("名前")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    TextField("この写真に名前をつける（任意）", text: $editableUserTitle)
-                        .textFieldStyle(.roundedBorder)
-                        .submitLabel(.done)
-                        .onSubmit {
-                            commitUserTitleIfChanged()
+                // ポイントの名前。最初は位置情報の場所の名前で、鉛筆を押すと自分で名前を付けられる。
+                // 名前を付けても、元の位置情報の場所はその下に残して表示する。
+                if isEditingTitle {
+                    HStack(spacing: 8) {
+                        TextField(post.placeName ?? "このポイントの名前", text: $editableUserTitle)
+                            .textFieldStyle(.roundedBorder)
+                            .submitLabel(.done)
+                            .focused($isTitleFieldFocused)
+                            .onAppear { isTitleFieldFocused = true }
+                            .onSubmit { finishEditingTitle() }
+                        Button("完了") { finishEditingTitle() }
+                            .font(.subheadline.bold())
+                    }
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(post.displayTitle ?? (isLoadingInfo ? "場所を調べています…" : "名前のないポイント"))
+                            .font(.title3.bold())
+                            .foregroundStyle(post.displayTitle == nil ? .secondary : .primary)
+                        Button {
+                            editableUserTitle = post.userTitle ?? post.placeName ?? ""
+                            isEditingTitle = true
+                        } label: {
+                            Image(systemName: "pencil")
                         }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("ポイントの名前を変える")
+                    }
                 }
 
                 if let placeName = post.placeName {
                     Label(placeName, systemImage: "mappin.and.ellipse")
-                        .font(.subheadline.bold())
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
 
                 if let title = post.storyTitle, let body = post.storyBody {
@@ -197,6 +217,13 @@ struct PhotoPostPageView: View {
         }
         .photoChangePicker(isPresented: $isShowingPhotoChange) { image in
             Task { await changePhoto(to: image) }
+        }
+        // 名前の入力欄から離れた時・シートを閉じた時も、入力した名前を確定する。
+        .onChange(of: isTitleFieldFocused) { _, isFocused in
+            if !isFocused, isEditingTitle { finishEditingTitle() }
+        }
+        .onDisappear {
+            if isEditingTitle { commitUserTitleIfChanged() }
         }
         .task {
             editableUserTitle = post.userTitle ?? ""
@@ -284,9 +311,16 @@ struct PhotoPostPageView: View {
 
     /// 「名前」欄の編集を確定し、変わっていればAIの説明も作り直す
     /// （付けた名前を手がかりに、より興味深い説明文になるようにするため）。
+    private func finishEditingTitle() {
+        isEditingTitle = false
+        isTitleFieldFocused = false
+        commitUserTitleIfChanged()
+    }
+
     private func commitUserTitleIfChanged() {
         let trimmed = editableUserTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let newValue = trimmed.isEmpty ? nil : trimmed
+        // 空にした時・位置情報の場所の名前のままの時は、自分で付けた名前は無し（場所の名前を使う）。
+        let newValue = (trimmed.isEmpty || trimmed == post.placeName) ? nil : trimmed
         guard newValue != post.userTitle else { return }
         post.userTitle = newValue
         try? modelContext.save()
