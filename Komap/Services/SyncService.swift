@@ -144,6 +144,16 @@ struct SyncService {
             .setData(data, merge: true)
     }
 
+    /// 御朱印の説明文（`detail`）だけを書き込む（写真のURLには触れない）。
+    /// 写真のアップロードと同時に走っても、アップロード済みの写真URLを空で上書きしないようにするため。
+    func uploadDetail(_ detail: String, of stamp: CollectedStamp, userID: String?) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        guard let userID, !detail.isEmpty else { return }
+        try await stampsCollection(for: userID)
+            .document(stamp.id.uuidString)
+            .setData(["detail": detail, "updatedAt": FieldValue.serverTimestamp()], merge: true)
+    }
+
     /// 御朱印に添えた写真を、スマホできれいに見える範囲まで圧縮してアップロードし、
     /// `stamp.cloudPhotoURL`に反映してからFirestoreのドキュメントも更新する。
     @discardableResult
@@ -207,6 +217,23 @@ struct SyncService {
         try await photoPostsCollection(for: userID)
             .document(post.id.uuidString)
             .setData(data, merge: true)
+    }
+
+    /// 投稿写真の場所の名前・名前・AIの説明だけを書き込む（写真のURLには触れない）。
+    /// 写真のアップロードと同時に走っても、アップロード済みの写真URLを空で上書きしないようにするため。
+    func uploadInfo(of post: WalkPhotoPost, userID: String?) async throws {
+        guard isFirebaseConfigured else { throw SyncError.firebaseNotConfigured }
+        guard let userID else { throw SyncError.notSignedIn }
+        try await photoPostsCollection(for: userID)
+            .document(post.id.uuidString)
+            .setData([
+                "placeName": post.placeName as Any? ?? NSNull(),
+                "userTitle": post.userTitle as Any? ?? NSNull(),
+                "storyTitle": post.storyTitle as Any? ?? NSNull(),
+                "storyBody": post.storyBody as Any? ?? NSNull(),
+                "storyUpdatedAt": post.storyUpdatedAt.map(Timestamp.init(date:)) as Any? ?? NSNull(),
+                "updatedAt": FieldValue.serverTimestamp(),
+            ], merge: true)
     }
 
     /// 投稿写真の画像本体を、スマホできれいに見える範囲まで圧縮してアップロードし、

@@ -8,6 +8,13 @@ struct StampCheckInSheet: View {
     let site: HistoricSite
     @Bindable var stamp: CollectedStamp
 
+    init(site: HistoricSite, stamp: CollectedStamp) {
+        self.site = site
+        self.stamp = stamp
+        let siteID = site.id
+        _savedStories = Query(filter: #Predicate<CheckpointStory> { $0.siteID == siteID })
+    }
+
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var plusStore: PlusStore
     /// Komap Plus の比較ページを開く理由（写真の追加・場所の詳細）。
@@ -27,11 +34,13 @@ struct StampCheckInSheet: View {
     /// （`MapScreen`側の同様の対応と揃えている）。
     @AppStorage("cameraLinkHost") private var cameraLinkHostRaw: String = ""
 
-    @State private var isLoadingStory = true
-    @State private var story: GeneratedStory?
+    /// この史跡の説明（チェックイン・写真の追加の時点で`PointStoryAutoGenerator`が作って保存したもの）。
+    @Query private var savedStories: [CheckpointStory]
+    @ObservedObject private var pointStoryGenerator = PointStoryAutoGenerator.shared
     @State private var storyErrorMessage: String?
 
-    private let historyService = AIHistoryService()
+    private var story: CheckpointStory? { savedStories.first }
+    private var isLoadingStory: Bool { pointStoryGenerator.generatingSiteIDs.contains(site.id) }
     private let syncService = SyncService()
 
     private var isCameraLinkConfigured: Bool {
@@ -150,7 +159,17 @@ struct StampCheckInSheet: View {
                 .font(.headline)
                 .foregroundStyle(.brown)
 
-            if isStoryLocked {
+            if let story {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(story.title)
+                        .font(.subheadline.bold())
+                    Text(story.body)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineSpacing(4)
+                }
+                .opacity(isLoadingStory ? 0.5 : 1)
+            } else if isStoryLocked {
                 lockedStoryView
             } else if isLoadingStory {
                 HStack(spacing: 8) {
@@ -168,15 +187,6 @@ struct StampCheckInSheet: View {
                     Button("もう一度試す") {
                         Task { await loadStoryIfNeeded(force: true) }
                     }
-                }
-            } else if let story {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(story.title)
-                        .font(.subheadline.bold())
-                    Text(story.body)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineSpacing(4)
                 }
             }
         }
@@ -237,6 +247,10 @@ struct StampCheckInSheet: View {
         stamp.updatePhoto(image)
         try? modelContext.save()
         photoSyncErrorMessage = nil
+        // 新しい写真の内容に合わせて、この場所の説明も作り直す（手で直した説明はそのまま）。
+        PointStoryAutoGenerator.shared.stampChanged(
+            stamp, photoChanged: true, context: modelContext, userID: authService.userID, isPlus: plusStore.isPlus
+        )
 
         if let image {
             Task { await PrinterLinkService().printStampPhotoIfEnabled(image) }
@@ -259,26 +273,22 @@ struct StampCheckInSheet: View {
         }
     }
 
+    /// 保存済みの説明が無ければ、AIで作って保存する（写真を追加・変更済みなら、その内容も踏まえた説明にする）。
     private func loadStoryIfNeeded(force: Bool = false) async {
         guard force || story == nil else { return }
-        guard !isStoryLocked else {
-            isLoadingStory = false
-            return
-        }
-        isLoadingStory = true
+        guard !isStoryLocked else { return }
         storyErrorMessage = nil
         do {
-            // 写真を追加・変更済みなら、その内容も踏まえた説明にする。
-            story = try await historyService.generateStory(
-                for: site.coordinate,
-                overlayMap: overlayMap,
-                placeName: site.name,
-                photo: stamp.photo
+            try await pointStoryGenerator.generateCheckpointStory(
+                for: stamp,
+                overwrite: force,
+                context: modelContext,
+                userID: authService.userID,
+                isPlus: plusStore.isPlus
             )
             plusStore.recordFreeUse(.placeDetail, itemID: site.id)
         } catch {
             storyErrorMessage = error.localizedDescription
         }
-        isLoadingStory = false
     }
 }

@@ -598,8 +598,9 @@ struct MapScreen: View {
         Binding(
             get: { pendingWalkRoute != nil },
             set: { isPresented in
-                // 「保存」「旅に戻る」では先に`pendingWalkRoute`を空にしてから閉じるので、ここでは破棄しない。
-                if !isPresented, pendingWalkRoute != nil { discardPendingWalkRoute() }
+                // スワイプで閉じた時は、誤って記録を失わないよう「旅に戻る」と同じく記録を続ける。
+                // 「保存」「旅に戻る」「破棄」では先に`pendingWalkRoute`を空にしてから閉じるので、ここでは何もしない。
+                if !isPresented, pendingWalkRoute != nil { resumePendingWalkRoute() }
             }
         )
     }
@@ -1149,6 +1150,10 @@ struct MapScreen: View {
         post.ownerUserID = authService.userID
         modelContext.insert(post)
         watchConnectivity.notifyPhotoPosted(points: post.points)
+        // 写真を開かなくても、この場所の名前・説明をAIで調べて保存しておく。
+        PointStoryAutoGenerator.shared.photoPostChanged(
+            post, regenerate: false, context: modelContext, userID: authService.userID, isPlus: plusStore.isPlus
+        )
 
         if let userID = authService.userID {
             Task {
@@ -1311,6 +1316,10 @@ struct MapScreen: View {
         if let userID = authService.userID {
             Task { try? await syncService.upload(stamp, userID: userID) }
         }
+        // ポイントを開かなくても、この場所の説明をAIで作って保存しておく。
+        PointStoryAutoGenerator.shared.stampChanged(
+            stamp, photoChanged: false, context: modelContext, userID: authService.userID, isPlus: plusStore.isPlus
+        )
     }
 
     /// 記録中の現在地が、未獲得のチェックポイントに接近していれば御朱印を獲得する。
@@ -1337,6 +1346,10 @@ struct MapScreen: View {
             if let userID = authService.userID {
                 Task { try? await syncService.upload(stamp, userID: userID) }
             }
+            // ポイントを開かなくても、この場所の説明をAIで作って保存しておく。
+            PointStoryAutoGenerator.shared.stampChanged(
+                stamp, photoChanged: false, context: modelContext, userID: authService.userID, isPlus: plusStore.isPlus
+            )
             // 1回の更新で複数箇所に同時到達することは想定しないため、1件見つけたら終える。
             break
         }

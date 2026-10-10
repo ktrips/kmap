@@ -72,20 +72,19 @@ struct PhotoPostPageView: View {
 
     @EnvironmentObject private var authService: AuthService
     @Environment(\.modelContext) private var modelContext
-    @State private var isLoadingInfo = false
+    /// 場所の名前・AIの説明を作っている間（投稿した時点から自動で作っている分も含む）。
+    @ObservedObject private var pointStoryGenerator = PointStoryAutoGenerator.shared
+    private var isLoadingInfo: Bool { pointStoryGenerator.generatingPostIDs.contains(post.id) }
     @State private var infoErrorMessage: String?
     @State private var isPrintingToLinkedPrinter = false
     @State private var printMessage: String?
     @State private var isConfirmingDelete = false
     @State private var editableUserTitle: String = ""
-    @State private var isRegeneratingStory = false
     @State private var isShowingPhotoChange = false
     @State private var isChangingPhoto = false
     @State private var isShowingPlus = false
     @EnvironmentObject private var plusStore: PlusStore
 
-    private let geocoder = CLGeocoder()
-    private let historyService = AIHistoryService()
     private let syncService = SyncService()
 
     var body: some View {
@@ -159,14 +158,14 @@ struct PhotoPostPageView: View {
                     Button {
                         Task { await regenerateStory() }
                     } label: {
-                        if isRegeneratingStory {
+                        if isLoadingInfo {
                             ProgressView()
                         } else {
                             Label("AIの説明を作り直す", systemImage: "arrow.clockwise")
                                 .font(.caption)
                         }
                     }
-                    .disabled(isRegeneratingStory)
+                    .disabled(isLoadingInfo)
                 } else if isLoadingInfo {
                     HStack(spacing: 8) {
                         ProgressView()
@@ -228,6 +227,9 @@ struct PhotoPostPageView: View {
         try? modelContext.save()
         Task { await PrinterLinkService().printPhotoPostIfEnabled(image) }
 
+        // 新しい写真の内容に合わせて、この場所の説明も作り直す。
+        Task { await regenerateStory() }
+
         guard let userID = authService.userID else { return }
         try? await syncService.uploadPhotoPostImage(post, userID: userID)
         try? modelContext.save()
@@ -259,43 +261,25 @@ struct PhotoPostPageView: View {
         Task { await syncService.deletePhotoPost(id: postID, userID: userID) }
     }
 
-    /// 場所の名前・AIの解説は一度取得したら`post`に保存し、以後は再取得しない。
+    /// 場所の名前・AIの解説は一度取得したら`post`に保存し、以後は再取得しない
+    /// （投稿した時点で`PointStoryAutoGenerator`が作っていれば、ここでは何もしない）。
     private func loadInfoIfNeeded() async {
-        guard post.placeName == nil || post.storyTitle == nil else { return }
-        isLoadingInfo = true
+        await generateInfo(regenerate: false)
+    }
+
+    private func generateInfo(regenerate: Bool) async {
         infoErrorMessage = nil
-
-        if post.placeName == nil {
-            let location = CLLocation(latitude: post.coordinate.latitude, longitude: post.coordinate.longitude)
-            if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
-                post.placeName = [placemark.name, placemark.locality].compactMap { $0 }.first
-            }
+        do {
+            try await pointStoryGenerator.generatePostInfo(
+                for: post,
+                regenerate: regenerate,
+                context: modelContext,
+                userID: authService.userID,
+                isPlus: plusStore.isPlus
+            )
+        } catch {
+            infoErrorMessage = error.localizedDescription
         }
-
-        if post.storyTitle == nil {
-            do {
-                // 初回生成時から、写真の内容（被写体・雰囲気）を踏まえた説明文にする。
-                let story = try await historyService.generateStory(
-                    for: post.coordinate,
-                    overlayMap: nil,
-                    placeName: post.placeName,
-                    userTitle: post.userTitle,
-                    photo: post.photo
-                )
-                post.storyTitle = story.title
-                post.storyBody = story.body
-                post.storyUpdatedAt = Date()
-            } catch {
-                infoErrorMessage = error.localizedDescription
-            }
-        }
-
-        try? modelContext.save()
-        // 場所の名前・AIの解説はサインイン中ならクラウドにも反映し、Webでサインインして
-        // 見た時にもこの写真の説明が表示されるようにする。
-        try? await syncService.upload(post, userID: authService.userID)
-
-        isLoadingInfo = false
     }
 
     /// 「名前」欄の編集を確定し、変わっていればAIの説明も作り直す
@@ -313,30 +297,6 @@ struct PhotoPostPageView: View {
 
     /// 名前・写真・位置情報から、AIの説明文を改めて生成し直す。
     private func regenerateStory() async {
-        isRegeneratingStory = true
-        infoErrorMessage = nil
-        defer { isRegeneratingStory = false }
-        do {
-            let story = try await historyService.generateStory(
-                for: post.coordinate,
-                overlayMap: nil,
-                placeName: post.placeName,
-                userTitle: post.userTitle,
-                photo: post.photo
-            )
-            post.storyTitle = story.title
-            post.storyBody = story.body
-            post.storyUpdatedAt = Date()
-            try? modelContext.save()
-            try? await syncService.upload(post, userID: authService.userID)
-            // この写真を投稿した旅の旅日記も、新しい名前・説明で作り直す。
-            TravelJournalAutoUpdater.shared.scheduleRefresh(
-                context: modelContext,
-                userID: authService.userID,
-                isPlus: plusStore.isPlus
-            )
-        } catch {
-            infoErrorMessage = error.localizedDescription
-        }
+        await generateInfo(regenerate: true)
     }
 }
