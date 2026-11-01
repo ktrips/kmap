@@ -195,6 +195,96 @@ export const OLD_MAP_DATA: OldMapEntry[] = [
     northEast: { lat: 50.8525, lng: 4.3641 },
   },
   {
+    id: "prague-kafka",
+    title: "プラハ（カフカと『プラハの春』）",
+    era: "1910年代〜1968年（カフカの時代からプラハの春まで）",
+    summary: "カフカが生まれ、『変身』『城』を書いた百塔の都。春江一也『プラハの春』で描かれた1968年の街も重ねて、旧市街広場・黄金の小路・カレル橋・ヴァーツラフ広場をめぐります。",
+    imageUrl: "/old-maps/old_map_prague.jpg",
+    southWest: { lat: 50.0739, lng: 14.3967 },
+    northEast: { lat: 50.099, lng: 14.4359 },
+  },
+  {
+    id: "vienna-third-man",
+    title: "ウィーン（『第三の男』の街）",
+    era: "1948年頃（四か国分割占領下）",
+    summary: "グレアム・グリーン『第三の男』の舞台、占領下のウィーン。ハリー・ライムが姿を現す戸口、偽の事故現場のヨーゼフ広場、プラーターの大観覧車をめぐります。宮本輝『ドナウの旅人』の出発点でもある街です。",
+    imageUrl: "/old-maps/old_map_vienna.jpg",
+    southWest: { lat: 48.1918, lng: 16.3507 },
+    northEast: { lat: 48.2286, lng: 16.4059 },
+  },
+  {
+    id: "venice-merchant",
+    title: "ヴェネツィア（『ヴェニスの商人』）",
+    era: "16世紀（ヴェネツィア共和国の黄金期）",
+    summary: "シェイクスピア『ヴェニスの商人』と、塩野七生『緋色のヴェネツィア』の舞台となった海の共和国。商人が集うリアルト、シャイロックの住むゲットー、裁判の場となったドゥカーレ宮殿をめぐります。",
+    imageUrl: "/old-maps/old_map_venice.jpg",
+    southWest: { lat: 45.4251, lng: 12.3198 },
+    northEast: { lat: 45.4511, lng: 12.3569 },
+  },
+  {
+    id: "rome-angels-demons",
+    title: "ローマ（『天使と悪魔』の道）",
+    era: "ルネサンス〜バロック（17世紀）",
+    summary: "ダン・ブラウン『天使と悪魔』で、ラングドン教授が「啓示の道」をたどったローマ。土・風・火・水の四つの祭壇と、光の教会へ続く道をめぐります。",
+    imageUrl: "/old-maps/old_map_rome.jpg",
+    southWest: { lat: 41.883, lng: 12.446 },
+    northEast: { lat: 41.9271, lng: 12.5052 },
+  },
+  {
+    id: "florence-reisei-jonetsu",
+    title: "フィレンツェ（『冷静と情熱のあいだ』）",
+    era: "ルネサンス（15世紀）の街並みと1990年代の物語",
+    summary: "江國香織・辻仁成『冷静と情熱のあいだ』で、順正とあおいが「30歳の誕生日に」と約束したフィレンツェ。ドゥオーモのクーポラ、ヴェッキオ橋、アルノ川の対岸までをめぐります。",
+    imageUrl: "/old-maps/old_map_florence.jpg",
+    southWest: { lat: 43.7595, lng: 11.2457 },
+    northEast: { lat: 43.7765, lng: 11.2693 },
+  },
+  {
+    id: "paris-hugo",
+    title: "パリ・シテ島と左岸（ユゴーの物語）",
+    era: "1830年代（『ノートルダム・ド・パリ』『レ・ミゼラブル』の時代）",
+    summary: "ヴィクトル・ユゴー『ノートルダム・ド・パリ』と『レ・ミゼラブル』の舞台。ノートルダム大聖堂、ユゴーが暮らしたヴォージュ広場、マリウスとコゼットが出会ったリュクサンブール公園をめぐります。",
+    imageUrl: "/old-maps/old_map_paris_hugo.jpg",
+    southWest: { lat: 48.8382, lng: 2.3253 },
+    northEast: { lat: 48.8714, lng: 2.3759 },
+  },
+  {
+    id: "london-holmes",
+    title: "ロンドン（シャーロック・ホームズの時代）",
+    era: "1890年頃（ヴィクトリア朝）",
+    summary: "コナン・ドイル『シャーロック・ホームズ』シリーズのロンドン。ベーカー街221B、依頼人が泊まったランガム・ホテル、ワトソンが相棒と出会うきっかけのクライテリオン・バーをめぐります。",
+    imageUrl: "/old-maps/old_map_london_holmes.jpg",
+    southWest: { lat: 51.498, lng: -0.1696 },
+    northEast: { lat: 51.5357, lng: -0.1089 },
+  },
+  {
+    id: "edinburgh-old-town",
+    title: "エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）",
+    era: "18〜19世紀（スティーヴンソンの時代）",
+    summary: "スティーヴンソン『ジキル博士とハイド氏』のモデルになった二重生活の男が暮らし、J・K・ローリングが『ハリー・ポッター』を書いた街。城からロイヤル・マイル、ダイアゴン横丁のモデルの坂道をめぐります。",
+    imageUrl: "/old-maps/old_map_edinburgh.jpg",
+    southWest: { lat: 55.9432, lng: -3.2075 },
+    northEast: { lat: 55.9575, lng: -3.1819 },
+  },
+  {
+    id: "dublin-ulysses",
+    title: "ダブリン（ジョイス『ユリシーズ』）",
+    era: "1904年6月16日（ブルームズデイ）",
+    summary: "ジェイムズ・ジョイス『ユリシーズ』で、レオポルド・ブルームが1904年6月16日の1日を歩き回ったダブリン。ブルームの家、昼食の店、レモン石鹸の薬局をめぐります。",
+    imageUrl: "/old-maps/old_map_dublin.jpg",
+    southWest: { lat: 53.3357, lng: -6.283 },
+    northEast: { lat: 53.3644, lng: -6.2348 },
+  },
+  {
+    id: "berlin-maihime",
+    title: "ベルリン（森鷗外『舞姫』）",
+    era: "1888年頃（ドイツ帝国の都）",
+    summary: "森鷗外が留学し、『舞姫』で太田豊太郎と踊り子エリスの恋を描いたベルリン。ウンター・デン・リンデンの大通りから、エリスと出会ったクロスター通りの古寺までをめぐります。",
+    imageUrl: "/old-maps/old_map_berlin.jpg",
+    southWest: { lat: 52.4999, lng: 13.3679 },
+    northEast: { lat: 52.5331, lng: 13.4225 },
+  },
+  {
     id: "beijing-qing",
     title: "北京・紫禁城と内城（清代）",
     era: "清代（18世紀・乾隆期）",
@@ -509,6 +599,122 @@ export const HISTORIC_SITE_DATA: HistoricSiteEntry[] = [
   { id: "brussels-royal-palace", name: "王宮とブリュッセル公園", overlayMapID: "brussels-1850", coordinate: { lat: 50.8418, lng: 4.362 } },
   { id: "brussels-sainte-catherine", name: "サント・カトリーヌ（旧港）", overlayMapID: "brussels-1850", coordinate: { lat: 50.851, lng: 4.3475 } },
   { id: "brussels-jeu-de-balle", name: "ジュ・ド・バル広場（マロル地区）", overlayMapID: "brussels-1850", coordinate: { lat: 50.8374, lng: 4.3463 } },
+  // Europe — プラハ（カフカと『プラハの春』）
+  { id: "prague-kafka-birthplace", name: "カフカの生家", overlayMapID: "prague-kafka", coordinate: { lat: 50.088, lng: 14.4193 } },
+  // Europe — プラハ（カフカと『プラハの春』）
+  { id: "prague-golden-lane", name: "黄金の小路22番地", overlayMapID: "prague-kafka", coordinate: { lat: 50.0923, lng: 14.4041 } },
+  // Europe — プラハ（カフカと『プラハの春』）
+  { id: "prague-charles-bridge", name: "カレル橋", overlayMapID: "prague-kafka", coordinate: { lat: 50.0865, lng: 14.4114 } },
+  // Europe — プラハ（カフカと『プラハの春』）
+  { id: "prague-kafka-museum", name: "フランツ・カフカ博物館", overlayMapID: "prague-kafka", coordinate: { lat: 50.0884, lng: 14.4101 } },
+  // Europe — プラハ（カフカと『プラハの春』）
+  { id: "prague-wenceslas-square", name: "ヴァーツラフ広場", overlayMapID: "prague-kafka", coordinate: { lat: 50.0806, lng: 14.4285 } },
+  // Europe — プラハ（カフカと『プラハの春』）
+  { id: "prague-kafka-head", name: "回転するカフカの頭像", overlayMapID: "prague-kafka", coordinate: { lat: 50.0818, lng: 14.4204 } },
+  // Europe — ウィーン（『第三の男』の街）
+  { id: "vienna-schreyvogelgasse", name: "ハリー・ライムの戸口", overlayMapID: "vienna-third-man", coordinate: { lat: 48.2117, lng: 16.3607 } },
+  // Europe — ウィーン（『第三の男』の街）
+  { id: "vienna-josefsplatz", name: "ヨーゼフ広場（パラヴィチーニ宮殿）", overlayMapID: "vienna-third-man", coordinate: { lat: 48.2065, lng: 16.3667 } },
+  // Europe — ウィーン（『第三の男』の街）
+  { id: "vienna-cafe-mozart", name: "カフェ・モーツァルト", overlayMapID: "vienna-third-man", coordinate: { lat: 48.2038, lng: 16.3692 } },
+  // Europe — ウィーン（『第三の男』の街）
+  { id: "vienna-am-hof", name: "アム・ホーフ広場", overlayMapID: "vienna-third-man", coordinate: { lat: 48.2104, lng: 16.3679 } },
+  // Europe — ウィーン（『第三の男』の街）
+  { id: "vienna-stephansdom", name: "シュテファン大聖堂", overlayMapID: "vienna-third-man", coordinate: { lat: 48.2085, lng: 16.3731 } },
+  // Europe — ウィーン（『第三の男』の街）
+  { id: "vienna-riesenrad", name: "プラーターの大観覧車", overlayMapID: "vienna-third-man", coordinate: { lat: 48.2166, lng: 16.3959 } },
+  // Europe — ヴェネツィア（『ヴェニスの商人』）
+  { id: "venice-rialto", name: "リアルト橋", overlayMapID: "venice-merchant", coordinate: { lat: 45.438, lng: 12.3359 } },
+  // Europe — ヴェネツィア（『ヴェニスの商人』）
+  { id: "venice-ghetto", name: "ゲットー・ヌオーヴォ", overlayMapID: "venice-merchant", coordinate: { lat: 45.4447, lng: 12.3265 } },
+  // Europe — ヴェネツィア（『ヴェニスの商人』）
+  { id: "venice-san-marco", name: "サン・マルコ広場", overlayMapID: "venice-merchant", coordinate: { lat: 45.4341, lng: 12.338 } },
+  // Europe — ヴェネツィア（『ヴェニスの商人』）
+  { id: "venice-doge-palace", name: "ドゥカーレ宮殿", overlayMapID: "venice-merchant", coordinate: { lat: 45.4337, lng: 12.3403 } },
+  // Europe — ヴェネツィア（『ヴェニスの商人』）
+  { id: "venice-arsenale", name: "アルセナーレ（国営造船所）", overlayMapID: "venice-merchant", coordinate: { lat: 45.4348, lng: 12.3502 } },
+  // Europe — ヴェネツィア（『ヴェニスの商人』）
+  { id: "venice-accademia", name: "アカデミア橋", overlayMapID: "venice-merchant", coordinate: { lat: 45.4315, lng: 12.3289 } },
+  // Europe — ローマ（『天使と悪魔』の道）
+  { id: "rome-santa-maria-del-popolo", name: "サンタ・マリア・デル・ポポロ教会", overlayMapID: "rome-angels-demons", coordinate: { lat: 41.9115, lng: 12.4763 } },
+  // Europe — ローマ（『天使と悪魔』の道）
+  { id: "rome-st-peters-square", name: "サン・ピエトロ広場", overlayMapID: "rome-angels-demons", coordinate: { lat: 41.9022, lng: 12.457 } },
+  // Europe — ローマ（『天使と悪魔』の道）
+  { id: "rome-santa-maria-della-vittoria", name: "サンタ・マリア・デッラ・ヴィットーリア教会", overlayMapID: "rome-angels-demons", coordinate: { lat: 41.9048, lng: 12.4942 } },
+  // Europe — ローマ（『天使と悪魔』の道）
+  { id: "rome-piazza-navona", name: "ナヴォーナ広場・四大河の噴水", overlayMapID: "rome-angels-demons", coordinate: { lat: 41.899, lng: 12.4731 } },
+  // Europe — ローマ（『天使と悪魔』の道）
+  { id: "rome-castel-sant-angelo", name: "サンタンジェロ城", overlayMapID: "rome-angels-demons", coordinate: { lat: 41.9031, lng: 12.4663 } },
+  // Europe — ローマ（『天使と悪魔』の道）
+  { id: "rome-pantheon", name: "パンテオン", overlayMapID: "rome-angels-demons", coordinate: { lat: 41.8986, lng: 12.4768 } },
+  // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+  { id: "florence-duomo-cupola", name: "ドゥオーモのクーポラ", overlayMapID: "florence-reisei-jonetsu", coordinate: { lat: 43.7731, lng: 11.256 } },
+  // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+  { id: "florence-ponte-vecchio", name: "ヴェッキオ橋", overlayMapID: "florence-reisei-jonetsu", coordinate: { lat: 43.768, lng: 11.2531 } },
+  // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+  { id: "florence-uffizi", name: "ウフィツィ美術館", overlayMapID: "florence-reisei-jonetsu", coordinate: { lat: 43.7677, lng: 11.2553 } },
+  // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+  { id: "florence-santa-croce", name: "サンタ・クローチェ教会", overlayMapID: "florence-reisei-jonetsu", coordinate: { lat: 43.7686, lng: 11.2622 } },
+  // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+  { id: "florence-palazzo-pitti", name: "ピッティ宮殿", overlayMapID: "florence-reisei-jonetsu", coordinate: { lat: 43.7651, lng: 11.25 } },
+  // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+  { id: "florence-piazzale-michelangelo", name: "ミケランジェロ広場", overlayMapID: "florence-reisei-jonetsu", coordinate: { lat: 43.7629, lng: 11.265 } },
+  // Europe — パリ・シテ島と左岸（ユゴーの物語）
+  { id: "paris-notre-dame", name: "ノートルダム大聖堂", overlayMapID: "paris-hugo", coordinate: { lat: 48.853, lng: 2.3499 } },
+  // Europe — パリ・シテ島と左岸（ユゴーの物語）
+  { id: "paris-place-des-vosges", name: "ヴォージュ広場（ヴィクトル・ユゴー記念館）", overlayMapID: "paris-hugo", coordinate: { lat: 48.8546, lng: 2.3664 } },
+  // Europe — パリ・シテ島と左岸（ユゴーの物語）
+  { id: "paris-pantheon", name: "パンテオン", overlayMapID: "paris-hugo", coordinate: { lat: 48.8462, lng: 2.3461 } },
+  // Europe — パリ・シテ島と左岸（ユゴーの物語）
+  { id: "paris-luxembourg", name: "リュクサンブール公園", overlayMapID: "paris-hugo", coordinate: { lat: 48.8462, lng: 2.3372 } },
+  // Europe — パリ・シテ島と左岸（ユゴーの物語）
+  { id: "paris-saint-sulpice", name: "サン・シュルピス教会", overlayMapID: "paris-hugo", coordinate: { lat: 48.851, lng: 2.3348 } },
+  // Europe — パリ・シテ島と左岸（ユゴーの物語）
+  { id: "paris-saint-eustache", name: "サン・トゥスタッシュ教会（バリケードの界隈）", overlayMapID: "paris-hugo", coordinate: { lat: 48.8634, lng: 2.3449 } },
+  // Europe — ロンドン（シャーロック・ホームズの時代）
+  { id: "london-baker-street", name: "ベーカー街221B", overlayMapID: "london-holmes", coordinate: { lat: 51.5238, lng: -0.1586 } },
+  // Europe — ロンドン（シャーロック・ホームズの時代）
+  { id: "london-langham", name: "ランガム・ホテル", overlayMapID: "london-holmes", coordinate: { lat: 51.5179, lng: -0.1438 } },
+  // Europe — ロンドン（シャーロック・ホームズの時代）
+  { id: "london-montague-street", name: "モンタギュー街", overlayMapID: "london-holmes", coordinate: { lat: 51.5193, lng: -0.1262 } },
+  // Europe — ロンドン（シャーロック・ホームズの時代）
+  { id: "london-criterion", name: "クライテリオン・バー", overlayMapID: "london-holmes", coordinate: { lat: 51.5099, lng: -0.1344 } },
+  // Europe — ロンドン（シャーロック・ホームズの時代）
+  { id: "london-lyceum", name: "ライシアム劇場", overlayMapID: "london-holmes", coordinate: { lat: 51.5115, lng: -0.1199 } },
+  // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+  { id: "edinburgh-castle", name: "エディンバラ城", overlayMapID: "edinburgh-old-town", coordinate: { lat: 55.9486, lng: -3.1999 } },
+  // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+  { id: "edinburgh-writers-museum", name: "作家博物館", overlayMapID: "edinburgh-old-town", coordinate: { lat: 55.9495, lng: -3.1937 } },
+  // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+  { id: "edinburgh-victoria-street", name: "ヴィクトリア・ストリート", overlayMapID: "edinburgh-old-town", coordinate: { lat: 55.9485, lng: -3.1937 } },
+  // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+  { id: "edinburgh-deacon-brodie", name: "ディーコン・ブロディーズ・タバーン", overlayMapID: "edinburgh-old-town", coordinate: { lat: 55.9496, lng: -3.1917 } },
+  // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+  { id: "edinburgh-elephant-house", name: "エレファント・ハウス", overlayMapID: "edinburgh-old-town", coordinate: { lat: 55.9474, lng: -3.1918 } },
+  // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+  { id: "edinburgh-balmoral", name: "バルモラル・ホテル", overlayMapID: "edinburgh-old-town", coordinate: { lat: 55.9533, lng: -3.1895 } },
+  // Europe — ダブリン（ジョイス『ユリシーズ』）
+  { id: "dublin-eccles-street", name: "エクルズ通り7番地", overlayMapID: "dublin-ulysses", coordinate: { lat: 53.359, lng: -6.264 } },
+  // Europe — ダブリン（ジョイス『ユリシーズ』）
+  { id: "dublin-joyce-centre", name: "ジェイムズ・ジョイス・センター", overlayMapID: "dublin-ulysses", coordinate: { lat: 53.3555, lng: -6.2604 } },
+  // Europe — ダブリン（ジョイス『ユリシーズ』）
+  { id: "dublin-ormond-hotel", name: "オーモンド・ホテル", overlayMapID: "dublin-ulysses", coordinate: { lat: 53.346, lng: -6.2681 } },
+  // Europe — ダブリン（ジョイス『ユリシーズ』）
+  { id: "dublin-trinity-college", name: "トリニティ・カレッジ", overlayMapID: "dublin-ulysses", coordinate: { lat: 53.3438, lng: -6.2546 } },
+  // Europe — ダブリン（ジョイス『ユリシーズ』）
+  { id: "dublin-davy-byrnes", name: "デイヴィー・バーンズ", overlayMapID: "dublin-ulysses", coordinate: { lat: 53.3413, lng: -6.2594 } },
+  // Europe — ダブリン（ジョイス『ユリシーズ』）
+  { id: "dublin-sweny", name: "スウェニー薬局", overlayMapID: "dublin-ulysses", coordinate: { lat: 53.3411, lng: -6.2497 } },
+  // Europe — ベルリン（森鷗外『舞姫』）
+  { id: "berlin-brandenburg-gate", name: "ブランデンブルク門とウンター・デン・リンデン", overlayMapID: "berlin-maihime", coordinate: { lat: 52.5163, lng: 13.3777 } },
+  // Europe — ベルリン（森鷗外『舞姫』）
+  { id: "berlin-kaiserhof", name: "ホテル・カイザーホーフの跡", overlayMapID: "berlin-maihime", coordinate: { lat: 52.5116, lng: 13.3834 } },
+  // Europe — ベルリン（森鷗外『舞姫』）
+  { id: "berlin-university", name: "ベルリン大学（現フンボルト大学）", overlayMapID: "berlin-maihime", coordinate: { lat: 52.5177, lng: 13.3934 } },
+  // Europe — ベルリン（森鷗外『舞姫』）
+  { id: "berlin-mori-ogai-memorial", name: "森鷗外記念館", overlayMapID: "berlin-maihime", coordinate: { lat: 52.5214, lng: 13.381 } },
+  // Europe — ベルリン（森鷗外『舞姫』）
+  { id: "berlin-klosterstrasse", name: "クロスター通りの古寺", overlayMapID: "berlin-maihime", coordinate: { lat: 52.5171, lng: 13.4127 } },
   // 北京・紫禁城と内城（清代）
   { id: "beijing-forbidden-city", name: "紫禁城（故宮）", overlayMapID: "beijing-qing", coordinate: { lat: 39.9163, lng: 116.3908 } },
   { id: "beijing-tiananmen", name: "天安門", overlayMapID: "beijing-qing", coordinate: { lat: 39.9075, lng: 116.391 } },

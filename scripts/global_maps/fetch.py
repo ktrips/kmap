@@ -20,13 +20,24 @@ CITIES={
  "paris":(48.880,2.3290,48.892,2.3472),
  "london":(51.4990,-0.1080,51.5208,-0.0730),
  "brussels":(50.8335,4.3340,50.8525,4.3641),
+ # 小説の舞台（Europe）
+ "prague":(50.0739,14.3967,50.0990,14.4359),
+ "vienna":(48.1918,16.3507,48.2286,16.4059),
+ "venice":(45.4251,12.3198,45.4511,12.3569),
+ "rome":(41.8830,12.4460,41.9271,12.5052),
+ "florence":(43.7595,11.2457,43.7765,11.2693),
+ "paris_hugo":(48.8382,2.3253,48.8714,2.3759),
+ "london_holmes":(51.4980,-0.1696,51.5357,-0.1089),
+ "edinburgh":(55.9432,-3.2075,55.9575,-3.1819),
+ "dublin":(53.3357,-6.2830,53.3644,-6.2348),
+ "berlin":(52.4999,13.3679,52.5331,13.4225),
 }
 def overpass(city,bbox):
     s,w,n,e=bbox
     # 範囲の少し外側まで取って、端で線や水域が途切れないようにする
     ds=(n-s)*0.08; dw=(e-w)*0.08
     b=f"{s-ds},{w-dw},{n+ds},{e+dw}"
-    big = city in ("helsinki", "beijing", "xian")
+    big = city in ("helsinki", "beijing", "xian", "vienna", "rome", "paris_hugo", "london_holmes", "berlin")
     roads = "motorway|trunk|primary|secondary|tertiary" + ("|residential" if big else "|residential|unclassified|pedestrian|living_street|service|footway|steps")
     q=f"""[out:json][timeout:180];
 (

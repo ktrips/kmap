@@ -1,4 +1,4 @@
-"""Asia・America の古地図を、OpenStreetMap のデータから各地域の古地図の様式で描く。
+"""Asia・America・Europe（西ヨーロッパ・小説の舞台）の古地図を、OpenStreetMap のデータから各地域の古地図の様式で描く。
 
     python3 render_world.py [city ...]
 
@@ -31,6 +31,17 @@ BOUNDS = {
     "paris": (48.880, 2.3290, 48.892, 2.3472),
     "london": (51.4990, -0.1080, 51.5208, -0.0730),
     "brussels": (50.8335, 4.3340, 50.8525, 4.3641),
+    # 小説の舞台（Europe）
+    "prague": (50.0739, 14.3967, 50.0990, 14.4359),
+    "vienna": (48.1918, 16.3507, 48.2286, 16.4059),
+    "venice": (45.4251, 12.3198, 45.4511, 12.3569),
+    "rome": (41.8830, 12.4460, 41.9271, 12.5052),
+    "florence": (43.7595, 11.2457, 43.7765, 11.2693),
+    "paris_hugo": (48.8382, 2.3253, 48.8714, 2.3759),
+    "london_holmes": (51.4980, -0.1696, 51.5357, -0.1089),
+    "edinburgh": (55.9432, -3.2075, 55.9575, -3.1819),
+    "dublin": (53.3357, -6.2830, 53.3644, -6.2348),
+    "berlin": (52.4999, 13.3679, 52.5331, 13.4225),
 }
 
 CHECKPOINTS = {
@@ -50,6 +61,17 @@ CHECKPOINTS = {
     "london": [(51.5081, -0.0972), (51.5074, -0.0939), (51.5061, -0.0896), (51.5080, -0.0877), (51.5138, -0.0985), (51.5082, -0.0762)],
     "brussels": [(50.8467, 4.3524), (50.8450, 4.3500), (50.8478, 4.3548), (50.8478, 4.3600), (50.8445, 4.3565),
                  (50.8418, 4.3620), (50.8510, 4.3475), (50.8374, 4.3463)],
+    # 小説の舞台（catalog/historic_sites.json と同じ座標・同じ順）
+    "prague": [(50.0880, 14.4193), (50.0923, 14.4041), (50.0865, 14.4114), (50.0884, 14.4101), (50.0806, 14.4285), (50.0818, 14.4204)],
+    "vienna": [(48.2117, 16.3607), (48.2065, 16.3667), (48.2038, 16.3692), (48.2104, 16.3679), (48.2085, 16.3731), (48.2166, 16.3959)],
+    "venice": [(45.4380, 12.3359), (45.4447, 12.3265), (45.4341, 12.3380), (45.4337, 12.3403), (45.4348, 12.3502), (45.4315, 12.3289)],
+    "rome": [(41.9115, 12.4763), (41.9022, 12.4570), (41.9048, 12.4942), (41.8990, 12.4731), (41.9031, 12.4663), (41.8986, 12.4768)],
+    "florence": [(43.7731, 11.2560), (43.7680, 11.2531), (43.7677, 11.2553), (43.7686, 11.2622), (43.7651, 11.2500), (43.7629, 11.2650)],
+    "paris_hugo": [(48.8530, 2.3499), (48.8546, 2.3664), (48.8462, 2.3461), (48.8462, 2.3372), (48.8510, 2.3348), (48.8634, 2.3449)],
+    "london_holmes": [(51.5238, -0.1586), (51.5179, -0.1438), (51.5193, -0.1262), (51.5099, -0.1344), (51.5115, -0.1199)],
+    "edinburgh": [(55.9486, -3.1999), (55.9495, -3.1937), (55.9485, -3.1937), (55.9496, -3.1917), (55.9474, -3.1918), (55.9533, -3.1895)],
+    "dublin": [(53.3590, -6.2640), (53.3555, -6.2604), (53.3460, -6.2681), (53.3438, -6.2546), (53.3413, -6.2594), (53.3411, -6.2497)],
+    "berlin": [(52.5163, 13.3777), (52.5116, 13.3834), (52.5177, 13.3934), (52.5214, 13.3810), (52.5171, 13.4127)],
 }
 
 
@@ -371,6 +393,27 @@ def emblem_tricolor_shield(colors, outline):
     return draw
 
 
+def emblem_book(cover, page, ribbon):
+    """開いた本（小説の舞台の古地図に共通の紋章）。"""
+    def draw(d, x, y, size, pal):
+        cx, top, bottom = x + size / 2, y + size * 0.22, y + size * 0.82
+        d.polygon([(x + size * 0.04, top + size * 0.06), (cx, top + size * 0.14), (cx, bottom + size * 0.06),
+                   (x + size * 0.04, bottom)], fill=cover, outline=pal["ink"])
+        d.polygon([(x + size * 0.96, top + size * 0.06), (cx, top + size * 0.14), (cx, bottom + size * 0.06),
+                   (x + size * 0.96, bottom)], fill=cover, outline=pal["ink"])
+        for k in (-1, 1):
+            edge = cx + k * size * 0.42
+            d.polygon([(edge, top), (cx, top + size * 0.08), (cx, bottom), (edge, bottom - size * 0.06)],
+                      fill=page, outline=pal["ink"], width=3)
+            for j in range(1, 6):
+                yy = top + size * 0.1 + j * size * 0.08
+                d.line([(cx + k * size * 0.06, yy + size * 0.02), (cx + k * size * 0.36, yy - size * 0.02)], fill=pal["ink"], width=2)
+        d.line([(cx, top + size * 0.08), (cx, bottom)], fill=pal["ink"], width=3)
+        d.polygon([(cx - 6, bottom - size * 0.02), (cx + 6, bottom - size * 0.02), (cx + 6, bottom + size * 0.16),
+                   (cx, bottom + size * 0.11), (cx - 6, bottom + size * 0.16)], fill=ribbon)
+    return draw
+
+
 def emblem_roundel(color, bg):
     """中世の円形の都市図（四つに区切られた聖都）。"""
     def draw(d, x, y, size, pal):
@@ -663,6 +706,110 @@ STYLES = {
                ("ブリュッセル（ベルギー王国の心臓部）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
         emblem=emblem_tricolor_shield([rgb("26221e"), rgb("e0b030"), rgb("b8302a")], rgb("26221e")),
         accent=rgb("8a2a24"), bar=(200, "200 m"),
+    ),
+    # ---- 小説の舞台（Europe）。どの地図も題名の枠に開いた本の紋章を置き、縁取り・配色で国の様式を出す。
+    "prague": dict(
+        pal=dict(paper=(238, 228, 204), green=(144, 158, 112), ink=rgb("26221e"), road=(244, 236, 218),
+                 road_casing=rgb("6e604c"), water=rgb("9fb4b6"), water_line=rgb("3c5458")),
+        buildings=[rgb("b8603e"), rgb("d0b88c"), (232, 222, 200)], building_outline=rgb("5a3a28"), road_scale=1.0,
+        shore=(6, 7, 18),
+        border=border_stripes([(244, 240, 230), rgb("b8302a"), rgb("1f3c7a")]), band=42,
+        title=[("PRAHA", "Trattatello.ttf", 104, "accent", 6), ("Franz Kafka · MCMXII – Pražské jaro · MCMLXVIII", "Didot.ttc", 28, "ink", 1),
+               ("プラハ（カフカと『プラハの春』）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_book(rgb("1f3c7a"), (246, 240, 226), rgb("b8302a")), accent=rgb("8a2a24"), bar=(300, "300 m"),
+    ),
+    "vienna": dict(
+        pal=dict(paper=(232, 228, 216), green=(140, 150, 118), ink=rgb("1e1e22"), road=(242, 240, 232),
+                 road_casing=rgb("5a5a60"), water=rgb("9aaab4"), water_line=rgb("3a4a56")),
+        buildings=[rgb("9a9890"), rgb("c8c0ae"), (226, 222, 212)], building_outline=rgb("3e3c3a"), road_scale=1.0,
+        shore=(6, 7, 16),
+        border=border_graduated(rgb("1e1e22"), (236, 232, 222)), band=40,
+        title=[("WIEN", "Didot.ttc", 110, "accent", 18), ("The Third Man · MCMXLVIII", "Didot.ttc", 30, "ink", 2),
+               ("ウィーン（『第三の男』の街）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_book(rgb("b8302a"), (244, 242, 236), rgb("1e1e22")), accent=rgb("9c2a24"), bar=(500, "500 m"),
+    ),
+    "venice": dict(
+        pal=dict(paper=(240, 230, 204), green=(146, 158, 104), ink=rgb("2a221c"), road=(246, 238, 218),
+                 road_casing=rgb("7a6448"), water=rgb("8fb4b2"), water_line=rgb("2f5a5a")),
+        buildings=[rgb("c8784e"), rgb("dcb88a"), (238, 226, 204)], building_outline=rgb("6a4430"), road_scale=0.85,
+        shore=(6, 7, 14),
+        border=border_roundels(rgb("b8862a"), (240, 230, 206)), band=44,
+        title=[("VENETIA", "Trattatello.ttf", 100, "accent", 4), ("The Merchant of Venice · MDXCVI", "Didot.ttc", 30, "ink", 1),
+               ("ヴェネツィア（『ヴェニスの商人』）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_book(rgb("8a2a24"), (246, 238, 220), rgb("d9a42a")), accent=rgb("8a2a24"), bar=(300, "300 m"),
+    ),
+    "rome": dict(
+        pal=dict(paper=(240, 226, 196), green=(140, 156, 96), ink=rgb("2a1e18"), road=(246, 234, 208),
+                 road_casing=rgb("80603e"), water=rgb("9ab0a8"), water_line=rgb("3a5450")),
+        buildings=[rgb("c46a40"), rgb("d9a86a"), (236, 222, 194)], building_outline=rgb("6a3a24"), road_scale=1.0,
+        shore=(5, 7, 18),
+        border=border_meander(rgb("8a2a24"), (240, 226, 196)), band=46,
+        title=[("ROMA", "Trattatello.ttf", 112, "accent", 10), ("Angeli e Demoni · Via dell'Illuminazione", "Didot.ttc", 28, "ink", 1),
+               ("ローマ（『天使と悪魔』の道）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_book(rgb("8a2a24"), (246, 236, 214), rgb("d9a42a")), accent=rgb("8a2a24"), bar=(500, "500 m"),
+    ),
+    "florence": dict(
+        pal=dict(paper=(242, 232, 208), green=(150, 164, 108), ink=rgb("2a221e"), road=(248, 240, 222),
+                 road_casing=rgb("7a6650"), water=rgb("a6bab0"), water_line=rgb("3e5a52")),
+        buildings=[rgb("c8724a"), rgb("e0c094"), (240, 230, 210)], building_outline=rgb("6a4430"), road_scale=1.0,
+        shore=(3, 7, 18),
+        border=border_stripes([rgb("3f7d4a"), (246, 242, 232), rgb("b8302a")]), band=42,
+        title=[("FIRENZE", "Trattatello.ttf", 100, "accent", 4), ("Calmi Cuori Appassionati · Rinascimento", "Didot.ttc", 28, "ink", 1),
+               ("フィレンツェ（『冷静と情熱のあいだ』）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_tricolor_shield([rgb("3f7d4a"), (246, 242, 232), rgb("b8302a")], rgb("2a221e")),
+        accent=rgb("8a2a24"), bar=(200, "200 m"),
+    ),
+    "paris_hugo": dict(
+        pal=dict(paper=(240, 234, 216), green=(146, 162, 116), ink=rgb("26283a"), road=(248, 244, 232),
+                 road_casing=rgb("8a8a96"), water=rgb("a4bac6"), water_line=rgb("44586a")),
+        buildings=[rgb("d8c8a8"), rgb("c4b494"), (236, 230, 218)], building_outline=rgb("7a7268"), road_scale=0.9,
+        shore=(3, 7, 18),
+        border=border_stripes([rgb("1f3c7a"), (246, 244, 236), rgb("b8302a")]), band=42,
+        title=[("PARIS", "Didot.ttc", 108, "accent", 14), ("Notre-Dame de Paris · Les Misérables · MDCCCXXXII", "Didot.ttc", 26, "ink", 1),
+               ("パリ・シテ島と左岸（ユゴーの物語）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_tricolor_shield([rgb("1f3c7a"), (246, 244, 236), rgb("b8302a")], rgb("26283a")),
+        accent=rgb("1f3c7a"), bar=(500, "500 m"),
+    ),
+    "london_holmes": dict(
+        pal=dict(paper=(232, 226, 206), green=(138, 150, 106), ink=rgb("221e1c"), road=(240, 234, 216),
+                 road_casing=rgb("5e5446"), water=rgb("98aaa6"), water_line=rgb("3a4c4a")),
+        buildings=[rgb("8a5a44"), rgb("a89a84"), (224, 216, 198)], building_outline=rgb("3e2e24"), road_scale=1.0,
+        shore=(6, 7, 16),
+        border=border_graduated(rgb("221e1c"), (234, 228, 210)), band=40,
+        title=[("LONDON", "Copperplate.ttc", 92, "accent", 8), ("221B Baker Street · MDCCCXC", "Didot.ttc", 30, "ink", 2),
+               ("ロンドン（シャーロック・ホームズの時代）", "jpr", 34, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_book(rgb("3a2a22"), (240, 234, 218), rgb("8a2a24")), accent=rgb("6a2a22"), bar=(500, "500 m"),
+    ),
+    "edinburgh": dict(
+        pal=dict(paper=(230, 226, 210), green=(130, 148, 104), ink=rgb("1e2024"), road=(240, 238, 226),
+                 road_casing=rgb("54545a"), water=rgb("94a8b0"), water_line=rgb("34464e")),
+        buildings=[rgb("7a7468"), rgb("a49c8c"), (220, 214, 200)], building_outline=rgb("34322e"), road_scale=1.0,
+        shore=(3, 7, 18),
+        border=border_stripes([rgb("1f3c7a"), (240, 238, 230), rgb("1f3c7a")]), band=40,
+        title=[("EDINBURGH", "Trattatello.ttf", 88, "accent", 3), ("Dr Jekyll and Mr Hyde · the Old Town", "Didot.ttc", 28, "ink", 1),
+               ("エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）", "jpr", 30, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_book(rgb("1f3c7a"), (240, 238, 228), rgb("b8862a")), accent=rgb("1f3c7a"), bar=(200, "200 m"),
+    ),
+    "dublin": dict(
+        pal=dict(paper=(236, 230, 206), green=(130, 156, 100), ink=rgb("1e2420"), road=(244, 240, 222),
+                 road_casing=rgb("5e6450"), water=rgb("98b4ac"), water_line=rgb("345248")),
+        buildings=[rgb("a8583e"), rgb("c4ae88"), (230, 224, 204)], building_outline=rgb("4a3226"), road_scale=1.0,
+        shore=(6, 7, 16),
+        border=border_stripes([rgb("3f7d4a"), (244, 240, 228), rgb("d9772b")]), band=42,
+        title=[("DUBLIN", "Trattatello.ttf", 100, "accent", 6), ("Ulysses · 16 June MCMIV", "Didot.ttc", 30, "ink", 2),
+               ("ダブリン（ジョイス『ユリシーズ』）", "jpr", 36, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_tricolor_shield([rgb("3f7d4a"), (244, 240, 228), rgb("d9772b")], rgb("1e2420")),
+        accent=rgb("2e6a3e"), bar=(300, "300 m"),
+    ),
+    "berlin": dict(
+        pal=dict(paper=(236, 230, 212), green=(138, 154, 108), ink=rgb("1c1c1c"), road=(244, 240, 228),
+                 road_casing=rgb("5a5650"), water=rgb("9cb0b8"), water_line=rgb("384c56")),
+        buildings=[rgb("8e8a80"), rgb("b8ae98"), (226, 220, 206)], building_outline=rgb("3a3632"), road_scale=1.0,
+        shore=(6, 7, 16),
+        border=border_stripes([rgb("1c1c1c"), (244, 240, 230), rgb("b8302a")]), band=42,
+        title=[("BERLIN", "Didot.ttc", 104, "accent", 14), ("Die Tänzerin · Mori Ōgai · MDCCCLXXXVIII", "Didot.ttc", 28, "ink", 1),
+               ("ベルリン（森鷗外『舞姫』）", "jpr", 38, "ink", 0), ("KOMAP · EUROPE", "Didot.ttc", 22, "ink", 8)],
+        emblem=emblem_book(rgb("1c1c1c"), (244, 240, 230), rgb("b8302a")), accent=rgb("8a2a24"), bar=(500, "500 m"),
     ),
     "buenosaires": dict(
         pal=dict(paper=(240, 232, 212), green=(148, 162, 108), ink=rgb("22262e"), road=(246, 240, 226),

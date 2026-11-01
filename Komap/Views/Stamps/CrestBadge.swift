@@ -100,6 +100,84 @@ enum CrestBadgeCatalog {
         "brussels-royal-palace": CrestBadge(symbolName: "crown.fill", tint: gules),
         "brussels-sainte-catherine": CrestBadge(symbolName: "fish.fill", tint: azure),
         "brussels-jeu-de-balle": CrestBadge(symbolName: "cart.fill", tint: sable),
+
+        // プラハ（カフカと『プラハの春』）
+        "prague-kafka-birthplace": CrestBadge(symbolName: "house.fill", tint: sable),
+        "prague-golden-lane": CrestBadge(symbolName: "pencil", tint: goldBright),
+        "prague-charles-bridge": CrestBadge(symbolName: "building.columns.fill", tint: azure),
+        "prague-kafka-museum": CrestBadge(symbolName: "book.fill", tint: sable),
+        "prague-wenceslas-square": CrestBadge(symbolName: "flag.fill", tint: gules),
+        "prague-kafka-head": CrestBadge(symbolName: "person.fill", tint: teal),
+
+        // ウィーン（『第三の男』の街）
+        "vienna-schreyvogelgasse": CrestBadge(symbolName: "lightbulb.fill", tint: goldBright),
+        "vienna-josefsplatz": CrestBadge(symbolName: "car.fill", tint: sable),
+        "vienna-cafe-mozart": CrestBadge(symbolName: "cup.and.saucer.fill", tint: gules),
+        "vienna-am-hof": CrestBadge(symbolName: "drop.fill", tint: azure),
+        "vienna-stephansdom": CrestBadge(symbolName: "cross.fill", tint: gules),
+        "vienna-riesenrad": CrestBadge(symbolName: "circle.circle", tint: goldBright),
+
+        // ヴェネツィア（『ヴェニスの商人』）
+        "venice-rialto": CrestBadge(symbolName: "scalemass.fill", tint: goldBright),
+        "venice-ghetto": CrestBadge(symbolName: "key.fill", tint: sable),
+        "venice-san-marco": CrestBadge(symbolName: "crown.fill", tint: gules),
+        "venice-doge-palace": CrestBadge(symbolName: "building.columns.fill", tint: gules),
+        "venice-arsenale": CrestBadge(symbolName: "sailboat.fill", tint: azure),
+        "venice-accademia": CrestBadge(symbolName: "paintpalette.fill", tint: teal),
+
+        // ローマ（『天使と悪魔』の道）
+        "rome-santa-maria-del-popolo": CrestBadge(symbolName: "mountain.2.fill", tint: vert),
+        "rome-st-peters-square": CrestBadge(symbolName: "wind", tint: azure),
+        "rome-santa-maria-della-vittoria": CrestBadge(symbolName: "flame.fill", tint: gules),
+        "rome-piazza-navona": CrestBadge(symbolName: "drop.fill", tint: teal),
+        "rome-castel-sant-angelo": CrestBadge(symbolName: "sun.max.fill", tint: goldBright),
+        "rome-pantheon": CrestBadge(symbolName: "building.columns.fill", tint: sable),
+
+        // フィレンツェ（『冷静と情熱のあいだ』）
+        "florence-duomo-cupola": CrestBadge(symbolName: "heart.fill", tint: gules),
+        "florence-ponte-vecchio": CrestBadge(symbolName: "sparkles", tint: goldBright),
+        "florence-uffizi": CrestBadge(symbolName: "paintbrush.fill", tint: azure),
+        "florence-santa-croce": CrestBadge(symbolName: "cross.fill", tint: sable),
+        "florence-palazzo-pitti": CrestBadge(symbolName: "hammer.fill", tint: vert),
+        "florence-piazzale-michelangelo": CrestBadge(symbolName: "sunset.fill", tint: gules),
+
+        // パリ・シテ島と左岸（ユゴーの物語）
+        "paris-notre-dame": CrestBadge(symbolName: "bell.fill", tint: sable),
+        "paris-place-des-vosges": CrestBadge(symbolName: "pencil", tint: azure),
+        "paris-pantheon": CrestBadge(symbolName: "building.columns.fill", tint: goldBright),
+        "paris-luxembourg": CrestBadge(symbolName: "leaf.fill", tint: vert),
+        "paris-saint-sulpice": CrestBadge(symbolName: "heart.fill", tint: gules),
+        "paris-saint-eustache": CrestBadge(symbolName: "flag.fill", tint: gules),
+
+        // ロンドン（シャーロック・ホームズの時代）
+        "london-baker-street": CrestBadge(symbolName: "magnifyingglass", tint: sable),
+        "london-langham": CrestBadge(symbolName: "crown.fill", tint: goldBright),
+        "london-montague-street": CrestBadge(symbolName: "books.vertical.fill", tint: azure),
+        "london-criterion": CrestBadge(symbolName: "wineglass.fill", tint: gules),
+        "london-lyceum": CrestBadge(symbolName: "theatermasks.fill", tint: teal),
+
+        // エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+        "edinburgh-castle": CrestBadge(symbolName: "shield.fill", tint: sable),
+        "edinburgh-writers-museum": CrestBadge(symbolName: "book.fill", tint: azure),
+        "edinburgh-victoria-street": CrestBadge(symbolName: "wand.and.stars", tint: goldBright),
+        "edinburgh-deacon-brodie": CrestBadge(symbolName: "moon.fill", tint: sable),
+        "edinburgh-elephant-house": CrestBadge(symbolName: "cup.and.saucer.fill", tint: gules),
+        "edinburgh-balmoral": CrestBadge(symbolName: "star.fill", tint: goldBright),
+
+        // ダブリン（ジョイス『ユリシーズ』）
+        "dublin-eccles-street": CrestBadge(symbolName: "house.fill", tint: vert),
+        "dublin-joyce-centre": CrestBadge(symbolName: "book.fill", tint: vert),
+        "dublin-ormond-hotel": CrestBadge(symbolName: "music.note", tint: goldBright),
+        "dublin-trinity-college": CrestBadge(symbolName: "graduationcap.fill", tint: azure),
+        "dublin-davy-byrnes": CrestBadge(symbolName: "fork.knife", tint: gules),
+        "dublin-sweny": CrestBadge(symbolName: "bubbles.and.sparkles.fill", tint: teal),
+
+        // ベルリン（森鷗外『舞姫』）
+        "berlin-brandenburg-gate": CrestBadge(symbolName: "tree.fill", tint: vert),
+        "berlin-kaiserhof": CrestBadge(symbolName: "crown.fill", tint: sable),
+        "berlin-university": CrestBadge(symbolName: "graduationcap.fill", tint: azure),
+        "berlin-mori-ogai-memorial": CrestBadge(symbolName: "pencil", tint: gules),
+        "berlin-klosterstrasse": CrestBadge(symbolName: "figure.dance", tint: gules),
     ]
 
     static func badge(for siteID: String) -> CrestBadge? {

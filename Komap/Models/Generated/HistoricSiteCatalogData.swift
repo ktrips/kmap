@@ -1164,6 +1164,470 @@ extension HistoricSiteCatalog {
             summary: "職人や労働者が暮らした下町マロルの広場。毎朝、蚤の市が開かれる。",
             coordinate: CLLocationCoordinate2D(latitude: 50.8374, longitude: 4.3463)
         ),
+        // Europe — プラハ（カフカと『プラハの春』）
+        HistoricSite(
+            id: "prague-kafka-birthplace",
+            overlayMapID: "prague-kafka",
+            name: "カフカの生家",
+            summary: "旧市街広場のそば、聖ミクラーシュ教会の隣でカフカが生まれた家。広場一帯が彼の作品世界の原風景になった。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.088, longitude: 14.4193)
+        ),
+        // Europe — プラハ（カフカと『プラハの春』）
+        HistoricSite(
+            id: "prague-golden-lane",
+            overlayMapID: "prague-kafka",
+            name: "黄金の小路22番地",
+            summary: "プラハ城の城壁沿いの小さな家並み。カフカは妹の借りたこの青い家で、夜ごと短編を書いた。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.0923, longitude: 14.4041)
+        ),
+        // Europe — プラハ（カフカと『プラハの春』）
+        HistoricSite(
+            id: "prague-charles-bridge",
+            overlayMapID: "prague-kafka",
+            name: "カレル橋",
+            summary: "ヴルタヴァ川に架かる聖人像の並ぶ石橋。カフカの初期作品『ある戦いの記録』にも登場する。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.0865, longitude: 14.4114)
+        ),
+        // Europe — プラハ（カフカと『プラハの春』）
+        HistoricSite(
+            id: "prague-kafka-museum",
+            overlayMapID: "prague-kafka",
+            name: "フランツ・カフカ博物館",
+            summary: "マラー・ストラナの川辺に立つ博物館。手稿や写真で、カフカが見たプラハをたどれる。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.0884, longitude: 14.4101)
+        ),
+        // Europe — プラハ（カフカと『プラハの春』）
+        HistoricSite(
+            id: "prague-wenceslas-square",
+            overlayMapID: "prague-kafka",
+            name: "ヴァーツラフ広場",
+            summary: "1968年、「プラハの春」の改革とその後の軍事介入の舞台となった大通りの広場。春江一也『プラハの春』の物語の中心。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.0806, longitude: 14.4285)
+        ),
+        // Europe — プラハ（カフカと『プラハの春』）
+        HistoricSite(
+            id: "prague-kafka-head",
+            overlayMapID: "prague-kafka",
+            name: "回転するカフカの頭像",
+            summary: "42枚の鏡面の板が回転して顔を作る現代のカフカ像。変身し続ける作家のイメージ。",
+            coordinate: CLLocationCoordinate2D(latitude: 50.0818, longitude: 14.4204)
+        ),
+        // Europe — ウィーン（『第三の男』の街）
+        HistoricSite(
+            id: "vienna-schreyvogelgasse",
+            overlayMapID: "vienna-third-man",
+            name: "ハリー・ライムの戸口",
+            summary: "シュライフォーゲルガッセの古い家の戸口。死んだはずのハリー・ライムが、暗がりから街灯に照らされて姿を見せる場面の場所。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.2117, longitude: 16.3607)
+        ),
+        // Europe — ウィーン（『第三の男』の街）
+        HistoricSite(
+            id: "vienna-josefsplatz",
+            overlayMapID: "vienna-third-man",
+            name: "ヨーゼフ広場（パラヴィチーニ宮殿）",
+            summary: "ハリーが車にはねられたとされる「事故」の現場。宮殿の玄関がハリーの住まいとして描かれた。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.2065, longitude: 16.3667)
+        ),
+        // Europe — ウィーン（『第三の男』の街）
+        HistoricSite(
+            id: "vienna-cafe-mozart",
+            overlayMapID: "vienna-third-man",
+            name: "カフェ・モーツァルト",
+            summary: "物語に登場するウィーンのカフェ。グリーンが執筆中に滞在したホテル・ザッハーのすぐ裏にある。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.2038, longitude: 16.3692)
+        ),
+        // Europe — ウィーン（『第三の男』の街）
+        HistoricSite(
+            id: "vienna-am-hof",
+            overlayMapID: "vienna-third-man",
+            name: "アム・ホーフ広場",
+            summary: "広告塔に隠された地下水道への入口がある広場。追跡劇はここから地下の迷路へと続く。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.2104, longitude: 16.3679)
+        ),
+        // Europe — ウィーン（『第三の男』の街）
+        HistoricSite(
+            id: "vienna-stephansdom",
+            overlayMapID: "vienna-third-man",
+            name: "シュテファン大聖堂",
+            summary: "ウィーンの中心にそびえる大聖堂。戦争で焼けた屋根の修復中だった、占領下の街の象徴。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.2085, longitude: 16.3731)
+        ),
+        // Europe — ウィーン（『第三の男』の街）
+        HistoricSite(
+            id: "vienna-riesenrad",
+            overlayMapID: "vienna-third-man",
+            name: "プラーターの大観覧車",
+            summary: "ハリーが「鳩時計」の台詞を語る大観覧車。ゴンドラから見下ろす人々を「点」と呼んだ。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.2166, longitude: 16.3959)
+        ),
+        // Europe — ヴェネツィア（『ヴェニスの商人』）
+        HistoricSite(
+            id: "venice-rialto",
+            overlayMapID: "venice-merchant",
+            name: "リアルト橋",
+            summary: "「リアルトでは何か新しい話は？」と商人たちが噂を交わした、取引の中心の橋。",
+            coordinate: CLLocationCoordinate2D(latitude: 45.438, longitude: 12.3359)
+        ),
+        // Europe — ヴェネツィア（『ヴェニスの商人』）
+        HistoricSite(
+            id: "venice-ghetto",
+            overlayMapID: "venice-merchant",
+            name: "ゲットー・ヌオーヴォ",
+            summary: "1516年に設けられた世界最初のゲットー。金貸しシャイロックが暮らした界隈として描かれる。",
+            coordinate: CLLocationCoordinate2D(latitude: 45.4447, longitude: 12.3265)
+        ),
+        // Europe — ヴェネツィア（『ヴェニスの商人』）
+        HistoricSite(
+            id: "venice-san-marco",
+            overlayMapID: "venice-merchant",
+            name: "サン・マルコ広場",
+            summary: "共和国の表玄関となる大広場。塩野七生『緋色のヴェネツィア』の主人公たちも行き交う。",
+            coordinate: CLLocationCoordinate2D(latitude: 45.4341, longitude: 12.338)
+        ),
+        // Europe — ヴェネツィア（『ヴェニスの商人』）
+        HistoricSite(
+            id: "venice-doge-palace",
+            overlayMapID: "venice-merchant",
+            name: "ドゥカーレ宮殿",
+            summary: "総督の宮殿で、共和国の法廷が置かれた場所。ポーシャが「肉1ポンド」の裁判を覆す場面を思わせる。",
+            coordinate: CLLocationCoordinate2D(latitude: 45.4337, longitude: 12.3403)
+        ),
+        // Europe — ヴェネツィア（『ヴェニスの商人』）
+        HistoricSite(
+            id: "venice-arsenale",
+            overlayMapID: "venice-merchant",
+            name: "アルセナーレ（国営造船所）",
+            summary: "アントーニオの商船隊を生んだ共和国の造船所。海の都の富と力の源。",
+            coordinate: CLLocationCoordinate2D(latitude: 45.4348, longitude: 12.3502)
+        ),
+        // Europe — ヴェネツィア（『ヴェニスの商人』）
+        HistoricSite(
+            id: "venice-accademia",
+            overlayMapID: "venice-merchant",
+            name: "アカデミア橋",
+            summary: "大運河に架かる木の橋。ドルソドゥーロ地区の静かな運河沿いへと続く。",
+            coordinate: CLLocationCoordinate2D(latitude: 45.4315, longitude: 12.3289)
+        ),
+        // Europe — ローマ（『天使と悪魔』の道）
+        HistoricSite(
+            id: "rome-santa-maria-del-popolo",
+            overlayMapID: "rome-angels-demons",
+            name: "サンタ・マリア・デル・ポポロ教会",
+            summary: "ベルニーニが手がけたキージ礼拝堂がある教会。「土」の祭壇として最初の謎が解かれる。",
+            coordinate: CLLocationCoordinate2D(latitude: 41.9115, longitude: 12.4763)
+        ),
+        // Europe — ローマ（『天使と悪魔』の道）
+        HistoricSite(
+            id: "rome-st-peters-square",
+            overlayMapID: "rome-angels-demons",
+            name: "サン・ピエトロ広場",
+            summary: "楕円の広場に西風の浮彫が残る。「風」の祭壇とされた場所。",
+            coordinate: CLLocationCoordinate2D(latitude: 41.9022, longitude: 12.457)
+        ),
+        // Europe — ローマ（『天使と悪魔』の道）
+        HistoricSite(
+            id: "rome-santa-maria-della-vittoria",
+            overlayMapID: "rome-angels-demons",
+            name: "サンタ・マリア・デッラ・ヴィットーリア教会",
+            summary: "ベルニーニの『聖テレジアの法悦』がある教会。「火」の祭壇の舞台。",
+            coordinate: CLLocationCoordinate2D(latitude: 41.9048, longitude: 12.4942)
+        ),
+        // Europe — ローマ（『天使と悪魔』の道）
+        HistoricSite(
+            id: "rome-piazza-navona",
+            overlayMapID: "rome-angels-demons",
+            name: "ナヴォーナ広場・四大河の噴水",
+            summary: "ベルニーニの噴水が中央に立つ広場。「水」の祭壇として、夜の噴水で緊迫の場面が描かれる。",
+            coordinate: CLLocationCoordinate2D(latitude: 41.899, longitude: 12.4731)
+        ),
+        // Europe — ローマ（『天使と悪魔』の道）
+        HistoricSite(
+            id: "rome-castel-sant-angelo",
+            overlayMapID: "rome-angels-demons",
+            name: "サンタンジェロ城",
+            summary: "ヴァチカンと秘密の通路で結ばれた城塞。物語の「光の教会」の舞台。",
+            coordinate: CLLocationCoordinate2D(latitude: 41.9031, longitude: 12.4663)
+        ),
+        // Europe — ローマ（『天使と悪魔』の道）
+        HistoricSite(
+            id: "rome-pantheon",
+            overlayMapID: "rome-angels-demons",
+            name: "パンテオン",
+            summary: "ラファエロが眠る古代の神殿。ラングドンが最初に「土の祭壇」と見誤った場所。",
+            coordinate: CLLocationCoordinate2D(latitude: 41.8986, longitude: 12.4768)
+        ),
+        // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+        HistoricSite(
+            id: "florence-duomo-cupola",
+            overlayMapID: "florence-reisei-jonetsu",
+            name: "ドゥオーモのクーポラ",
+            summary: "ブルネレスキが架けた大聖堂の丸屋根。「恋人たちのドゥオーモ」として、二人が再会を約束した場所。",
+            coordinate: CLLocationCoordinate2D(latitude: 43.7731, longitude: 11.256)
+        ),
+        // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+        HistoricSite(
+            id: "florence-ponte-vecchio",
+            overlayMapID: "florence-reisei-jonetsu",
+            name: "ヴェッキオ橋",
+            summary: "金細工の店が並ぶ、アルノ川で一番古い橋。",
+            coordinate: CLLocationCoordinate2D(latitude: 43.768, longitude: 11.2531)
+        ),
+        // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+        HistoricSite(
+            id: "florence-uffizi",
+            overlayMapID: "florence-reisei-jonetsu",
+            name: "ウフィツィ美術館",
+            summary: "ルネサンス絵画の殿堂。絵画修復士を目指す順正が向き合った名画が並ぶ。",
+            coordinate: CLLocationCoordinate2D(latitude: 43.7677, longitude: 11.2553)
+        ),
+        // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+        HistoricSite(
+            id: "florence-santa-croce",
+            overlayMapID: "florence-reisei-jonetsu",
+            name: "サンタ・クローチェ教会",
+            summary: "ミケランジェロやガリレオが眠る教会。1966年の洪水で傷んだ作品の修復の歴史が残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 43.7686, longitude: 11.2622)
+        ),
+        // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+        HistoricSite(
+            id: "florence-palazzo-pitti",
+            overlayMapID: "florence-reisei-jonetsu",
+            name: "ピッティ宮殿",
+            summary: "アルノ川の南岸、オルトラルノ地区の大宮殿。職人の工房が集まる界隈の入口。",
+            coordinate: CLLocationCoordinate2D(latitude: 43.7651, longitude: 11.25)
+        ),
+        // Europe — フィレンツェ（『冷静と情熱のあいだ』）
+        HistoricSite(
+            id: "florence-piazzale-michelangelo",
+            overlayMapID: "florence-reisei-jonetsu",
+            name: "ミケランジェロ広場",
+            summary: "丘の上からドゥオーモとアルノ川を一望できる広場。",
+            coordinate: CLLocationCoordinate2D(latitude: 43.7629, longitude: 11.265)
+        ),
+        // Europe — パリ・シテ島と左岸（ユゴーの物語）
+        HistoricSite(
+            id: "paris-notre-dame",
+            overlayMapID: "paris-hugo",
+            name: "ノートルダム大聖堂",
+            summary: "鐘つき男カジモドとエスメラルダの物語の舞台。ユゴーの小説が、荒れていた大聖堂の修復運動を呼び起こした。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.853, longitude: 2.3499)
+        ),
+        // Europe — パリ・シテ島と左岸（ユゴーの物語）
+        HistoricSite(
+            id: "paris-place-des-vosges",
+            overlayMapID: "paris-hugo",
+            name: "ヴォージュ広場（ヴィクトル・ユゴー記念館）",
+            summary: "ユゴーが16年間暮らし、『レ・ミゼラブル』の多くを書いた家がある広場。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8546, longitude: 2.3664)
+        ),
+        // Europe — パリ・シテ島と左岸（ユゴーの物語）
+        HistoricSite(
+            id: "paris-pantheon",
+            overlayMapID: "paris-hugo",
+            name: "パンテオン",
+            summary: "国葬を受けたユゴーが眠る霊廟。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8462, longitude: 2.3461)
+        ),
+        // Europe — パリ・シテ島と左岸（ユゴーの物語）
+        HistoricSite(
+            id: "paris-luxembourg",
+            overlayMapID: "paris-hugo",
+            name: "リュクサンブール公園",
+            summary: "マリウスがコゼットとジャン・ヴァルジャンを見かけ、恋に落ちた公園。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8462, longitude: 2.3372)
+        ),
+        // Europe — パリ・シテ島と左岸（ユゴーの物語）
+        HistoricSite(
+            id: "paris-saint-sulpice",
+            overlayMapID: "paris-hugo",
+            name: "サン・シュルピス教会",
+            summary: "ユゴーが結婚式を挙げた教会。マリウスの祖父が暮らす界隈にも近い。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.851, longitude: 2.3348)
+        ),
+        // Europe — パリ・シテ島と左岸（ユゴーの物語）
+        HistoricSite(
+            id: "paris-saint-eustache",
+            overlayMapID: "paris-hugo",
+            name: "サン・トゥスタッシュ教会（バリケードの界隈）",
+            summary: "旧中央市場のそば。1832年の蜂起で、アンジョルラスたちがバリケードを築いた一角にあたる。",
+            coordinate: CLLocationCoordinate2D(latitude: 48.8634, longitude: 2.3449)
+        ),
+        // Europe — ロンドン（シャーロック・ホームズの時代）
+        HistoricSite(
+            id: "london-baker-street",
+            overlayMapID: "london-holmes",
+            name: "ベーカー街221B",
+            summary: "ホームズとワトソンが下宿した住所。今はシャーロック・ホームズ博物館がある。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5238, longitude: -0.1586)
+        ),
+        // Europe — ロンドン（シャーロック・ホームズの時代）
+        HistoricSite(
+            id: "london-langham",
+            overlayMapID: "london-holmes",
+            name: "ランガム・ホテル",
+            summary: "『ボヘミアの醜聞』でボヘミア国王が泊まり、『四つの署名』にも登場するホテル。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5179, longitude: -0.1438)
+        ),
+        // Europe — ロンドン（シャーロック・ホームズの時代）
+        HistoricSite(
+            id: "london-montague-street",
+            overlayMapID: "london-holmes",
+            name: "モンタギュー街",
+            summary: "大英博物館の脇の通り。ベーカー街に移る前、若きホームズが最初に下宿した場所。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5193, longitude: -0.1262)
+        ),
+        // Europe — ロンドン（シャーロック・ホームズの時代）
+        HistoricSite(
+            id: "london-criterion",
+            overlayMapID: "london-holmes",
+            name: "クライテリオン・バー",
+            summary: "『緋色の研究』で、ワトソンが旧友スタンフォードに再会し、ホームズを紹介される店。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5099, longitude: -0.1344)
+        ),
+        // Europe — ロンドン（シャーロック・ホームズの時代）
+        HistoricSite(
+            id: "london-lyceum",
+            overlayMapID: "london-holmes",
+            name: "ライシアム劇場",
+            summary: "『四つの署名』で、ホームズたちが謎の待ち合わせに向かった劇場の柱。",
+            coordinate: CLLocationCoordinate2D(latitude: 51.5115, longitude: -0.1199)
+        ),
+        // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+        HistoricSite(
+            id: "edinburgh-castle",
+            overlayMapID: "edinburgh-old-town",
+            name: "エディンバラ城",
+            summary: "岩山の上に立つ城。旧市街のあらゆる物語を見下ろしてきた。",
+            coordinate: CLLocationCoordinate2D(latitude: 55.9486, longitude: -3.1999)
+        ),
+        // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+        HistoricSite(
+            id: "edinburgh-writers-museum",
+            overlayMapID: "edinburgh-old-town",
+            name: "作家博物館",
+            summary: "スティーヴンソン、スコット、バーンズの遺品を集めた17世紀の邸宅。",
+            coordinate: CLLocationCoordinate2D(latitude: 55.9495, longitude: -3.1937)
+        ),
+        // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+        HistoricSite(
+            id: "edinburgh-victoria-street",
+            overlayMapID: "edinburgh-old-town",
+            name: "ヴィクトリア・ストリート",
+            summary: "色とりどりの店が弧を描いて並ぶ坂道。ダイアゴン横丁のモデルといわれる。",
+            coordinate: CLLocationCoordinate2D(latitude: 55.9485, longitude: -3.1937)
+        ),
+        // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+        HistoricSite(
+            id: "edinburgh-deacon-brodie",
+            overlayMapID: "edinburgh-old-town",
+            name: "ディーコン・ブロディーズ・タバーン",
+            summary: "昼は名士、夜は盗賊だったブロディーの名の酒場。ジキルとハイドの着想のもとになった人物。",
+            coordinate: CLLocationCoordinate2D(latitude: 55.9496, longitude: -3.1917)
+        ),
+        // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+        HistoricSite(
+            id: "edinburgh-elephant-house",
+            overlayMapID: "edinburgh-old-town",
+            name: "エレファント・ハウス",
+            summary: "ローリングが初期の『ハリー・ポッター』を書いたといわれるカフェ。",
+            coordinate: CLLocationCoordinate2D(latitude: 55.9474, longitude: -3.1918)
+        ),
+        // Europe — エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）
+        HistoricSite(
+            id: "edinburgh-balmoral",
+            overlayMapID: "edinburgh-old-town",
+            name: "バルモラル・ホテル",
+            summary: "ローリングが『ハリー・ポッターと死の秘宝』を書き上げた部屋がある駅前のホテル。",
+            coordinate: CLLocationCoordinate2D(latitude: 55.9533, longitude: -3.1895)
+        ),
+        // Europe — ダブリン（ジョイス『ユリシーズ』）
+        HistoricSite(
+            id: "dublin-eccles-street",
+            overlayMapID: "dublin-ulysses",
+            name: "エクルズ通り7番地",
+            summary: "ブルームと妻モリーが暮らした家の跡。朝の腎臓料理から1日が始まる。",
+            coordinate: CLLocationCoordinate2D(latitude: 53.359, longitude: -6.264)
+        ),
+        // Europe — ダブリン（ジョイス『ユリシーズ』）
+        HistoricSite(
+            id: "dublin-joyce-centre",
+            overlayMapID: "dublin-ulysses",
+            name: "ジェイムズ・ジョイス・センター",
+            summary: "ジョージア様式の邸宅を使った、ジョイスの資料館。",
+            coordinate: CLLocationCoordinate2D(latitude: 53.3555, longitude: -6.2604)
+        ),
+        // Europe — ダブリン（ジョイス『ユリシーズ』）
+        HistoricSite(
+            id: "dublin-ormond-hotel",
+            overlayMapID: "dublin-ulysses",
+            name: "オーモンド・ホテル",
+            summary: "リフィー川沿いのホテル。音楽に満ちた「セイレン」の章の舞台。",
+            coordinate: CLLocationCoordinate2D(latitude: 53.346, longitude: -6.2681)
+        ),
+        // Europe — ダブリン（ジョイス『ユリシーズ』）
+        HistoricSite(
+            id: "dublin-trinity-college",
+            overlayMapID: "dublin-ulysses",
+            name: "トリニティ・カレッジ",
+            summary: "大学の正門前を、ブルームの1日の道筋が何度も通り過ぎる。",
+            coordinate: CLLocationCoordinate2D(latitude: 53.3438, longitude: -6.2546)
+        ),
+        // Europe — ダブリン（ジョイス『ユリシーズ』）
+        HistoricSite(
+            id: "dublin-davy-byrnes",
+            overlayMapID: "dublin-ulysses",
+            name: "デイヴィー・バーンズ",
+            summary: "ブルームがゴルゴンゾーラのサンドイッチとワインで昼食をとったパブ。",
+            coordinate: CLLocationCoordinate2D(latitude: 53.3413, longitude: -6.2594)
+        ),
+        // Europe — ダブリン（ジョイス『ユリシーズ』）
+        HistoricSite(
+            id: "dublin-sweny",
+            overlayMapID: "dublin-ulysses",
+            name: "スウェニー薬局",
+            summary: "ブルームがレモンの香りの石鹸を買った薬局。今も店が残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 53.3411, longitude: -6.2497)
+        ),
+        // Europe — ベルリン（森鷗外『舞姫』）
+        HistoricSite(
+            id: "berlin-brandenburg-gate",
+            overlayMapID: "berlin-maihime",
+            name: "ブランデンブルク門とウンター・デン・リンデン",
+            summary: "「菩提樹下と訳するときは、幽静なる境なるべく思はるれど」と描かれた大通りの起点。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.5163, longitude: 13.3777)
+        ),
+        // Europe — ベルリン（森鷗外『舞姫』）
+        HistoricSite(
+            id: "berlin-kaiserhof",
+            overlayMapID: "berlin-maihime",
+            name: "ホテル・カイザーホーフの跡",
+            summary: "豊太郎が天方大臣に呼ばれて訪ねた、ヴィルヘルム広場の高級ホテルがあった場所。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.5116, longitude: 13.3834)
+        ),
+        // Europe — ベルリン（森鷗外『舞姫』）
+        HistoricSite(
+            id: "berlin-university",
+            overlayMapID: "berlin-maihime",
+            name: "ベルリン大学（現フンボルト大学）",
+            summary: "豊太郎が法律を学びながら、文学や歴史に心を移していった大学。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.5177, longitude: 13.3934)
+        ),
+        // Europe — ベルリン（森鷗外『舞姫』）
+        HistoricSite(
+            id: "berlin-mori-ogai-memorial",
+            overlayMapID: "berlin-maihime",
+            name: "森鷗外記念館",
+            summary: "鷗外が最初に下宿したルイーゼン通りの建物。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.5214, longitude: 13.381)
+        ),
+        // Europe — ベルリン（森鷗外『舞姫』）
+        HistoricSite(
+            id: "berlin-klosterstrasse",
+            overlayMapID: "berlin-maihime",
+            name: "クロスター通りの古寺",
+            summary: "豊太郎が泣いているエリスに出会った「古寺」のある通り。今は修道院教会の廃墟が残る。",
+            coordinate: CLLocationCoordinate2D(latitude: 52.5171, longitude: 13.4127)
+        ),
         // 北京・紫禁城と内城（清代）
         HistoricSite(
             id: "beijing-forbidden-city",
