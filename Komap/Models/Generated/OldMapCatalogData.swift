@@ -288,6 +288,106 @@ extension OldMapCatalog {
         northEast: CLLocationCoordinate2D(latitude: 50.8525, longitude: 4.3641)
     )
 
+    static let pragueKafka = HistoricalOverlayMap(
+        id: "prague-kafka",
+        title: "プラハ（カフカと『プラハの春』）",
+        era: "1910年代〜1968年（カフカの時代からプラハの春まで）",
+        summary: "カフカが生まれ、『変身』『城』を書いた百塔の都。春江一也『プラハの春』で描かれた1968年の街も重ねて、旧市街広場・黄金の小路・カレル橋・ヴァーツラフ広場をめぐります。",
+        imageAssetName: "OldMap_Prague",
+        southWest: CLLocationCoordinate2D(latitude: 50.0739, longitude: 14.3967),
+        northEast: CLLocationCoordinate2D(latitude: 50.099, longitude: 14.4359)
+    )
+
+    static let viennaThirdMan = HistoricalOverlayMap(
+        id: "vienna-third-man",
+        title: "ウィーン（『第三の男』の街）",
+        era: "1948年頃（四か国分割占領下）",
+        summary: "グレアム・グリーン『第三の男』の舞台、占領下のウィーン。ハリー・ライムが姿を現す戸口、偽の事故現場のヨーゼフ広場、プラーターの大観覧車をめぐります。宮本輝『ドナウの旅人』の出発点でもある街です。",
+        imageAssetName: "OldMap_Vienna",
+        southWest: CLLocationCoordinate2D(latitude: 48.1918, longitude: 16.3507),
+        northEast: CLLocationCoordinate2D(latitude: 48.2286, longitude: 16.4059)
+    )
+
+    static let veniceMerchant = HistoricalOverlayMap(
+        id: "venice-merchant",
+        title: "ヴェネツィア（『ヴェニスの商人』）",
+        era: "16世紀（ヴェネツィア共和国の黄金期）",
+        summary: "シェイクスピア『ヴェニスの商人』と、塩野七生『緋色のヴェネツィア』の舞台となった海の共和国。商人が集うリアルト、シャイロックの住むゲットー、裁判の場となったドゥカーレ宮殿をめぐります。",
+        imageAssetName: "OldMap_Venice",
+        southWest: CLLocationCoordinate2D(latitude: 45.4251, longitude: 12.3198),
+        northEast: CLLocationCoordinate2D(latitude: 45.4511, longitude: 12.3569)
+    )
+
+    static let romeAngelsDemons = HistoricalOverlayMap(
+        id: "rome-angels-demons",
+        title: "ローマ（『天使と悪魔』の道）",
+        era: "ルネサンス〜バロック（17世紀）",
+        summary: "ダン・ブラウン『天使と悪魔』で、ラングドン教授が「啓示の道」をたどったローマ。土・風・火・水の四つの祭壇と、光の教会へ続く道をめぐります。",
+        imageAssetName: "OldMap_Rome",
+        southWest: CLLocationCoordinate2D(latitude: 41.883, longitude: 12.446),
+        northEast: CLLocationCoordinate2D(latitude: 41.9271, longitude: 12.5052)
+    )
+
+    static let florenceReiseiJonetsu = HistoricalOverlayMap(
+        id: "florence-reisei-jonetsu",
+        title: "フィレンツェ（『冷静と情熱のあいだ』）",
+        era: "ルネサンス（15世紀）の街並みと1990年代の物語",
+        summary: "江國香織・辻仁成『冷静と情熱のあいだ』で、順正とあおいが「30歳の誕生日に」と約束したフィレンツェ。ドゥオーモのクーポラ、ヴェッキオ橋、アルノ川の対岸までをめぐります。",
+        imageAssetName: "OldMap_Florence",
+        southWest: CLLocationCoordinate2D(latitude: 43.7595, longitude: 11.2457),
+        northEast: CLLocationCoordinate2D(latitude: 43.7765, longitude: 11.2693)
+    )
+
+    static let parisHugo = HistoricalOverlayMap(
+        id: "paris-hugo",
+        title: "パリ・シテ島と左岸（ユゴーの物語）",
+        era: "1830年代（『ノートルダム・ド・パリ』『レ・ミゼラブル』の時代）",
+        summary: "ヴィクトル・ユゴー『ノートルダム・ド・パリ』と『レ・ミゼラブル』の舞台。ノートルダム大聖堂、ユゴーが暮らしたヴォージュ広場、マリウスとコゼットが出会ったリュクサンブール公園をめぐります。",
+        imageAssetName: "OldMap_ParisHugo",
+        southWest: CLLocationCoordinate2D(latitude: 48.8382, longitude: 2.3253),
+        northEast: CLLocationCoordinate2D(latitude: 48.8714, longitude: 2.3759)
+    )
+
+    static let londonHolmes = HistoricalOverlayMap(
+        id: "london-holmes",
+        title: "ロンドン（シャーロック・ホームズの時代）",
+        era: "1890年頃（ヴィクトリア朝）",
+        summary: "コナン・ドイル『シャーロック・ホームズ』シリーズのロンドン。ベーカー街221B、依頼人が泊まったランガム・ホテル、ワトソンが相棒と出会うきっかけのクライテリオン・バーをめぐります。",
+        imageAssetName: "OldMap_LondonHolmes",
+        southWest: CLLocationCoordinate2D(latitude: 51.498, longitude: -0.1696),
+        northEast: CLLocationCoordinate2D(latitude: 51.5357, longitude: -0.1089)
+    )
+
+    static let edinburghOldTown = HistoricalOverlayMap(
+        id: "edinburgh-old-town",
+        title: "エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）",
+        era: "18〜19世紀（スティーヴンソンの時代）",
+        summary: "スティーヴンソン『ジキル博士とハイド氏』のモデルになった二重生活の男が暮らし、J・K・ローリングが『ハリー・ポッター』を書いた街。城からロイヤル・マイル、ダイアゴン横丁のモデルの坂道をめぐります。",
+        imageAssetName: "OldMap_Edinburgh",
+        southWest: CLLocationCoordinate2D(latitude: 55.9432, longitude: -3.2075),
+        northEast: CLLocationCoordinate2D(latitude: 55.9575, longitude: -3.1819)
+    )
+
+    static let dublinUlysses = HistoricalOverlayMap(
+        id: "dublin-ulysses",
+        title: "ダブリン（ジョイス『ユリシーズ』）",
+        era: "1904年6月16日（ブルームズデイ）",
+        summary: "ジェイムズ・ジョイス『ユリシーズ』で、レオポルド・ブルームが1904年6月16日の1日を歩き回ったダブリン。ブルームの家、昼食の店、レモン石鹸の薬局をめぐります。",
+        imageAssetName: "OldMap_Dublin",
+        southWest: CLLocationCoordinate2D(latitude: 53.3357, longitude: -6.283),
+        northEast: CLLocationCoordinate2D(latitude: 53.3644, longitude: -6.2348)
+    )
+
+    static let berlinMaihime = HistoricalOverlayMap(
+        id: "berlin-maihime",
+        title: "ベルリン（森鷗外『舞姫』）",
+        era: "1888年頃（ドイツ帝国の都）",
+        summary: "森鷗外が留学し、『舞姫』で太田豊太郎と踊り子エリスの恋を描いたベルリン。ウンター・デン・リンデンの大通りから、エリスと出会ったクロスター通りの古寺までをめぐります。",
+        imageAssetName: "OldMap_Berlin",
+        southWest: CLLocationCoordinate2D(latitude: 52.4999, longitude: 13.3679),
+        northEast: CLLocationCoordinate2D(latitude: 52.5331, longitude: 13.4225)
+    )
+
     // Asia・Americaリージョンの古地図。OpenStreetMapの現在の地図データ（海岸線・水面・通り・建物・城壁）を
     // もとに、各地域の古地図の様式で描いたオリジナル画像（`scripts/global_maps/render_world.py`）。
     // 中国の都市は、端末のGPSと同じ世界測地系（WGS84）の座標で描いている。
@@ -434,6 +534,16 @@ extension OldMapCatalog {
         paris,
         london,
         brussels,
+        pragueKafka,
+        viennaThirdMan,
+        veniceMerchant,
+        romeAngelsDemons,
+        florenceReiseiJonetsu,
+        parisHugo,
+        londonHolmes,
+        edinburghOldTown,
+        dublinUlysses,
+        berlinMaihime,
         beijing,
         xian,
         lhasa,
@@ -471,6 +581,16 @@ extension OldMapCatalog {
         "paris-montmartre": .westernEurope,
         "london-shakespeare": .westernEurope,
         "brussels-1850": .westernEurope,
+        "prague-kafka": .novelSettings,
+        "vienna-third-man": .novelSettings,
+        "venice-merchant": .novelSettings,
+        "rome-angels-demons": .novelSettings,
+        "florence-reisei-jonetsu": .novelSettings,
+        "paris-hugo": .novelSettings,
+        "london-holmes": .novelSettings,
+        "edinburgh-old-town": .novelSettings,
+        "dublin-ulysses": .novelSettings,
+        "berlin-maihime": .novelSettings,
         "beijing-qing": .ancientCapitals,
         "xian-changan": .ancientCapitals,
         "lhasa-holy-city": .ancientCapitals,

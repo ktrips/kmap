@@ -512,6 +512,206 @@
       "webImage": "old_map_brussels.jpg"
     },
     {
+      "swiftName": "pragueKafka",
+      "id": "prague-kafka",
+      "title": "プラハ（カフカと『プラハの春』）",
+      "era": "1910年代〜1968年（カフカの時代からプラハの春まで）",
+      "summary": "カフカが生まれ、『変身』『城』を書いた百塔の都。春江一也『プラハの春』で描かれた1968年の街も重ねて、旧市街広場・黄金の小路・カレル橋・ヴァーツラフ広場をめぐります。",
+      "imageAssetName": "OldMap_Prague",
+      "southWest": [
+        50.0739,
+        14.3967
+      ],
+      "northEast": [
+        50.099,
+        14.4359
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_prague.jpg"
+    },
+    {
+      "swiftName": "viennaThirdMan",
+      "id": "vienna-third-man",
+      "title": "ウィーン（『第三の男』の街）",
+      "era": "1948年頃（四か国分割占領下）",
+      "summary": "グレアム・グリーン『第三の男』の舞台、占領下のウィーン。ハリー・ライムが姿を現す戸口、偽の事故現場のヨーゼフ広場、プラーターの大観覧車をめぐります。宮本輝『ドナウの旅人』の出発点でもある街です。",
+      "imageAssetName": "OldMap_Vienna",
+      "southWest": [
+        48.1918,
+        16.3507
+      ],
+      "northEast": [
+        48.2286,
+        16.4059
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_vienna.jpg"
+    },
+    {
+      "swiftName": "veniceMerchant",
+      "id": "venice-merchant",
+      "title": "ヴェネツィア（『ヴェニスの商人』）",
+      "era": "16世紀（ヴェネツィア共和国の黄金期）",
+      "summary": "シェイクスピア『ヴェニスの商人』と、塩野七生『緋色のヴェネツィア』の舞台となった海の共和国。商人が集うリアルト、シャイロックの住むゲットー、裁判の場となったドゥカーレ宮殿をめぐります。",
+      "imageAssetName": "OldMap_Venice",
+      "southWest": [
+        45.4251,
+        12.3198
+      ],
+      "northEast": [
+        45.4511,
+        12.3569
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_venice.jpg"
+    },
+    {
+      "swiftName": "romeAngelsDemons",
+      "id": "rome-angels-demons",
+      "title": "ローマ（『天使と悪魔』の道）",
+      "era": "ルネサンス〜バロック（17世紀）",
+      "summary": "ダン・ブラウン『天使と悪魔』で、ラングドン教授が「啓示の道」をたどったローマ。土・風・火・水の四つの祭壇と、光の教会へ続く道をめぐります。",
+      "imageAssetName": "OldMap_Rome",
+      "southWest": [
+        41.883,
+        12.446
+      ],
+      "northEast": [
+        41.9271,
+        12.5052
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_rome.jpg"
+    },
+    {
+      "swiftName": "florenceReiseiJonetsu",
+      "id": "florence-reisei-jonetsu",
+      "title": "フィレンツェ（『冷静と情熱のあいだ』）",
+      "era": "ルネサンス（15世紀）の街並みと1990年代の物語",
+      "summary": "江國香織・辻仁成『冷静と情熱のあいだ』で、順正とあおいが「30歳の誕生日に」と約束したフィレンツェ。ドゥオーモのクーポラ、ヴェッキオ橋、アルノ川の対岸までをめぐります。",
+      "imageAssetName": "OldMap_Florence",
+      "southWest": [
+        43.7595,
+        11.2457
+      ],
+      "northEast": [
+        43.7765,
+        11.2693
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_florence.jpg"
+    },
+    {
+      "swiftName": "parisHugo",
+      "id": "paris-hugo",
+      "title": "パリ・シテ島と左岸（ユゴーの物語）",
+      "era": "1830年代（『ノートルダム・ド・パリ』『レ・ミゼラブル』の時代）",
+      "summary": "ヴィクトル・ユゴー『ノートルダム・ド・パリ』と『レ・ミゼラブル』の舞台。ノートルダム大聖堂、ユゴーが暮らしたヴォージュ広場、マリウスとコゼットが出会ったリュクサンブール公園をめぐります。",
+      "imageAssetName": "OldMap_ParisHugo",
+      "southWest": [
+        48.8382,
+        2.3253
+      ],
+      "northEast": [
+        48.8714,
+        2.3759
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_paris_hugo.jpg"
+    },
+    {
+      "swiftName": "londonHolmes",
+      "id": "london-holmes",
+      "title": "ロンドン（シャーロック・ホームズの時代）",
+      "era": "1890年頃（ヴィクトリア朝）",
+      "summary": "コナン・ドイル『シャーロック・ホームズ』シリーズのロンドン。ベーカー街221B、依頼人が泊まったランガム・ホテル、ワトソンが相棒と出会うきっかけのクライテリオン・バーをめぐります。",
+      "imageAssetName": "OldMap_LondonHolmes",
+      "southWest": [
+        51.498,
+        -0.1696
+      ],
+      "northEast": [
+        51.5357,
+        -0.1089
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_london_holmes.jpg"
+    },
+    {
+      "swiftName": "edinburghOldTown",
+      "id": "edinburgh-old-town",
+      "title": "エディンバラ旧市街（ジキルとハイド、ハリー・ポッター）",
+      "era": "18〜19世紀（スティーヴンソンの時代）",
+      "summary": "スティーヴンソン『ジキル博士とハイド氏』のモデルになった二重生活の男が暮らし、J・K・ローリングが『ハリー・ポッター』を書いた街。城からロイヤル・マイル、ダイアゴン横丁のモデルの坂道をめぐります。",
+      "imageAssetName": "OldMap_Edinburgh",
+      "southWest": [
+        55.9432,
+        -3.2075
+      ],
+      "northEast": [
+        55.9575,
+        -3.1819
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_edinburgh.jpg"
+    },
+    {
+      "swiftName": "dublinUlysses",
+      "id": "dublin-ulysses",
+      "title": "ダブリン（ジョイス『ユリシーズ』）",
+      "era": "1904年6月16日（ブルームズデイ）",
+      "summary": "ジェイムズ・ジョイス『ユリシーズ』で、レオポルド・ブルームが1904年6月16日の1日を歩き回ったダブリン。ブルームの家、昼食の店、レモン石鹸の薬局をめぐります。",
+      "imageAssetName": "OldMap_Dublin",
+      "southWest": [
+        53.3357,
+        -6.283
+      ],
+      "northEast": [
+        53.3644,
+        -6.2348
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_dublin.jpg"
+    },
+    {
+      "swiftName": "berlinMaihime",
+      "id": "berlin-maihime",
+      "title": "ベルリン（森鷗外『舞姫』）",
+      "era": "1888年頃（ドイツ帝国の都）",
+      "summary": "森鷗外が留学し、『舞姫』で太田豊太郎と踊り子エリスの恋を描いたベルリン。ウンター・デン・リンデンの大通りから、エリスと出会ったクロスター通りの古寺までをめぐります。",
+      "imageAssetName": "OldMap_Berlin",
+      "southWest": [
+        52.4999,
+        13.3679
+      ],
+      "northEast": [
+        52.5331,
+        13.4225
+      ],
+      "notes": [],
+      "boundsNotes": [],
+      "category": "novelSettings",
+      "webImage": "old_map_berlin.jpg"
+    },
+    {
       "swiftName": "beijing",
       "id": "beijing-qing",
       "title": "北京・紫禁城と内城（清代）",
